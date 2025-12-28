@@ -5,13 +5,11 @@ struct ContentView: View {
     @State private var waterCount: Int = 0
     @State private var showWaterPicker: Bool = false
     
-    // Dummy calorie data (wire real data later)
     let caloriesConsumed: Double = 1450
     let caloriesLimit: Double = 2200
     
     var body: some View {
         ZStack {
-            // Background
             Color(red: 0.06, green: 0.06, blue: 0.07)
                 .ignoresSafeArea()
             
@@ -27,12 +25,8 @@ struct ContentView: View {
                 }
                 .padding(.top, 20)
                 
-                // Daily Progress Card
-                DashboardCard(
-                    title: "Daily Progress",
-                    subtitle: "Overview of your day",
-                    glowStrength: 0.35
-                )
+                // 🔷 DAILY PROGRESS CONTAINER
+                DailyProgressContainer(waterCount: waterCount)
                 
                 // Floating Calories Ring
                 CaloriesRing(
@@ -40,7 +34,7 @@ struct ContentView: View {
                     limit: caloriesLimit
                 )
                 
-                // Water Card
+                // Water Card (detailed)
                 DashboardCard(
                     title: "Water Intake",
                     subtitle: "\(waterCount) / 8 glasses",
@@ -59,7 +53,6 @@ struct ContentView: View {
             }
             .padding(.horizontal)
             
-            // Water Picker Overlay
             if showWaterPicker {
                 WaterPickerView(
                     waterCount: $waterCount,
@@ -73,6 +66,245 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Daily Progress Container
+struct DailyProgressContainer: View {
+    
+    let waterCount: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            
+            Text("Daily Progress")
+                .font(.headline)
+                .foregroundColor(.white)
+            
+            VStack(spacing: 12) {
+                
+                // ROW 1
+                HStack(spacing: 12) {
+                    TodoLineChartCard()
+                    WeightProgressCard()
+                }
+                
+                // ROW 2
+                HStack(spacing: 12) {
+                    GymIntensityCard()
+                    MoodScaleCard()
+                }
+                
+                // ROW 3
+                HStack(spacing: 12) {
+                    WaterSummaryCard(waterCount: waterCount)
+                    FoodQualityCard()
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(red: 0.12, green: 0.12, blue: 0.14))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.blue.opacity(0.6), lineWidth: 1)
+        )
+        .shadow(color: Color.blue.opacity(0.4),
+                radius: 14,
+                x: 0,
+                y: 0)
+    }
+}
+
+// MARK: - Mini Card: To-Do Line Chart
+struct TodoLineChartCard: View {
+    
+    let dummyData: [CGFloat] = [2, 4, 3, 5, 4, 6, 5]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("To‑Do")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            GeometryReader { geo in
+                Path { path in
+                    for index in dummyData.indices {
+                        let x = geo.size.width / CGFloat(dummyData.count - 1) * CGFloat(index)
+                        let y = geo.size.height - (dummyData[index] / 6 * geo.size.height)
+                        
+                        if index == 0 {
+                            path.move(to: CGPoint(x: x, y: y))
+                        } else {
+                            path.addLine(to: CGPoint(x: x, y: y))
+                        }
+                    }
+                }
+                .stroke(Color.blue, lineWidth: 2)
+            }
+            .frame(height: 50)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.10, green: 0.10, blue: 0.12))
+        )
+    }
+}
+
+// MARK: - Mini Card: Weight Progress
+struct WeightProgressCard: View {
+    
+    let currentWeight: Double = 72.5
+    let targetWeight: Double = 68.0
+    
+    var difference: Double {
+        currentWeight - targetWeight
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Weight")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Text("\(currentWeight, specifier: "%.1f") kg")
+                .font(.headline)
+                .foregroundColor(.white)
+            
+            Text(difference > 0 ?
+                 "\(difference, specifier: "%.1f") kg to go" :
+                 "Goal reached")
+                .font(.caption)
+                .foregroundColor(difference > 0 ? .orange : .green)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.10, green: 0.10, blue: 0.12))
+        )
+    }
+}
+
+// MARK: - Mini Card: Gym Intensity
+struct GymIntensityCard: View {
+    
+    let intensity: String = "High"
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Gym")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Text(intensity)
+                .font(.headline)
+                .foregroundColor(.white)
+            
+            HStack(spacing: 4) {
+                ForEach(0..<3) { _ in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.blue)
+                        .frame(width: 12, height: 6)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.10, green: 0.10, blue: 0.12))
+        )
+    }
+}
+
+// MARK: - Mini Card: Mood Scale
+struct MoodScaleCard: View {
+    
+    let mood: String = "😊"
+    let label: String = "Good"
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Mood")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Text(mood)
+                .font(.largeTitle)
+            
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.green)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.10, green: 0.10, blue: 0.12))
+        )
+    }
+}
+
+// MARK: - Mini Card: Water Summary
+struct WaterSummaryCard: View {
+    
+    let waterCount: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Water")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Text("\(waterCount) / 8")
+                .font(.headline)
+                .foregroundColor(.white)
+            
+            Text("glasses")
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.10, green: 0.10, blue: 0.12))
+        )
+    }
+}
+
+// MARK: - Mini Card: Food Quality
+struct FoodQualityCard: View {
+    
+    let highProtein: Bool = true
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Food")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Text(highProtein ? "High Protein" : "Low Protein")
+                .font(.headline)
+                .foregroundColor(highProtein ? .green : .orange)
+            
+            Text("Mess")
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.10, green: 0.10, blue: 0.12))
+        )
+    }
+}
+
+// MARK: - Calories Ring
 struct CaloriesRing: View {
     
     let consumed: Double
@@ -84,11 +316,9 @@ struct CaloriesRing: View {
     
     var body: some View {
         ZStack {
-            // Ring background
             Circle()
                 .stroke(Color.blue.opacity(0.15), lineWidth: 16)
             
-            // Progress ring
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(
@@ -100,7 +330,6 @@ struct CaloriesRing: View {
                 )
                 .rotationEffect(.degrees(-90))
             
-            // Center Text
             VStack(spacing: 6) {
                 Text("Calorie Budget")
                     .font(.headline)
@@ -126,6 +355,7 @@ struct CaloriesRing: View {
     }
 }
 
+// MARK: - Dashboard Card
 struct DashboardCard: View {
     let title: String
     let subtitle: String
@@ -133,16 +363,13 @@ struct DashboardCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Text(title)
                 .font(.headline)
                 .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
             
             Text(subtitle)
                 .font(.subheadline)
                 .foregroundColor(.gray)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()
         .frame(maxWidth: .infinity)
@@ -161,6 +388,7 @@ struct DashboardCard: View {
     }
 }
 
+// MARK: - Water Picker
 struct WaterPickerView: View {
     
     @Binding var waterCount: Int
@@ -175,7 +403,6 @@ struct WaterPickerView: View {
                 }
             
             VStack(spacing: 24) {
-                
                 Text("Water Intake")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -189,17 +416,15 @@ struct WaterPickerView: View {
                 }
                 .pickerStyle(.wheel)
                 
-                Button(action: {
+                Button("Done") {
                     isPresented = false
-                }) {
-                    Text("Done")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.black)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
-                        .cornerRadius(12)
                 }
+                .fontWeight(.semibold)
+                .foregroundColor(.black)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.blue)
+                .cornerRadius(12)
             }
             .padding()
             .background(
