@@ -2,6 +2,12 @@ import SwiftUI
 import HealthKit
 import Combine
 
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
 // MARK: - Mini Card Type
 enum MiniCardType: Hashable {
     case todo, weight, gym, mood, water, food
@@ -44,10 +50,12 @@ struct Exercise: Identifiable, Codable {
 struct DayWorkout: Codable {
     var exercises: [Exercise]
     var treadmillDone: Bool
+    var treadmillDuration: Double = 20.0  // NEW: Variable minutes
     
-    init(exercises: [Exercise] = [], treadmillDone: Bool = false) {
+    init(exercises: [Exercise] = [], treadmillDone: Bool = false, treadmillDuration: Double = 20.0) {
         self.exercises = exercises
         self.treadmillDone = treadmillDone
+        self.treadmillDuration = treadmillDuration
     }
     
     var totalSets: Int {
@@ -55,13 +63,24 @@ struct DayWorkout: Codable {
     }
     
     var intensity: String {
+        // If both exercises and treadmill done
         if totalSets >= 6 && treadmillDone {
             return "High"
-        } else if totalSets >= 6 {
+        }
+        // Only exercises (6+ sets)
+        else if totalSets >= 6 {
             return "Medium"
-        } else if totalSets >= 3 {
+        }
+        // Some exercises (3-5 sets) or exercises + treadmill
+        else if totalSets >= 3 || (totalSets > 0 && treadmillDone) {
             return "Low"
-        } else {
+        }
+        // Only treadmill (no exercises)
+        else if treadmillDone {
+            return "Low"
+        }
+        // Nothing done
+        else {
             return "Rest"
         }
     }
@@ -355,57 +374,180 @@ class CalorieSettings {
 
 // MARK: - Calorie Calculator (Based on MET values)
 class CalorieCalculator {
-    
-    // MET values based on scientific research for strength training
     static let exerciseMETs: [BodyPart: Double] = [
-        .chest: 6.0,      // Bench press, push-ups (vigorous)
-        .back: 6.0,       // Rows, pull-ups (vigorous)
-        .shoulders: 5.5,  // Overhead press (moderate-vigorous)
-        .arms: 5.0,       // Bicep curls, tricep extensions
-        .legs: 6.5,       // Squats, deadlifts (high intensity)
-        .abs: 5.0,        // Core exercises
-        .cardio: 8.0      // General cardio training
+        .chest: 6.0, .back: 6.0, .shoulders: 5.5, .arms: 5.0,
+        .legs: 6.5, .abs: 5.0, .cardio: 8.0
     ]
     
-    // Calculate calories for ONE SET of exercise
-    // Formula: (MET × 3.5 × weight_kg / 200) × duration_minutes
-    // Average set duration: 2.5 minutes (work + rest between sets)
     static func caloriesPerSet(bodyPart: BodyPart, weightKg: Double) -> Double {
         let met = exerciseMETs[bodyPart] ?? 5.0
-        let durationMinutes = 2.5 // Average time per set including rest
-        
-        let calories = (met * 3.5 * weightKg / 200.0) * durationMinutes
-        return calories
+        let durationMinutes = 2.5
+        return (met * 3.5 * weightKg / 200.0) * durationMinutes
     }
     
-    // Calculate calories for treadmill at 15% incline, 20 minutes
-    // MET for walking at 15% incline ≈ 8.5 (brisk uphill)
-    static func treadmillCalories(weightKg: Double) -> Double {
-        let met = 8.5 // 15% incline at moderate pace (3.0-3.5 mph)
-        let durationMinutes = 20.0
-        
-        let calories = (met * 3.5 * weightKg / 200.0) * durationMinutes
-        return calories
+    // FIXED: Now takes specific workout duration
+    static func treadmillCalories(weightKg: Double, durationMinutes: Double) -> Double {
+        let met = 8.5 // 15% incline walking
+        return (met * 3.5 * weightKg / 200.0) * durationMinutes
     }
     
-    // Calculate total workout calories for the day
+    // FIXED: Purely calculates from THIS workout's data only
     static func totalWorkoutCalories(workout: DayWorkout, weightKg: Double) -> Double {
         var total: Double = 0
         
-        // Add calories from exercises
+        // Exercises calories (day-specific)
         for exercise in workout.exercises {
-            let caloriesPerSet = self.caloriesPerSet(bodyPart: exercise.bodyPart, weightKg: weightKg)
+            let caloriesPerSet = caloriesPerSet(bodyPart: exercise.bodyPart, weightKg: weightKg)
             total += caloriesPerSet * Double(exercise.setsCompleted)
         }
         
-        // Add treadmill calories
+        // Treadmill calories (day-specific duration)
         if workout.treadmillDone {
-            total += treadmillCalories(weightKg: weightKg)
+            total += treadmillCalories(weightKg: weightKg, durationMinutes: workout.treadmillDuration)
         }
         
         return total
     }
 }
+
+// MARK: - Workout Database Manager
+class WorkoutDatabaseManager: ObservableObject {
+    static let shared = WorkoutDatabaseManager()
+    
+    @Published var allDailyWorkouts: [String: DayWorkout] = [:]
+    private let allDailyWorkoutsKey = "allDailyWorkouts"
+    
+    private init() {
+        loadAllWorkouts()
+    }
+    
+    var dailyWorkout: DayWorkout {
+        loadWorkoutForDay(currentDayName())
+    }
+    
+    func getTotalCaloriesBurned(weight: Double) -> Double {
+        return getCaloriesBurnedForDay(currentDayName(), weightKg: weight)
+    }
+    
+    func selectDate(_ date: Date) {
+        // No-op for compatibility
+    }
+    
+    func getCaloriesBurnedForDay(_ day: String, weightKg: Double) -> Double {
+        let workout = loadWorkoutForDay(day)
+        return CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: weightKg)
+    }
+    
+    func checkWeeklyReset() {
+        let calendar = Calendar.current
+        let today = Date()
+        let weekday = calendar.component(.weekday, from: today)
+        
+        if weekday == 2 {
+            let lastSundayKey = dayToDateKey("Sunday")
+            allDailyWorkouts.removeValue(forKey: lastSundayKey)
+            saveAllWorkouts()
+        }
+    }
+    
+    func loadWorkoutForDay(_ day: String) -> DayWorkout {
+        let dateKey = dayToDateKey(day)
+        return allDailyWorkouts[dateKey] ?? DayWorkout()
+    }
+    
+    func toggleTreadmillForDay(_ day: String, durationMinutes: Double) {
+        let dateKey = dayToDateKey(day)
+        var workout = allDailyWorkouts[dateKey] ?? DayWorkout()
+        workout.treadmillDone.toggle()
+        workout.treadmillDuration = durationMinutes
+        allDailyWorkouts[dateKey] = workout
+        saveAllWorkouts()
+    }
+    
+    func cycleExerciseSetsForDay(_ day: String, exerciseId: UUID) {
+        let dateKey = dayToDateKey(day)
+        var workout = allDailyWorkouts[dateKey] ?? DayWorkout()
+        
+        if let index = workout.exercises.firstIndex(where: { $0.id == exerciseId }) {
+            let current = workout.exercises[index].setsCompleted
+            let max = workout.exercises[index].maxSets
+            workout.exercises[index].setsCompleted = (current + 1) % (max + 1)
+        }
+        
+        allDailyWorkouts[dateKey] = workout
+        saveAllWorkouts()
+    }
+    
+    func deleteExerciseForDay(_ day: String, exerciseId: UUID) {
+        let dateKey = dayToDateKey(day)
+        var workout = allDailyWorkouts[dateKey] ?? DayWorkout()
+        workout.exercises.removeAll { $0.id == exerciseId }
+        allDailyWorkouts[dateKey] = workout
+        saveAllWorkouts()
+    }
+    
+    func addExerciseForDay(_ day: String, exercise: Exercise) {
+        let dateKey = dayToDateKey(day)
+        var workout = allDailyWorkouts[dateKey] ?? DayWorkout()
+        workout.exercises.append(exercise)
+        allDailyWorkouts[dateKey] = workout
+        saveAllWorkouts()
+    }
+    func dayToDateKeyPublic(_ dayName: String) -> String {
+        return dayToDateKey(dayName)
+    }
+
+    func saveAllWorkoutsPublic() {
+        saveAllWorkouts()
+    }
+    private func currentDayName() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter.string(from: Date())
+    }
+    
+    private func dayToDateKey(_ dayName: String) -> String {
+        let calendar = Calendar.current
+        let today = Date()
+        let todayWeekday = calendar.component(.weekday, from: today)
+        let todayIndex = (todayWeekday + 5) % 7
+        
+        let dayIndex: Int
+        switch dayName {
+        case "Monday": dayIndex = 0
+        case "Tuesday": dayIndex = 1
+        case "Wednesday": dayIndex = 2
+        case "Thursday": dayIndex = 3
+        case "Friday": dayIndex = 4
+        case "Saturday": dayIndex = 5
+        case "Sunday": dayIndex = 6
+        default: dayIndex = 0
+        }
+        
+        let daysOffset = dayIndex - todayIndex
+        let targetDate = calendar.date(byAdding: .day, value: daysOffset, to: today)!
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: targetDate)
+    }
+    
+    private func saveAllWorkouts() {
+        if let encoded = try? JSONEncoder().encode(allDailyWorkouts) {
+            UserDefaults.standard.set(encoded, forKey: allDailyWorkoutsKey)
+        }
+        objectWillChange.send()
+    }
+    
+    private func loadAllWorkouts() {
+        guard let data = UserDefaults.standard.data(forKey: allDailyWorkoutsKey),
+              let decoded = try? JSONDecoder().decode([String: DayWorkout].self, from: data) else {
+            return
+        }
+        allDailyWorkouts = decoded
+    }
+}
+
 
 // MARK: - Food Item Model
 struct FoodItem: Identifiable, Codable, Hashable {
@@ -432,6 +574,23 @@ struct FoodItem: Identifiable, Codable, Hashable {
         self.mealType = mealType
         self.timestamp = timestamp
     }
+    func scaled(toGrams grams: Double) -> FoodItem {
+            // Assuming base values are per 100g
+            let multiplier = grams / 100.0
+            
+            return FoodItem(
+                id: self.id,
+                name: self.name,
+                calories: self.calories * multiplier,
+                protein: self.protein * multiplier,
+                carbs: self.carbs * multiplier,
+                fat: self.fat * multiplier,
+                servingSize: "\(Int(grams))g",
+                barcode: self.barcode,
+                mealType: self.mealType,
+                timestamp: self.timestamp
+            )
+        }
 }
 
 // MARK: - Daily Food Log
@@ -487,17 +646,45 @@ class FoodDatabaseManager: ObservableObject {
     @Published var recentFoods: [FoodItem] = []
     @Published var favoriteFoods: [FoodItem] = []
     @Published var dailyLog: DailyFoodLog = DailyFoodLog()
+    @Published var selectedDate: Date = Date() // ✅ NEW - Track which date we're viewing
     
     private let recentFoodsKey = "recentFoods"
     private let favoriteFoodsKey = "favoriteFoods"
-    private let dailyLogKey = "dailyFoodLog"
+    private let allDailyLogsKey = "allDailyFoodLogs" // ✅ NEW - Store all days
+    
+    // ✅ NEW - Dictionary to store logs for multiple days
+    private var allDailyLogs: [String: DailyFoodLog] = [:]
     
     init() {
         loadData()
+        loadDailyLogForSelectedDate()
+    }
+    
+    // ✅ NEW - Change the viewing date
+    func selectDate(_ date: Date) {
+        selectedDate = date
+        loadDailyLogForSelectedDate()
+    }
+    
+    // ✅ NEW - Load food log for selected date
+    private func loadDailyLogForSelectedDate() {
+        let dateKey = dateToString(selectedDate)
+        dailyLog = allDailyLogs[dateKey] ?? DailyFoodLog()
+    }
+    
+    // ✅ NEW - Convert date to string key (YYYY-MM-DD)
+    private func dateToString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
     
     func addFood(_ food: FoodItem) {
         dailyLog.addFood(food)
+        
+        // ✅ NEW - Save to the correct date
+        let dateKey = dateToString(selectedDate)
+        allDailyLogs[dateKey] = dailyLog
         
         // Add to recent foods
         if let index = recentFoods.firstIndex(where: { $0.name == food.name }) {
@@ -513,6 +700,11 @@ class FoodDatabaseManager: ObservableObject {
     
     func removeFood(_ foodId: UUID) {
         dailyLog.removeFood(foodId)
+        
+        // ✅ NEW - Save to the correct date
+        let dateKey = dateToString(selectedDate)
+        allDailyLogs[dateKey] = dailyLog
+        
         saveData()
     }
     
@@ -536,8 +728,10 @@ class FoodDatabaseManager: ObservableObject {
         if let encoded = try? JSONEncoder().encode(favoriteFoods) {
             UserDefaults.standard.set(encoded, forKey: favoriteFoodsKey)
         }
-        if let encoded = try? JSONEncoder().encode(dailyLog) {
-            UserDefaults.standard.set(encoded, forKey: dailyLogKey)
+        
+        // ✅ NEW - Save all daily logs
+        if let encoded = try? JSONEncoder().encode(allDailyLogs) {
+            UserDefaults.standard.set(encoded, forKey: allDailyLogsKey)
         }
     }
     
@@ -550,9 +744,11 @@ class FoodDatabaseManager: ObservableObject {
            let decoded = try? JSONDecoder().decode([FoodItem].self, from: data) {
             favoriteFoods = decoded
         }
-        if let data = UserDefaults.standard.data(forKey: dailyLogKey),
-           let decoded = try? JSONDecoder().decode(DailyFoodLog.self, from: data) {
-            dailyLog = decoded
+        
+        // ✅ NEW - Load all daily logs
+        if let data = UserDefaults.standard.data(forKey: allDailyLogsKey),
+           let decoded = try? JSONDecoder().decode([String: DailyFoodLog].self, from: data) {
+            allDailyLogs = decoded
         }
     }
     
@@ -568,7 +764,6 @@ class FoodDatabaseManager: ObservableObject {
         FoodItem(name: "Almonds (28g)", calories: 164, protein: 6, carbs: 6, fat: 14, servingSize: "28g", mealType: .breakfast)
     ]
 }
-
 // MARK: - Quick Actions Menu
 struct QuickActionsMenu: View {
     @Binding var isPresented: Bool
@@ -651,7 +846,25 @@ struct QuickActionsMenu: View {
 struct MealDetailView: View {
     @Binding var foodLog: DailyFoodLog
     @Binding var isPresented: Bool
+    let selectedDate: Date // ✅ NEW
+    let onDateChange: (Date) -> Void // ✅ NEW
     let onAddFood: (MealType) -> Void
+    
+    // ✅ NEW - Format date display
+    var displayDate: String {
+        let formatter = DateFormatter()
+        
+        if Calendar.current.isDateInToday(selectedDate) {
+            return "Today's Meals"
+        } else if Calendar.current.isDateInYesterday(selectedDate) {
+            return "Yesterday's Meals"
+        } else if Calendar.current.isDateInTomorrow(selectedDate) {
+            return "Tomorrow's Meals"
+        } else {
+            formatter.dateFormat = "MMM d, yyyy"
+            return formatter.string(from: selectedDate) + " Meals"
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -663,20 +876,42 @@ struct MealDetailView: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Today's Meals")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                    // Header with date navigation
+                    VStack(spacing: 12) {
+                        HStack {
+                            Button(action: {
+                                let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+                                onDateChange(yesterday)
+                            }) {
+                                Image(systemName: "chevron.left.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
                             
-                            Text("\(Int(foodLog.totalCalories())) calories")
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
+                            Spacer()
+                            
+                            VStack(spacing: 4) {
+                                Text(displayDate)
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                
+                                Text("\(Int(foodLog.totalCalories())) calories")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+                                onDateChange(tomorrow)
+                            }) {
+                                Image(systemName: "chevron.right.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
                         }
-                        
-                        Spacer()
                         
                         Button(action: { isPresented = false }) {
                             Image(systemName: "xmark.circle.fill")
@@ -696,7 +931,7 @@ struct MealDetailView: View {
                     mealSection("Breakfast", .breakfast, foodLog.breakfast)
                     mealSection("Lunch", .lunch, foodLog.lunch)
                     mealSection("Dinner", .dinner, foodLog.dinner)
-                    mealSection("Snacks", .breakfast, foodLog.snacks) // Using breakfast type for snacks
+                    mealSection("Snacks", .breakfast, foodLog.snacks)
                     
                     Spacer(minLength: 40)
                 }
@@ -795,7 +1030,6 @@ struct MealDetailView: View {
         }
     }
 }
-
 // MARK: - Food Search View
 struct FoodSearchView: View {
     @Binding var isPresented: Bool
@@ -804,6 +1038,8 @@ struct FoodSearchView: View {
     
     @State private var searchText = ""
     @State private var showingCustomFood = false
+    @State private var showPortionSelector = false
+    @State private var scannedFood: FoodItem? = nil
     
     var filteredFoods: [FoodItem] {
         if searchText.isEmpty {
@@ -899,20 +1135,32 @@ struct FoodSearchView: View {
             .background(Color(red: 0.1, green: 0.1, blue: 0.12))
             .cornerRadius(20)
             .padding(.horizontal, 20)
-            .padding(.vertical, 60)
-            
-            if showingCustomFood {
-                CustomFoodView(
-                    isPresented: $showingCustomFood,
-                    mealType: selectedMeal,
-                    onSave: { food in
-                        onFoodSelected(food)
-                        isPresented = false
+                        .padding(.vertical, 60)
+                        
+                        if showingCustomFood {
+                            CustomFoodView(
+                                isPresented: $showingCustomFood,
+                                mealType: selectedMeal,
+                                onSave: { food in
+                                    onFoodSelected(food)
+                                    isPresented = false
+                                }
+                            )
+                        }
+                        
+                        // ✅ ADD THIS NEW OVERLAY FOR PORTION SELECTOR
+                        if showPortionSelector, let food = scannedFood {
+                            PortionSizeSelectorView(
+                                isPresented: $showPortionSelector,
+                                baseFood: food,
+                                onConfirm: { scaledFood in
+                                    onFoodSelected(scaledFood)
+                                    isPresented = false
+                                }
+                            )
+                        }
                     }
-                )
-            }
-        }
-    }
+                }
     
     func tabButton(_ title: String, _ isSelected: Bool) -> some View {
         Button(action: {}) {
@@ -929,8 +1177,16 @@ struct FoodSearchView: View {
         Button(action: {
             var selectedFood = food
             selectedFood.mealType = selectedMeal
-            onFoodSelected(selectedFood)
-            isPresented = false
+            
+            // If food has barcode (from database), show portion selector
+            if food.barcode != nil {
+                scannedFood = selectedFood
+                showPortionSelector = true
+            } else {
+                // For manual entries without barcode, add directly
+                onFoodSelected(selectedFood)
+                isPresented = false
+            }
         }) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -1692,7 +1948,75 @@ enum QuickActionType {
 // MARK: - Enhanced Health Manager Extension
 extension HealthManager {
     
-    // Update authorization to include active energy
+    // ✅ 1. Delete today's workout samples
+    func deleteTodaysWorkoutSamples(completion: @escaping (Bool) -> Void) {
+        guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else {
+            completion(false)
+            return
+        }
+        
+        let now = Date()
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+        
+        let query = HKSampleQuery(sampleType: energyType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+            
+            if let error = error {
+                print("❌ Error querying samples: \(error.localizedDescription)")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            
+            guard let samples = samples, !samples.isEmpty else {
+                print("ℹ️ No existing workout samples to delete")
+                DispatchQueue.main.async { completion(true) }
+                return
+            }
+            
+            print("🔍 Found \(samples.count) samples to delete")
+            
+            self.healthStore.delete(samples) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        print("✅ Deleted \(samples.count) old workout samples from Apple Health")
+                    } else {
+                        print("❌ Failed to delete samples: \(error?.localizedDescription ?? "Unknown error")")
+                    }
+                    completion(success)
+                }
+            }
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    // ✅ 2. Save workout calories (with deletion first)
+    func saveWorkoutCalories(_ calories: Double, workoutType: HKWorkoutActivityType = .traditionalStrengthTraining) {
+        guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return }
+        
+        deleteTodaysWorkoutSamples { success in
+            guard success else {
+                print("❌ Could not delete old samples, aborting save")
+                return
+            }
+            
+            let quantity = HKQuantity(unit: HKUnit.kilocalorie(), doubleValue: calories)
+            let now = Date()
+            let sample = HKQuantitySample(type: energyType, quantity: quantity, start: now.addingTimeInterval(-3600), end: now)
+            
+            self.healthStore.save(sample) { success, error in
+                if success {
+                    print("✅ Saved \(Int(calories)) calories to Apple Health")
+                } else {
+                    print("❌ Failed to save calories: \(error?.localizedDescription ?? "Unknown error")")
+                }
+            }
+        }
+    }
+    
+    // ✅ 3. Request full authorization
     func requestFullAuthorization() {
         guard HKHealthStore.isHealthDataAvailable() else {
             print("HealthKit not available")
@@ -1721,7 +2045,7 @@ extension HealthManager {
         }
     }
     
-    // Fetch walking/active calories from Apple Health
+    // ✅ 4. Fetch walking calories
     func fetchWalkingCalories(completion: @escaping (Double) -> Void) {
         guard let activeEnergyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else {
             completion(0)
@@ -1746,30 +2070,196 @@ extension HealthManager {
         
         healthStore.execute(query)
     }
+}
+
+// MARK: - Portion Size Selector View
+struct PortionSizeSelectorView: View {
+    @Binding var isPresented: Bool
+    let baseFood: FoodItem // The 100g version from barcode
+    let onConfirm: (FoodItem) -> Void
     
-    // Save workout calories to Apple Health
-    func saveWorkoutCalories(_ calories: Double, workoutType: HKWorkoutActivityType = .traditionalStrengthTraining) {
-        guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return }
-        
-        let quantity = HKQuantity(unit: HKUnit.kilocalorie(), doubleValue: calories)
-        let now = Date()
-        let sample = HKQuantitySample(type: energyType, quantity: quantity, start: now.addingTimeInterval(-3600), end: now)
-        
-        healthStore.save(sample) { success, error in
-            if success {
-                print("✅ Saved \(Int(calories)) calories to Apple Health")
-            } else {
-                print("❌ Failed to save calories: \(error?.localizedDescription ?? "Unknown")")
+    @State private var portionGrams: Double = 100
+    @State private var customInput: String = "100"
+    @FocusState private var isInputFocused: Bool  // ✅ NEW - Track keyboard focus
+    
+    // Common portion sizes
+    let commonPortions: [(String, Double)] = [
+        ("50g", 50),
+        ("100g", 100),
+        ("150g", 150),
+        ("200g", 200),
+        ("250g", 250),
+        ("500g", 500)
+    ]
+    
+    var scaledFood: FoodItem {
+        baseFood.scaled(toGrams: portionGrams)
+    }
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    hideKeyboard()  // ✅ Tap background to dismiss keyboard
+                }
+            
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("Set Portion Size")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text(baseFood.name)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                
+                // Quick Selection Buttons
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Quick Select")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        ForEach(commonPortions, id: \.0) { portion in
+                            Button(action: {
+                                portionGrams = portion.1
+                                customInput = String(Int(portion.1))
+                                hideKeyboard()  // ✅ Dismiss keyboard when quick selecting
+                            }) {
+                                Text(portion.0)
+                                    .font(.subheadline)
+                                    .fontWeight(portionGrams == portion.1 ? .bold : .regular)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(portionGrams == portion.1 ? Color.blue : Color(red: 0.2, green: 0.2, blue: 0.22))
+                                    )
+                            }
+                        }
+                    }
+                }
+                
+                // Custom Input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Custom Amount (grams)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    HStack {
+                        TextField("Grams", text: $customInput)
+                            .keyboardType(.numberPad)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color(red: 0.15, green: 0.15, blue: 0.17))
+                            .cornerRadius(10)
+                            .focused($isInputFocused)  // ✅ Track focus
+                            .onChange(of: customInput) { oldValue, newValue in
+                                if let grams = Double(newValue), grams > 0 {
+                                    portionGrams = grams
+                                }
+                            }
+                            .toolbar {  // ✅ Add toolbar with Done button
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Done") {
+                                        hideKeyboard()
+                                    }
+                                    .foregroundColor(.blue)
+                                }
+                            }
+                        
+                        Text("g")
+                            .foregroundColor(.gray)
+                            .padding(.trailing, 8)
+                    }
+                }
+                
+                // Nutrient Preview
+                VStack(spacing: 12) {
+                    Text("Nutrition for \(Int(portionGrams))g")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    
+                    HStack(spacing: 16) {
+                        nutrientBadge("Calories", Int(scaledFood.calories), "kcal", .orange)
+                        nutrientBadge("Protein", Int(scaledFood.protein), "g", .green)
+                    }
+                    
+                    HStack(spacing: 16) {
+                        nutrientBadge("Carbs", Int(scaledFood.carbs), "g", .blue)
+                        nutrientBadge("Fat", Int(scaledFood.fat), "g", .red)
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                )
+                
+                // Action Buttons
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(red: 0.2, green: 0.2, blue: 0.22))
+                    .cornerRadius(10)
+                    
+                    Button("Add Food") {
+                        hideKeyboard()  // ✅ Dismiss keyboard before confirming
+                        onConfirm(scaledFood)
+                        isPresented = false
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
+                }
             }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+            )
+            .padding(.horizontal, 40)
         }
+    }
+    
+    func nutrientBadge(_ label: String, _ value: Int, _ unit: String, _ color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text("\(value)\(unit)")
+                .font(.headline)
+                .foregroundColor(color)
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(red: 0.12, green: 0.12, blue: 0.14))
+        )
     }
 }
 
+
+    
 // MARK: - Home View
 struct HomeView: View {
     @ObservedObject var healthManager: HealthManager
     
     @StateObject private var foodDatabase = FoodDatabaseManager.shared
+    @StateObject private var workoutDatabase = WorkoutDatabaseManager.shared
     @State private var showQuickActions = false
     @State private var showMealDetail = false
     @State private var selectedMeal: MealType = .breakfast
@@ -1778,6 +2268,9 @@ struct HomeView: View {
     @State private var showAIMealScan = false
     @State private var waterCount: Int
     @State private var showWaterSlider = false
+    @State private var showPortionSelector = false
+    @State private var scannedFood: FoodItem? = nil
+    @State private var showDatePicker = false
     
     @State private var currentWeight: Double
     @State private var targetWeight: Double
@@ -1833,7 +2326,30 @@ struct HomeView: View {
     }
     
     var todayWorkout: DayWorkout {
-        weekGymLog[currentDay] ?? DayWorkout()
+        workoutDatabase.dailyWorkout
+    }
+    
+    var adjustedCalorieLimit: Double {
+        let baseLimit = 2200.0
+        let caloriesBurned = workoutDatabase.getTotalCaloriesBurned(weight: currentWeight)
+        let percentage = CalorieSettings.shared.loadPercentage()
+        let adjustment = caloriesBurned * percentage
+        return baseLimit + adjustment
+    }
+    
+    var displayDate: String {
+        let formatter = DateFormatter()
+        
+        if Calendar.current.isDateInToday(foodDatabase.selectedDate) {
+            return "Today"
+        } else if Calendar.current.isDateInYesterday(foodDatabase.selectedDate) {
+            return "Yesterday"
+        } else if Calendar.current.isDateInTomorrow(foodDatabase.selectedDate) {
+            return "Tomorrow"
+        } else {
+            formatter.dateFormat = "MMM d, yyyy"
+            return formatter.string(from: foodDatabase.selectedDate)
+        }
     }
     
     var body: some View {
@@ -1846,12 +2362,13 @@ struct HomeView: View {
                     headerView
                     
                     CaloriesRing(
-                        consumed: foodDatabase.dailyLog.totalCalories(),  // ✅ Changed
-                        limit: caloriesLimit
+                        consumed: foodDatabase.dailyLog.totalCalories(),
+                        limit: adjustedCalorieLimit,
+                        burned: workoutDatabase.getTotalCaloriesBurned(weight: currentWeight)
                     )
                     .padding(.top, 10)
                     .onTapGesture {
-                        showMealDetail = true  // ✅ Added - Tap to view meals
+                        showMealDetail = true
                     }
                     
                     DailyProgressContainer(
@@ -1881,7 +2398,6 @@ struct HomeView: View {
             
             overlays
             
-            // ✅ NEW - PLUS BUTTON (Bottom Right)
             VStack {
                 Spacer()
                 HStack {
@@ -1897,7 +2413,6 @@ struct HomeView: View {
                 }
             }
             
-            // ✅ NEW - Quick Actions Menu
             if showQuickActions {
                 QuickActionsMenu(
                     isPresented: $showQuickActions,
@@ -1905,11 +2420,14 @@ struct HomeView: View {
                 )
             }
             
-            // ✅ NEW - Meal Detail View
             if showMealDetail {
                 MealDetailView(
                     foodLog: $foodDatabase.dailyLog,
                     isPresented: $showMealDetail,
+                    selectedDate: foodDatabase.selectedDate,
+                    onDateChange: { newDate in
+                        foodDatabase.selectDate(newDate)
+                    },
                     onAddFood: { meal in
                         selectedMeal = meal
                         showFoodSearch = true
@@ -1917,7 +2435,6 @@ struct HomeView: View {
                 )
             }
             
-            // ✅ NEW - Food Search View
             if showFoodSearch {
                 FoodSearchView(
                     isPresented: $showFoodSearch,
@@ -1930,21 +2447,60 @@ struct HomeView: View {
         }
         .onAppear {
             healthManager.requestFullAuthorization()
-            calculateAndAddCaloriesToBank()
-            fetchAndAddWalkingCalories()
+            workoutDatabase.selectDate(foodDatabase.selectedDate)
+            syncWorkoutToAppleHealth()
         }
     }
-
     
     private var headerView: some View {
         HStack {
-            Text("Today")
-                .font(.largeTitle)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(displayDate)
+                    .font(.largeTitle)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                
+                HStack(spacing: 16) {
+                    Button(action: {
+                        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: foodDatabase.selectedDate)!
+                        foodDatabase.selectDate(yesterday)
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Previous")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                    
+                    Button(action: { showDatePicker = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "calendar")
+                            Text("Pick Date")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                    
+                    Button(action: {
+                        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: foodDatabase.selectedDate)!
+                        foodDatabase.selectDate(tomorrow)
+                    }) {
+                        HStack(spacing: 4) {
+                            Text("Next")
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                }
+            }
             Spacer()
         }
         .padding(.top, 20)
+        .sheet(isPresented: $showDatePicker) {
+            DatePickerSheet(selectedDate: $foodDatabase.selectedDate, isPresented: $showDatePicker)
+        }
     }
     
     @ViewBuilder
@@ -1986,12 +2542,12 @@ struct HomeView: View {
         
         if showGymWeekView {
             GymWeekView(
-                weekGymLog: $weekGymLog,
-                currentDay: currentDay,
+                healthManager: healthManager,
                 isPresented: $showGymWeekView,
                 onDismiss: {
-                    PersistenceManager.shared.saveWeekGymLog(weekGymLog)
-                }
+                    syncWorkoutToAppleHealth()
+                },
+                currentWeight: currentWeight
             )
         }
         
@@ -2000,23 +2556,32 @@ struct HomeView: View {
                 isPresented: $showBarcodeScanner,
                 selectedMeal: selectedMeal,
                 onBarcodeScanned: { barcode in
-                    print("🔍 Scanned barcode: \(barcode)")
+                    print("📷 Scanned barcode: \(barcode)")
                     
-                    // Show loading indicator (optional)
                     BarcodeFoodLookup.lookup(barcode: barcode) { food in
-                        if var scannedFood = food {
-                            scannedFood.mealType = selectedMeal
-                            foodDatabase.addFood(scannedFood)
-                            print("✅ Added: \(scannedFood.name) - \(Int(scannedFood.calories)) cal")
+                        if var scannedFoodItem = food {
+                            scannedFoodItem.mealType = selectedMeal
+                            scannedFood = scannedFoodItem
+                            showBarcodeScanner = false
+                            showPortionSelector = true
                         } else {
                             print("❌ Barcode not found in database: \(barcode)")
-                            // Show alert to user (optional)
                         }
                     }
                 }
             )
         }
-
+        
+        if showPortionSelector, let food = scannedFood {
+            PortionSizeSelectorView(
+                isPresented: $showPortionSelector,
+                baseFood: food,
+                onConfirm: { scaledFood in
+                    foodDatabase.addFood(scaledFood)
+                    print("✅ Added \(scaledFood.name) - \(scaledFood.servingSize) = \(Int(scaledFood.calories)) cal")
+                }
+            )
+        }
         
         if showAIMealScan {
             AIMealScanView(
@@ -2027,14 +2592,14 @@ struct HomeView: View {
                 }
             )
         }
-    }  // ← Closing brace stays here
-
+    }
     
     func handleCardTap(_ type: MiniCardType) {
         switch type {
         case .todo:
             showTodoWeekView = true
         case .gym:
+            workoutDatabase.selectDate(foodDatabase.selectedDate)
             showGymWeekView = true
         case .mood:
             moodIndex = (moodIndex + 1) % 3
@@ -2050,53 +2615,26 @@ struct HomeView: View {
             showWeightPicker = true
         }
     }
-
-    // MARK: - Calorie Tracking Integration
-    func calculateAndAddCaloriesToBank() {
-        // Get today's workout
-        let workout = weekGymLog[currentDay] ?? DayWorkout()
+    
+    func syncWorkoutToAppleHealth() {
+        let totalBurned = workoutDatabase.getTotalCaloriesBurned(weight: currentWeight)
         
-        // Calculate total calories burned from exercises
-        let totalBurned = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
-        
-        // Get percentage setting (50%, 75%, or 100%)
-        let percentage = CalorieSettings.shared.loadPercentage()
-        
-        // Calculate calories to add to bank
-        let caloriesToAdd = totalBurned * percentage
-        
-        // Add to consumed calories (giving back calorie budget)
-        healthManager.caloriesConsumed += caloriesToAdd
-        
-        // Save workout calories to Apple Health
-        if healthManager.isAuthorized {
+        if healthManager.isAuthorized && totalBurned > 0 {
             healthManager.saveWorkoutCalories(totalBurned)
         }
         
-        print("🔥 Burned: \(Int(totalBurned)) cal | Added to bank: \(Int(caloriesToAdd)) cal (\(Int(percentage * 100))%)")
+        let percentage = CalorieSettings.shared.loadPercentage()
+        let caloriesToBank = totalBurned * percentage
+        
+        print("🔥 Burned: \(Int(totalBurned)) cal | Added to bank: \(Int(caloriesToBank)) cal (\(Int(percentage * 100))%)")
     }
-
-    func fetchAndAddWalkingCalories() {
-        if healthManager.isAuthorized {
-            healthManager.fetchWalkingCalories { walkingCals in
-                let percentage = CalorieSettings.shared.loadPercentage()
-                let caloriesToAdd = walkingCals * percentage
-                
-                // Add walking calories to bank
-                self.healthManager.caloriesConsumed += caloriesToAdd
-                
-                print("🚶 Walking: \(Int(walkingCals)) cal | Added to bank: \(Int(caloriesToAdd)) cal (\(Int(percentage * 100))%)")
-            }
-        }
-    }
-
     
     func handleCardLongPress(_ type: MiniCardType) {
         if type == .water {
             showWaterSlider = true
         }
     }
-    // MARK: - Handle Quick Actions
+    
     func handleQuickAction(_ action: QuickActionType) {
         switch action {
         case .breakfast:
@@ -2109,7 +2647,7 @@ struct HomeView: View {
             selectedMeal = .dinner
             showFoodSearch = true
         case .snacks:
-            selectedMeal = .breakfast // Snacks use breakfast type
+            selectedMeal = .breakfast
             showFoodSearch = true
         case .exercise:
             showGymWeekView = true
@@ -2122,13 +2660,10 @@ struct HomeView: View {
             showWeightPicker = true
         case .barcodeScan:
             showBarcodeScanner = true
-            print("📷 Barcode scanner coming in next block")
         case .aiMealScan:
             showAIMealScan = true
-            print("🤖 AI meal scan coming in next block")
         }
     }
-
 }
 
 // MARK: - Other Tab Views
@@ -2219,7 +2754,6 @@ struct SettingsView: View {
         }
     }
 }
-
 
 struct ProfileView: View {
     var body: some View {
@@ -2354,6 +2888,7 @@ struct DailyProgressContainer: View {
 struct CaloriesRing: View {
     let consumed: Double
     let limit: Double
+    let burned: Double
     var progress: Double { min(consumed / limit, 1.0) }
     
     var body: some View {
@@ -2364,11 +2899,16 @@ struct CaloriesRing: View {
                 Text("Calorie Budget").font(.title3).fontWeight(.semibold).foregroundColor(.white)
                 Text("\(Int(consumed))").font(.system(size: 36, weight: .bold)).foregroundColor(.blue)
                 Text("of \(Int(limit))").font(.subheadline).foregroundColor(.gray)
+                
+                if burned > 0 {
+                    Text("🔥 \(Int(burned)) burned").font(.caption).foregroundColor(.orange)
+                }
             }
         }
         .frame(width: 220, height: 220)
     }
 }
+
 // MARK: - Water Slider Overlay
 struct WaterSliderOverlay: View {
     let waterCount: Int
@@ -2431,18 +2971,31 @@ struct WaterSliderOverlay: View {
     }
 }
 
-// MARK: - Gym Week View
+
+// MARK: - Gym Week View (Complete Updated Version)
+// FIXED: Day-specific calories, weekly reset, variable treadmill time
+
 struct GymWeekView: View {
-    @Binding var weekGymLog: [String: DayWorkout]
-    let currentDay: String
+    @StateObject private var workoutDatabase = WorkoutDatabaseManager.shared
+    @ObservedObject var healthManager: HealthManager
     @Binding var isPresented: Bool
     let onDismiss: () -> Void
+    let currentWeight: Double
     
-    @State private var selectedDay: String = ""
     @State private var selectedBodyPart: BodyPart = .chest
     @State private var selectedMaxSets: Int = 3
+    @State private var showAddExercise = false
+    @State private var selectedDay: String = ""
+    @State private var showTreadmillTimePicker = false
+    @State private var treadmillTime: Double = 20.0
     
     let daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
+    var currentDay: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter.string(from: Date())
+    }
     
     var body: some View {
         ZStack {
@@ -2455,17 +3008,26 @@ struct GymWeekView: View {
             
             ScrollView {
                 VStack(spacing: 24) {
-                    Text("Weekly Gym Plan")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                    // Header with calorie summary
+                    VStack(spacing: 12) {
+                        Text("Weekly Workout")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        Text("Today: \(Int(workoutDatabase.getCaloriesBurnedForDay(currentDay, weightKg: currentWeight))) cal burned")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
                     
+                    // Days list
                     VStack(spacing: 16) {
                         ForEach(daysOfWeek, id: \.self) { day in
                             dayCard(for: day)
                         }
                     }
                     
+                    // Done button
                     Button(action: {
                         onDismiss()
                         isPresented = false
@@ -2488,26 +3050,31 @@ struct GymWeekView: View {
             .padding(.horizontal, 32)
             .padding(.vertical, 60)
             
-            if !selectedDay.isEmpty {
+            // Add exercise popup
+            if showAddExercise {
                 addExercisePopup
             }
+            
+            // Treadmill time picker
+            if showTreadmillTimePicker {
+                treadmillTimePicker
+            }
+        }
+        .onAppear {
+            workoutDatabase.checkWeeklyReset()
         }
     }
     
+    // MARK: - Day Card
     private func dayCard(for day: String) -> some View {
-        VStack(spacing: 12) {
+        let workout = workoutDatabase.loadWorkoutForDay(day)
+        let caloriesBurned = workoutDatabase.getCaloriesBurnedForDay(day, weightKg: currentWeight)
+        
+        return VStack(spacing: 12) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(day)
-                        .font(.headline)
-                        .foregroundColor(day == currentDay ? .blue : .white)
-                    
-                    if let workout = weekGymLog[day] {
-                        Text("Intensity: \(workout.intensity)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
+                Text(day)
+                    .font(.headline)
+                    .foregroundColor(day == currentDay ? .blue : .white)
                 
                 if day == currentDay {
                     Text("(Today)")
@@ -2517,14 +3084,80 @@ struct GymWeekView: View {
                 
                 Spacer()
                 
-                Button(action: { selectedDay = day }) {
-                    Image(systemName: "plus.circle.fill")
+                VStack(alignment: .trailing) {
+                    Text(workout.intensity)
+                        .font(.caption)
+                        .foregroundColor(intensityColor(for: workout.intensity))
+                    Text("\(Int(caloriesBurned)) cal")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.green)
+                }
+                
+                Button(action: {
+                    selectedDay = day
+                    showAddExercise = true
+                }) {
+                    Image(systemName: "plus.circle")
                         .foregroundColor(.blue)
+                        .font(.title3)
                 }
             }
             
-            treadmillToggle(for: day)
-            exercisesList(for: day)
+            // Treadmill section with separate buttons
+            HStack(spacing: 0) {
+                // Left side: Open slider to set duration
+                Button(action: {
+                    selectedDay = day
+                    treadmillTime = workout.treadmillDuration
+                    showTreadmillTimePicker = true
+                }) {
+                    HStack {
+                        Image(systemName: "figure.run")
+                            .foregroundColor(.white)
+                        VStack(alignment: .leading) {
+                            Text("Treadmill")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                            Text("\(Int(workout.treadmillDuration)) min • 15% incline")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.leading, 12)
+                }
+                
+                // Right side: Toggle checkmark
+                Button(action: {
+                    workoutDatabase.toggleTreadmillForDay(day, durationMinutes: workout.treadmillDuration)
+                    syncWorkoutToAppleHealth(day: day)
+                }) {
+                    Image(systemName: workout.treadmillDone ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(workout.treadmillDone ? .green : .gray)
+                        .font(.title3)
+                        .frame(width: 50, height: 40)
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(workout.treadmillDone ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
+            )
+            
+            // Exercises list
+            if workout.exercises.isEmpty {
+                Text("No exercises")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(workout.exercises) { exercise in
+                        exerciseRow(exercise: exercise, day: day)
+                    }
+                }
+            }
         }
         .padding()
         .background(
@@ -2537,35 +3170,7 @@ struct GymWeekView: View {
         )
     }
     
-    private func treadmillToggle(for day: String) -> some View {
-        HStack {
-            Text("Treadmill (20 min)")
-                .foregroundColor(.gray)
-            Spacer()
-            Button(action: { toggleTreadmill(day: day) }) {
-                Image(systemName: weekGymLog[day]?.treadmillDone == true ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(weekGymLog[day]?.treadmillDone == true ? .green : .gray)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-    
-    @ViewBuilder
-    private func exercisesList(for day: String) -> some View {
-        if let exercises = weekGymLog[day]?.exercises, !exercises.isEmpty {
-            VStack(spacing: 8) {
-                ForEach(exercises) { exercise in
-                    exerciseRow(exercise: exercise, day: day)
-                }
-            }
-        } else {
-            Text("No exercises")
-                .font(.caption)
-                .foregroundColor(.gray)
-                .padding(.vertical, 4)
-        }
-    }
-    
+    // MARK: - Exercise Row
     private func exerciseRow(exercise: Exercise, day: String) -> some View {
         HStack {
             Text(exercise.bodyPart.rawValue)
@@ -2582,7 +3187,9 @@ struct GymWeekView: View {
             
             Spacer()
             
-            Button(action: { cycleExerciseSets(day: day, exerciseId: exercise.id) }) {
+            Button(action: {
+                cycleExerciseSets(day: day, exerciseId: exercise.id)
+            }) {
                 Text("\(exercise.setsCompleted)/\(exercise.maxSets)")
                     .font(.caption)
                     .foregroundColor(.blue)
@@ -2592,7 +3199,9 @@ struct GymWeekView: View {
                     .cornerRadius(6)
             }
             
-            Button(action: { deleteExercise(day: day, exerciseId: exercise.id) }) {
+            Button(action: {
+                deleteExercise(day: day, exerciseId: exercise.id)
+            }) {
                 Image(systemName: "trash")
                     .foregroundColor(.red.opacity(0.7))
                     .font(.caption)
@@ -2600,627 +3209,733 @@ struct GymWeekView: View {
         }
     }
     
+    // MARK: - Add Exercise Popup
     private var addExercisePopup: some View {
-        VStack(spacing: 16) {
-            Text("Add Exercise for \(selectedDay)")
-                .font(.headline)
-                .foregroundColor(.white)
+        ZStack {
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
             
-            Picker("Body Part", selection: $selectedBodyPart) {
-                ForEach(BodyPart.allCases, id: \.self) { part in
-                    Text(part.rawValue).tag(part)
-                }
-            }
-            .pickerStyle(.wheel)
-            .frame(height: 120)
-            
-            HStack {
-                Text("Max Sets:")
+            VStack(spacing: 16) {
+                Text("Add Exercise for \(selectedDay)")
+                    .font(.headline)
                     .foregroundColor(.white)
-                Spacer()
                 
-                ForEach([3, 6], id: \.self) { sets in
-                    Button(action: { selectedMaxSets = sets }) {
-                        Text("\(sets)")
-                            .fontWeight(selectedMaxSets == sets ? .bold : .regular)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(selectedMaxSets == sets ? Color.blue : Color.gray.opacity(0.3))
-                            .cornerRadius(8)
+                Picker("Body Part", selection: $selectedBodyPart) {
+                    ForEach(BodyPart.allCases, id: \.self) { part in
+                        Text(part.rawValue).tag(part)
                     }
                 }
-            }
-            
-            HStack(spacing: 12) {
-                Button("Cancel") { selectedDay = "" }
+                .pickerStyle(.wheel)
+                .frame(height: 120)
+                
+                HStack {
+                    Text("Max Sets")
+                        .foregroundColor(.white)
+                    Spacer()
+                    ForEach(3...6, id: \.self) { sets in
+                        Button(action: { selectedMaxSets = sets }) {
+                            Text("\(sets)")
+                                .fontWeight(selectedMaxSets == sets ? .bold : .regular)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(selectedMaxSets == sets ? Color.blue : Color.gray.opacity(0.3))
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+                
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        showAddExercise = false
+                        selectedDay = ""
+                    }
                     .foregroundColor(.gray)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color(red: 0.2, green: 0.2, blue: 0.22))
                     .cornerRadius(10)
-                
-                Button("Add") {
-                    addExercise(day: selectedDay, bodyPart: selectedBodyPart, maxSets: selectedMaxSets)
-                    selectedDay = ""
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(10)
-            }
-        }
-        .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
-        )
-        .padding(.horizontal, 48)
-    }
-    
-    func toggleTreadmill(day: String) {
-        weekGymLog[day]?.treadmillDone.toggle()
-        
-        // Show calorie update
-        if day == currentDay {
-            printCalorieUpdate()
-        }
-    }
-
-    func cycleExerciseSets(day: String, exerciseId: UUID) {
-        guard let index = weekGymLog[day]?.exercises.firstIndex(where: { $0.id == exerciseId }) else { return }
-        let currentSets = weekGymLog[day]!.exercises[index].setsCompleted
-        let maxSets = weekGymLog[day]!.exercises[index].maxSets
-        weekGymLog[day]?.exercises[index].setsCompleted = (currentSets + 1) % (maxSets + 1)
-        
-        // Show calorie update
-        if day == currentDay {
-            printCalorieUpdate()
-        }
-    }
-
-    func deleteExercise(day: String, exerciseId: UUID) {
-        weekGymLog[day]?.exercises.removeAll { $0.id == exerciseId }
-        
-        // Show calorie update
-        if day == currentDay {
-            printCalorieUpdate()
-        }
-    }
-
-    func addExercise(day: String, bodyPart: BodyPart, maxSets: Int) {
-        let newExercise = Exercise(bodyPart: bodyPart, setsCompleted: 0, maxSets: maxSets)
-        weekGymLog[day]?.exercises.append(newExercise)
-        
-        // Show calorie update
-        if day == currentDay {
-            printCalorieUpdate()
-        }
-    }
-
-    // Helper function to display calorie calculations
-    func printCalorieUpdate() {
-        guard let workout = weekGymLog[currentDay] else { return }
-        
-        // Get current weight from persistence
-        let weight = PersistenceManager.shared.loadCurrentWeight()
-        
-        // Calculate total calories
-        let totalBurned = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: weight)
-        
-        // Get percentage
-        let percentage = CalorieSettings.shared.loadPercentage()
-        let caloriesToBank = totalBurned * percentage
-        
-        print("🏋️ Updated Workout:")
-        print("   Total burned: \(Int(totalBurned)) cal")
-        print("   Added to bank: \(Int(caloriesToBank)) cal (\(Int(percentage * 100))%)")
-        
-        // Show breakdown
-        for exercise in workout.exercises {
-            let calPerSet = CalorieCalculator.caloriesPerSet(bodyPart: exercise.bodyPart, weightKg: weight)
-            let totalForExercise = calPerSet * Double(exercise.setsCompleted)
-            print("   \(exercise.bodyPart.rawValue): \(exercise.setsCompleted) sets = \(Int(totalForExercise)) cal")
-        }
-        
-        if workout.treadmillDone {
-            let treadmillCal = CalorieCalculator.treadmillCalories(weightKg: weight)
-            print("   Treadmill: \(Int(treadmillCal)) cal")
-        }
-    }
-
-}
-// MARK: - Weight Picker View
-struct WeightPickerView: View {
-    @Binding var currentWeight: Double
-    @Binding var targetWeight: Double
-    @Binding var isPresented: Bool
-    @ObservedObject var healthManager: HealthManager
-    let onSave: () -> Void
-    
-    @State private var tempCurrent: Double
-    @State private var tempTarget: Double
-    @State private var syncWithHealth: Bool = true
-    
-    init(currentWeight: Binding<Double>, targetWeight: Binding<Double>, isPresented: Binding<Bool>, healthManager: HealthManager, onSave: @escaping () -> Void) {
-        _currentWeight = currentWeight
-        _targetWeight = targetWeight
-        _isPresented = isPresented
-        self.healthManager = healthManager
-        self.onSave = onSave
-        _tempCurrent = State(initialValue: currentWeight.wrappedValue)
-        _tempTarget = State(initialValue: targetWeight.wrappedValue)
-    }
-    
-    var weightRemaining: Double {
-        tempCurrent - tempTarget
-    }
-    
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.7)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    isPresented = false
-                }
-            
-            VStack(spacing: 24) {
-                Text("Weight")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                
-                VStack(spacing: 20) {
-                    currentWeightField
-                    targetWeightField
                     
-                    if healthManager.isAuthorized {
-                        healthSyncToggle
+                    Button("Add") {
+                        addExercise(day: selectedDay, bodyPart: selectedBodyPart, maxSets: selectedMaxSets)
+                        showAddExercise = false
+                        selectedDay = ""
                     }
-                    
-                    weightRemainingText
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
                 }
-                
-                saveButton
             }
             .padding(24)
             .background(
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
             )
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 48)
         }
     }
     
-    private var currentWeightField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Current Weight")
-                .font(.caption)
-                .foregroundColor(.gray)
-            
-            HStack {
-                TextField("", value: $tempCurrent, format: .number)
-                    .keyboardType(.decimalPad)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                    )
-                
-                Text("kg")
-                    .foregroundColor(.gray)
-            }
-        }
-    }
-    
-    private var targetWeightField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Target Weight")
-                .font(.caption)
-                .foregroundColor(.gray)
-            
-            HStack {
-                TextField("", value: $tempTarget, format: .number)
-                    .keyboardType(.decimalPad)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                    )
-                
-                Text("kg")
-                    .foregroundColor(.gray)
-            }
-        }
-    }
-    
-    private var healthSyncToggle: some View {
-        HStack {
-            Text("Sync with Apple Health")
-                .font(.subheadline)
-                .foregroundColor(.white)
-            
-            Spacer()
-            
-            Toggle("", isOn: $syncWithHealth)
-                .labelsHidden()
-        }
-        .padding(.horizontal, 4)
-    }
-    
-    @ViewBuilder
-    private var weightRemainingText: some View {
-        if weightRemaining > 0 {
-            HStack {
-                Text("\(String(format: "%.1f", weightRemaining)) kg left to go")
-                    .font(.subheadline)
-                    .foregroundColor(.orange)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-        } else if weightRemaining < 0 {
-            HStack {
-                Text("Target achieved! \(String(format: "%.1f", abs(weightRemaining))) kg below")
-                    .font(.subheadline)
-                    .foregroundColor(.green)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-        } else {
-            HStack {
-                Text("Target achieved!")
-                    .font(.subheadline)
-                    .foregroundColor(.green)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-        }
-    }
-    
-    private var saveButton: some View {
-        Button(action: {
-            currentWeight = tempCurrent
-            targetWeight = tempTarget
-            
-            if syncWithHealth && healthManager.isAuthorized {
-                healthManager.saveWeight(tempCurrent)
-            }
-            
-            onSave()
-            isPresented = false
-        }) {
-            Text("Save")
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(12)
-        }
-    }
-}
-// MARK: - Todo Week View
-struct TodoWeekView: View {
-    @Binding var weekTodoList: [String: [TodoItem]]
-    let currentDay: String
-    @Binding var isPresented: Bool
-    let onDismiss: () -> Void
-    
-    @State private var newTodoText: String = ""
-    @State private var selectedDay: String = ""
-    
-    let daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    
-    var body: some View {
+    // MARK: - Treadmill Time Picker
+    private var treadmillTimePicker: some View {
         ZStack {
-            Color.black.opacity(0.7)
+            Color.black.opacity(0.9)
                 .ignoresSafeArea()
-                .onTapGesture {
-                    onDismiss()
-                    isPresented = false
-                }
             
-            ScrollView {
-                VStack(spacing: 24) {
-                    Text("Weekly To-Do List")
+            VStack(spacing: 20) {
+                Text("Treadmill for \(selectedDay)")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Duration")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    Text("\(Int(treadmillTime)) minutes")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
+                }
+                
+                VStack {
+                    Slider(value: $treadmillTime, in: 5...60, step: 5)
+                        .accentColor(.blue)
                     
-                    VStack(spacing: 16) {
-                        ForEach(daysOfWeek, id: \.self) { day in
-                            todoDayCard(for: day)
-                        }
-                    }
-                    
-                    Button(action: {
-                        onDismiss()
-                        isPresented = false
-                    }) {
-                        Text("Done")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(12)
+                    HStack {
+                        Text("5 min")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Text("30 min")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Text("60 min")
+                            .font(.caption)
+                            .foregroundColor(.gray)
                     }
                 }
-                .padding(24)
+                
+                Text("Calories: \(Int(CalorieCalculator.treadmillCalories(weightKg: currentWeight, durationMinutes: treadmillTime))) cal")
+                    .font(.subheadline)
+                    .foregroundColor(.green)
+                
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        showTreadmillTimePicker = false
+                    }
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(red: 0.2, green: 0.2, blue: 0.22))
+                    .cornerRadius(10)
+                    
+                    Button("Log Workout") {
+                        // Update the duration
+                        let dateKey = workoutDatabase.dayToDateKeyPublic(selectedDay)
+                        var workout = workoutDatabase.allDailyWorkouts[dateKey] ?? DayWorkout()
+                        workout.treadmillDuration = treadmillTime
+                        
+                        // Always mark as done when logging
+                        if !workout.treadmillDone {
+                            workout.treadmillDone = true
+                        }
+                        
+                        workoutDatabase.allDailyWorkouts[dateKey] = workout
+                        workoutDatabase.saveAllWorkoutsPublic()
+                        
+                        syncWorkoutToAppleHealth(day: selectedDay)
+                        showTreadmillTimePicker = false
+                    }
+
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .cornerRadius(10)
+                }
             }
+            .padding(32)
             .background(
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
             )
-            .padding(.horizontal, 32)
-            .padding(.vertical, 60)
-            
-            if !selectedDay.isEmpty {
-                addTodoPopup
-            }
+            .padding(.horizontal, 40)
         }
     }
     
-    private func todoDayCard(for day: String) -> some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text(day)
-                    .font(.headline)
-                    .foregroundColor(day == currentDay ? .blue : .white)
+    // MARK: - Action Functions
+    private func cycleExerciseSets(day: String, exerciseId: UUID) {
+        workoutDatabase.cycleExerciseSetsForDay(day, exerciseId: exerciseId)
+        syncWorkoutToAppleHealth(day: day)
+    }
+    
+    private func deleteExercise(day: String, exerciseId: UUID) {
+        workoutDatabase.deleteExerciseForDay(day, exerciseId: exerciseId)
+        syncWorkoutToAppleHealth(day: day)
+    }
+    
+    private func addExercise(day: String, bodyPart: BodyPart, maxSets: Int) {
+        let newExercise = Exercise(bodyPart: bodyPart, setsCompleted: 0, maxSets: maxSets)
+        workoutDatabase.addExerciseForDay(day, exercise: newExercise)
+        syncWorkoutToAppleHealth(day: day)
+    }
+    
+    private func syncWorkoutToAppleHealth(day: String) {
+        let workout = workoutDatabase.loadWorkoutForDay(day)
+        let totalBurned = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
+        print("📅 \(day): \(Int(totalBurned)) calories burned")
+        
+        if day == currentDay && healthManager.isAuthorized {
+            healthManager.saveWorkoutCalories(totalBurned)
+        }
+    }
+    
+    private func intensityColor(for intensity: String) -> Color {
+        switch intensity {
+        case "High": return .green
+        case "Medium": return .blue
+        case "Low": return .orange
+        default: return .gray
+        }
+    }
+}
+struct WeightPickerView: View {
+        @Binding var currentWeight: Double
+        @Binding var targetWeight: Double
+        @Binding var isPresented: Bool
+        @ObservedObject var healthManager: HealthManager
+        let onSave: () -> Void
+        
+        @State private var tempCurrent: Double
+        @State private var tempTarget: Double
+        @State private var syncWithHealth: Bool = true
+        
+        init(currentWeight: Binding<Double>, targetWeight: Binding<Double>, isPresented: Binding<Bool>, healthManager: HealthManager, onSave: @escaping () -> Void) {
+            _currentWeight = currentWeight
+            _targetWeight = targetWeight
+            _isPresented = isPresented
+            self.healthManager = healthManager
+            self.onSave = onSave
+            _tempCurrent = State(initialValue: currentWeight.wrappedValue)
+            _tempTarget = State(initialValue: targetWeight.wrappedValue)
+        }
+        
+        var weightRemaining: Double {
+            tempCurrent - tempTarget
+        }
+        
+        var body: some View {
+            ZStack {
+                Color.black.opacity(0.7)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        isPresented = false
+                    }
                 
-                if day == currentDay {
-                    Text("(Today)")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                VStack(spacing: 24) {
+                    Text("Weight")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    VStack(spacing: 20) {
+                        currentWeightField
+                        targetWeightField
+                        
+                        if healthManager.isAuthorized {
+                            healthSyncToggle
+                        }
+                        
+                        weightRemainingText
+                    }
+                    
+                    saveButton
                 }
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+                )
+                .padding(.horizontal, 32)
+            }
+        }
+        
+        private var currentWeightField: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Current Weight")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                
+                HStack {
+                    TextField("", value: $tempCurrent, format: .number)
+                        .keyboardType(.decimalPad)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                        )
+                    
+                    Text("kg")
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        
+        private var targetWeightField: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Target Weight")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                
+                HStack {
+                    TextField("", value: $tempTarget, format: .number)
+                        .keyboardType(.decimalPad)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                        )
+                    
+                    Text("kg")
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        
+        private var healthSyncToggle: some View {
+            HStack {
+                Text("Sync with Apple Health")
+                    .font(.subheadline)
+                    .foregroundColor(.white)
                 
                 Spacer()
                 
-                Button(action: { selectedDay = day }) {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.blue)
+                Toggle("", isOn: $syncWithHealth)
+                    .labelsHidden()
+            }
+            .padding(.horizontal, 4)
+        }
+        
+        @ViewBuilder
+        private var weightRemainingText: some View {
+            if weightRemaining > 0 {
+                HStack {
+                    Text("\(String(format: "%.1f", weightRemaining)) kg left to go")
+                        .font(.subheadline)
+                        .foregroundColor(.orange)
+                    Spacer()
+                }
+                .padding(.horizontal, 4)
+            } else if weightRemaining < 0 {
+                HStack {
+                    Text("Target achieved! \(String(format: "%.1f", abs(weightRemaining))) kg below")
+                        .font(.subheadline)
+                        .foregroundColor(.green)
+                    Spacer()
+                }
+                .padding(.horizontal, 4)
+            } else {
+                HStack {
+                    Text("Target achieved!")
+                        .font(.subheadline)
+                        .foregroundColor(.green)
+                    Spacer()
+                }
+                .padding(.horizontal, 4)
+            }
+        }
+        
+        private var saveButton: some View {
+            Button(action: {
+                currentWeight = tempCurrent
+                targetWeight = tempTarget
+                
+                if syncWithHealth && healthManager.isAuthorized {
+                    healthManager.saveWeight(tempCurrent)
+                }
+                
+                onSave()
+                isPresented = false
+            }) {
+                Text("Save")
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(12)
+            }
+        }
+    }
+
+struct TodoWeekView: View {
+        @Binding var weekTodoList: [String: [TodoItem]]
+        let currentDay: String
+        @Binding var isPresented: Bool
+        let onDismiss: () -> Void
+        
+        @State private var newTodoText: String = ""
+        @State private var selectedDay: String = ""
+        
+        let daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        
+        var body: some View {
+            ZStack {
+                Color.black.opacity(0.7)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        onDismiss()
+                        isPresented = false
+                    }
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        Text("Weekly To-Do List")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        VStack(spacing: 16) {
+                            ForEach(daysOfWeek, id: \.self) { day in
+                                todoDayCard(for: day)
+                            }
+                        }
+                        
+                        Button(action: {
+                            onDismiss()
+                            isPresented = false
+                        }) {
+                            Text("Done")
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .padding(24)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+                )
+                .padding(.horizontal, 32)
+                .padding(.vertical, 60)
+                
+                if !selectedDay.isEmpty {
+                    addTodoPopup
                 }
             }
-            
-            if let todos = weekTodoList[day], !todos.isEmpty {
-                VStack(spacing: 8) {
-                    ForEach(todos) { todo in
-                        todoRow(todo: todo, day: day)
+        }
+        
+        private func todoDayCard(for day: String) -> some View {
+            VStack(spacing: 12) {
+                HStack {
+                    Text(day)
+                        .font(.headline)
+                        .foregroundColor(day == currentDay ? .blue : .white)
+                    
+                    if day == currentDay {
+                        Text("(Today)")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: { selectedDay = day }) {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.blue)
                     }
                 }
-            } else {
-                Text("No tasks")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .padding(.vertical, 4)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(day == currentDay ? Color.blue.opacity(0.6) : .clear, lineWidth: 2)
-                )
-        )
-    }
-    
-    private func todoRow(todo: TodoItem, day: String) -> some View {
-        HStack {
-            Button(action: { toggleTodo(day: day, todoId: todo.id) }) {
-                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(todo.isCompleted ? .green : .gray)
-            }
-            
-            Text(todo.title)
-                .foregroundColor(todo.isCompleted ? .gray : .white)
-                .strikethrough(todo.isCompleted)
-            
-            Spacer()
-            
-            Button(action: { deleteTodo(day: day, todoId: todo.id) }) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red.opacity(0.7))
-                    .font(.caption)
-            }
-        }
-    }
-    
-    private var addTodoPopup: some View {
-        VStack(spacing: 16) {
-            Text("Add Task for \(selectedDay)")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            TextField("Task description", text: $newTodoText)
-                .foregroundColor(.white)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                )
-            
-            HStack(spacing: 12) {
-                Button("Cancel") {
-                    selectedDay = ""
-                    newTodoText = ""
-                }
-                .foregroundColor(.gray)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(red: 0.2, green: 0.2, blue: 0.22))
-                .cornerRadius(10)
                 
-                Button("Add") {
-                    if !newTodoText.isEmpty {
-                        addTodo(day: selectedDay, title: newTodoText)
+                if let todos = weekTodoList[day], !todos.isEmpty {
+                    VStack(spacing: 8) {
+                        ForEach(todos) { todo in
+                            todoRow(todo: todo, day: day)
+                        }
+                    }
+                } else {
+                    Text("No tasks")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .padding(.vertical, 4)
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(day == currentDay ? Color.blue.opacity(0.6) : .clear, lineWidth: 2)
+                    )
+            )
+        }
+        
+        private func todoRow(todo: TodoItem, day: String) -> some View {
+            HStack {
+                Button(action: { toggleTodo(day: day, todoId: todo.id) }) {
+                    Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(todo.isCompleted ? .green : .gray)
+                }
+                
+                Text(todo.title)
+                    .foregroundColor(todo.isCompleted ? .gray : .white)
+                    .strikethrough(todo.isCompleted)
+                
+                Spacer()
+                
+                Button(action: { deleteTodo(day: day, todoId: todo.id) }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red.opacity(0.7))
+                        .font(.caption)
+                }
+            }
+        }
+        
+        private var addTodoPopup: some View {
+            VStack(spacing: 16) {
+                Text("Add Task for \(selectedDay)")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                TextField("Task description", text: $newTodoText)
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                    )
+                
+                HStack(spacing: 12) {
+                    Button("Cancel") {
                         selectedDay = ""
                         newTodoText = ""
                     }
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(10)
-            }
-        }
-        .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
-        )
-        .padding(.horizontal, 48)
-    }
-    
-    func toggleTodo(day: String, todoId: UUID) {
-        guard var todos = weekTodoList[day],
-              let index = todos.firstIndex(where: { $0.id == todoId }) else { return }
-        todos[index].isCompleted.toggle()
-        weekTodoList[day] = todos
-    }
-    
-    func deleteTodo(day: String, todoId: UUID) {
-        weekTodoList[day]?.removeAll { $0.id == todoId }
-    }
-    
-    func addTodo(day: String, title: String) {
-        var todos = weekTodoList[day] ?? []
-        todos.append(TodoItem(title: title, isCompleted: false))
-        weekTodoList[day] = todos
-    }
-}
-// MARK: - Food Week View
-struct FoodWeekView: View {
-    @Binding var weekFoodLog: [String: DayMeals]
-    let currentDay: String
-    @Binding var isPresented: Bool
-    let onDismiss: () -> Void
-    
-    let daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.7)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    onDismiss()
-                    isPresented = false
-                }
-            
-            ScrollView {
-                VStack(spacing: 24) {
-                    Text("Weekly Food Plan")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(red: 0.2, green: 0.2, blue: 0.22))
+                    .cornerRadius(10)
                     
-                    VStack(spacing: 16) {
-                        ForEach(daysOfWeek, id: \.self) { day in
-                            foodDayCard(for: day)
+                    Button("Add") {
+                        if !newTodoText.isEmpty {
+                            addTodo(day: selectedDay, title: newTodoText)
+                            selectedDay = ""
+                            newTodoText = ""
                         }
                     }
-                    
-                    Button(action: {
-                        onDismiss()
-                        isPresented = false
-                    }) {
-                        Text("Done")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(12)
-                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
                 }
-                .padding(24)
             }
+            .padding(24)
             .background(
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
             )
-            .padding(.horizontal, 32)
-            .padding(.vertical, 60)
+            .padding(.horizontal, 48)
+        }
+        
+        func toggleTodo(day: String, todoId: UUID) {
+            guard var todos = weekTodoList[day],
+                  let index = todos.firstIndex(where: { $0.id == todoId }) else { return }
+            todos[index].isCompleted.toggle()
+            weekTodoList[day] = todos
+        }
+        
+        func deleteTodo(day: String, todoId: UUID) {
+            weekTodoList[day]?.removeAll { $0.id == todoId }
+        }
+        
+        func addTodo(day: String, title: String) {
+            var todos = weekTodoList[day] ?? []
+            todos.append(TodoItem(title: title, isCompleted: false))
+            weekTodoList[day] = todos
         }
     }
-    
-    private func foodDayCard(for day: String) -> some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text(day)
-                    .font(.headline)
-                    .foregroundColor(day == currentDay ? .blue : .white)
+
+struct FoodWeekView: View {
+        @Binding var weekFoodLog: [String: DayMeals]
+        let currentDay: String
+        @Binding var isPresented: Bool
+        let onDismiss: () -> Void
+        
+        let daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        
+        var body: some View {
+            ZStack {
+                Color.black.opacity(0.7)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        onDismiss()
+                        isPresented = false
+                    }
                 
-                if day == currentDay {
-                    Text("(Today)")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        Text("Weekly Food Plan")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        VStack(spacing: 16) {
+                            ForEach(daysOfWeek, id: \.self) { day in
+                                foodDayCard(for: day)
+                            }
+                        }
+                        
+                        Button(action: {
+                            onDismiss()
+                            isPresented = false
+                        }) {
+                            Text("Done")
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .padding(24)
                 }
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+                )
+                .padding(.horizontal, 32)
+                .padding(.vertical, 60)
+            }
+        }
+        
+        private func foodDayCard(for day: String) -> some View {
+            VStack(spacing: 12) {
+                HStack {
+                    Text(day)
+                        .font(.headline)
+                        .foregroundColor(day == currentDay ? .blue : .white)
+                    
+                    if day == currentDay {
+                        Text("(Today)")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Spacer()
+                }
+                
+                VStack(spacing: 8) {
+                    ForEach(MealType.allCases, id: \.self) { meal in
+                        mealRow(day: day, meal: meal)
+                    }
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(day == currentDay ? Color.blue.opacity(0.6) : .clear, lineWidth: 2)
+                    )
+            )
+        }
+        
+        private func mealRow(day: String, meal: MealType) -> some View {
+            HStack {
+                Text(meal.rawValue)
+                    .foregroundColor(.gray)
+                    .frame(width: 80, alignment: .leading)
+                
+                Spacer()
+                
+                Button(action: { toggleMeal(day: day, meal: meal) }) {
+                    Text(getMealStatus(day: day, meal: meal) ? "High Protein" : "Low Protein")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(getMealStatus(day: day, meal: meal) ? Color.green : Color.orange)
+                        )
+                }
+            }
+        }
+        
+        func getMealStatus(day: String, meal: MealType) -> Bool {
+            guard let dayMeals = weekFoodLog[day] else { return false }
+            switch meal {
+            case .breakfast: return dayMeals.breakfast
+            case .lunch: return dayMeals.lunch
+            case .dinner: return dayMeals.dinner
+            }
+        }
+        
+        func toggleMeal(day: String, meal: MealType) {
+            guard var dayMeals = weekFoodLog[day] else { return }
+            switch meal {
+            case .breakfast: dayMeals.breakfast.toggle()
+            case .lunch: dayMeals.lunch.toggle()
+            case .dinner: dayMeals.dinner.toggle()
+            }
+            weekFoodLog[day] = dayMeals
+        }
+    }
+
+struct DatePickerSheet: View {
+    @Binding var selectedDate: Date
+    @Binding var isPresented: Bool
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                DatePicker(
+                    "Select Date",
+                    selection: Binding(
+                        get: { selectedDate },
+                        set: { newDate in
+                            selectedDate = newDate
+                            FoodDatabaseManager.shared.selectDate(newDate)
+                        }
+                    ),
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.graphical)
+                .padding()
                 
                 Spacer()
             }
-            
-            VStack(spacing: 8) {
-                ForEach(MealType.allCases, id: \.self) { meal in
-                    mealRow(day: day, meal: meal)
+            .navigationTitle("Choose Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Today") {
+                        let today = Date()
+                        selectedDate = today
+                        FoodDatabaseManager.shared.selectDate(today)
+                        isPresented = false
+                    }
                 }
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(day == currentDay ? Color.blue.opacity(0.6) : .clear, lineWidth: 2)
-                )
-        )
-    }
-    
-    private func mealRow(day: String, meal: MealType) -> some View {
-        HStack {
-            Text(meal.rawValue)
-                .foregroundColor(.gray)
-                .frame(width: 80, alignment: .leading)
-            
-            Spacer()
-            
-            Button(action: { toggleMeal(day: day, meal: meal) }) {
-                Text(getMealStatus(day: day, meal: meal) ? "High Protein" : "Low Protein")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(getMealStatus(day: day, meal: meal) ? Color.green : Color.orange)
-                    )
-            }
-        }
-    }
-    
-    func getMealStatus(day: String, meal: MealType) -> Bool {
-        guard let dayMeals = weekFoodLog[day] else { return false }
-        switch meal {
-        case .breakfast: return dayMeals.breakfast
-        case .lunch: return dayMeals.lunch
-        case .dinner: return dayMeals.dinner
-        }
-    }
-    
-    func toggleMeal(day: String, meal: MealType) {
-        guard var dayMeals = weekFoodLog[day] else { return }
-        switch meal {
-        case .breakfast: dayMeals.breakfast.toggle()
-        case .lunch: dayMeals.lunch.toggle()
-        case .dinner: dayMeals.dinner.toggle()
-        }
-        weekFoodLog[day] = dayMeals
     }
 }
