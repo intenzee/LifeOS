@@ -50,7 +50,7 @@ struct Exercise: Identifiable, Codable {
 struct DayWorkout: Codable {
     var exercises: [Exercise]
     var treadmillDone: Bool
-    var treadmillDuration: Double = 20.0  // NEW: Variable minutes
+    var treadmillDuration: Double = 20.0
     
     init(exercises: [Exercise] = [], treadmillDone: Bool = false, treadmillDuration: Double = 20.0) {
         self.exercises = exercises
@@ -61,30 +61,30 @@ struct DayWorkout: Codable {
     var totalSets: Int {
         exercises.reduce(0) { $0 + $1.setsCompleted }
     }
-    
-    var intensity: String {
-        // If both exercises and treadmill done
-        if totalSets >= 6 && treadmillDone {
+
+    // Calorie-based intensity calculation (realistic thresholds)
+    func intensity(weightKg: Double) -> String {
+        let totalCalories = CalorieCalculator.totalWorkoutCalories(workout: self, weightKg: weightKg)
+        
+        // High: 500+ calories (25-30min treadmill + 5-6 exercises)
+        if totalCalories >= 450 {
             return "High"
         }
-        // Only exercises (6+ sets)
-        else if totalSets >= 6 {
+        // Medium: 350-499 calories (15-20min treadmill + 3-4 exercises)
+        else if totalCalories >= 300 {
             return "Medium"
         }
-        // Some exercises (3-5 sets) or exercises + treadmill
-        else if totalSets >= 3 || (totalSets > 0 && treadmillDone) {
+        // Low: 150-349 calories (10min treadmill OR 2-3 exercises)
+        else if totalCalories >= 120 {
             return "Low"
         }
-        // Only treadmill (no exercises)
-        else if treadmillDone {
-            return "Low"
-        }
-        // Nothing done
+        // Rest: <150 calories (minimal/no activity)
         else {
             return "Rest"
         }
     }
 }
+
 
 // MARK: - Day Meals
 struct DayMeals: Codable {
@@ -375,33 +375,36 @@ class CalorieSettings {
 // MARK: - Calorie Calculator (Based on MET values)
 class CalorieCalculator {
     static let exerciseMETs: [BodyPart: Double] = [
-        .chest: 6.0, .back: 6.0, .shoulders: 5.5, .arms: 5.0,
-        .legs: 6.5, .abs: 5.0, .cardio: 8.0
+        .chest: 6.0,      // Bench press, push-ups
+        .back: 6.0,       // Pull-ups, rows
+        .shoulders: 5.5,  // Overhead press
+        .arms: 5.0,       // Curls, extensions
+        .legs: 6.5,       // Squats, lunges (highest burn)
+        .abs: 5.0,        // Core work
+        .cardio: 8.0      // HIIT cardio
     ]
     
     static func caloriesPerSet(bodyPart: BodyPart, weightKg: Double) -> Double {
         let met = exerciseMETs[bodyPart] ?? 5.0
-        let durationMinutes = 2.5
+        let durationMinutes = 2.5  // Average time per set (including rest)
         return (met * 3.5 * weightKg / 200.0) * durationMinutes
     }
     
-    // FIXED: Now takes specific workout duration
     static func treadmillCalories(weightKg: Double, durationMinutes: Double) -> Double {
-        let met = 8.5 // 15% incline walking
+        let met = 8.5  // 15% incline walking (intense!)
         return (met * 3.5 * weightKg / 200.0) * durationMinutes
     }
     
-    // FIXED: Purely calculates from THIS workout's data only
     static func totalWorkoutCalories(workout: DayWorkout, weightKg: Double) -> Double {
         var total: Double = 0
         
-        // Exercises calories (day-specific)
+        // Exercises calories
         for exercise in workout.exercises {
             let caloriesPerSet = caloriesPerSet(bodyPart: exercise.bodyPart, weightKg: weightKg)
             total += caloriesPerSet * Double(exercise.setsCompleted)
         }
         
-        // Treadmill calories (day-specific duration)
+        // Treadmill calories
         if workout.treadmillDone {
             total += treadmillCalories(weightKg: weightKg, durationMinutes: workout.treadmillDuration)
         }
@@ -409,28 +412,41 @@ class CalorieCalculator {
         return total
     }
 }
-
 // MARK: - Workout Database Manager
 class WorkoutDatabaseManager: ObservableObject {
     static let shared = WorkoutDatabaseManager()
     
     @Published var allDailyWorkouts: [String: DayWorkout] = [:]
+    @Published var selectedDate: Date = Date()
     private let allDailyWorkoutsKey = "allDailyWorkouts"
+    
     
     private init() {
         loadAllWorkouts()
     }
-    
-    var dailyWorkout: DayWorkout {
-        loadWorkoutForDay(currentDayName())
-    }
-    
-    func getTotalCaloriesBurned(weight: Double) -> Double {
-        return getCaloriesBurnedForDay(currentDayName(), weightKg: weight)
-    }
-    
+    // ✅ ADD THIS METHOD
     func selectDate(_ date: Date) {
-        // No-op for compatibility
+        selectedDate = date
+        objectWillChange.send()
+    }
+
+    // ✅ ADD THIS METHOD
+    var dailyWorkout: DayWorkout {
+        let dayName = dayNameFromDate(selectedDate)
+        return loadWorkoutForDay(dayName)
+    }
+
+    // ✅ ADD THIS METHOD
+    func getTotalCaloriesBurned(weight: Double) -> Double {
+        let dayName = dayNameFromDate(selectedDate)
+        return getCaloriesBurnedForDay(dayName, weightKg: weight)
+    }
+
+    // ✅ ADD THIS HELPER METHOD
+    private func dayNameFromDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter.string(from: date)
     }
     
     func getCaloriesBurnedForDay(_ day: String, weightKg: Double) -> Double {
@@ -2450,6 +2466,10 @@ struct HomeView: View {
             workoutDatabase.selectDate(foodDatabase.selectedDate)
             syncWorkoutToAppleHealth()
         }
+        .onChange(of: foodDatabase.selectedDate) { oldValue, newValue in
+            // Sync workout database when date changes
+            workoutDatabase.selectDate(newValue)
+        }
     }
     
     private var headerView: some View {
@@ -2617,6 +2637,12 @@ struct HomeView: View {
     }
     
     func syncWorkoutToAppleHealth() {
+        // Only sync to Apple Health if viewing TODAY
+        guard Calendar.current.isDateInToday(foodDatabase.selectedDate) else {
+            print("📅 Viewing past/future date - skipping Apple Health sync")
+            return
+        }
+        
         let totalBurned = workoutDatabase.getTotalCaloriesBurned(weight: currentWeight)
         
         if healthManager.isAuthorized && totalBurned > 0 {
@@ -2857,7 +2883,8 @@ struct DailyProgressContainer: View {
                 return "\(baseWeight)\n\(String(format: "%.1f", weightRemaining)) kg to go"
             }
             return baseWeight
-        case .gym: return todayWorkout.intensity
+        case .gym: return todayWorkout.intensity(weightKg: currentWeight)
+
         case .mood: return ["😞", "😐", "😊"][moodIndex]
         case .water: return "\(waterCount)/8"
         case .food: return todayMeals.summary
@@ -2870,12 +2897,14 @@ struct DailyProgressContainer: View {
         case .water: return waterCount >= 8 ? .green : .orange
         case .mood: return moodIndex == 2 ? .green : .orange
         case .gym:
-            switch todayWorkout.intensity {
+            let intensityLevel = todayWorkout.intensity(weightKg: currentWeight)
+            switch intensityLevel {
             case "High": return .green
             case "Medium": return .blue
             case "Low": return .orange
             default: return .gray
             }
+
         case .food:
             let count = todayMeals.highProteinCount
             return count == 3 ? .green : (count == 0 ? .orange : .blue)
@@ -3069,6 +3098,7 @@ struct GymWeekView: View {
     private func dayCard(for day: String) -> some View {
         let workout = workoutDatabase.loadWorkoutForDay(day)
         let caloriesBurned = workoutDatabase.getCaloriesBurnedForDay(day, weightKg: currentWeight)
+        let intensityLevel = workout.intensity(weightKg: currentWeight)  // ✅ NEW
         
         return VStack(spacing: 12) {
             HStack {
@@ -3085,14 +3115,15 @@ struct GymWeekView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing) {
-                    Text(workout.intensity)
+                    Text(intensityLevel)  // ✅ NEW
                         .font(.caption)
-                        .foregroundColor(intensityColor(for: workout.intensity))
+                        .foregroundColor(intensityColor(for: intensityLevel))
                     Text("\(Int(caloriesBurned)) cal")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.green)
                 }
+
                 
                 Button(action: {
                     selectedDay = day
