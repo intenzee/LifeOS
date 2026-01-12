@@ -117,9 +117,9 @@ LifeOS/
 ## 📱 Screenshots
 
 <div align="center">
-  <img src="path/to/screenshot1.png" width="250" alt="Dashboard">
-  <img src="path/to/screenshot2.png" width="250" alt="Fitness">
-  <img src="path/to/screenshot3.png" width="250" alt="Nutrition">
+  <img src="LifeOS/Assets.xcassets/IMG_2359.jpeg" width="250" alt="Dashboard">
+  <img src="LifeOS/Assets.xcassets/IMG_2360.jpeg" width="250" alt="Fitness">
+  <img src="LifeOS/Assets.xcassets/IMG_2362.jpeg" width="250" alt="Nutrition">
 </div>
 
 ---
@@ -230,9 +230,8 @@ This project is licensed under the MIT License - see LICENSE file for details.
 ## 💬 Connect With Me
 
 - **GitHub:** [@intenzee](https://github.com/intenzee)
-- **LinkedIn:** [Your LinkedIn URL]
-- **Email:** [your.email@example.com]
-- **Portfolio:** [Your portfolio website]
+- **LinkedIn:** [Tanmay Roy](https://www.linkedin.com/in/tanmay-roy-168846202/)
+- **Email:** tanmay2407roy@gmail.com
 
 📌 **Actively seeking iOS Developer internships in 2026!** Interested in discussing LifeOS or collaboration opportunities?
 
