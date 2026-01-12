@@ -346,11 +346,7 @@ struct ContentView: View {
                 }
                 .tag(2)
             
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
-                .tag(3)
+           
         }
         .accentColor(.blue)
     }
@@ -371,6 +367,23 @@ class CalorieSettings {
         return saved > 0 ? saved : 0.5 // Default 50%
     }
 }
+// MARK: - Calorie Limit Settings Manager
+class CalorieLimitSettings {
+    static let shared = CalorieLimitSettings()
+    
+    private let limitKey = "dailyCalorieLimit"
+    private let defaultLimit = 2200.0
+    
+    func saveLimit(_ limit: Double) {
+        UserDefaults.standard.set(limit, forKey: limitKey)
+    }
+    
+    func loadLimit() -> Double {
+        let saved = UserDefaults.standard.double(forKey: limitKey)
+        return saved > 0 ? saved : defaultLimit
+    }
+}
+
 
 // MARK: - Calorie Calculator (Based on MET values)
 class CalorieCalculator {
@@ -2346,7 +2359,7 @@ struct HomeView: View {
     }
     
     var adjustedCalorieLimit: Double {
-        let baseLimit = 2200.0
+        let baseLimit = CalorieLimitSettings.shared.loadLimit()
         let caloriesBurned = workoutDatabase.getTotalCaloriesBurned(weight: currentWeight)
         let percentage = CalorieSettings.shared.loadPercentage()
         let adjustment = caloriesBurned * percentage
@@ -2708,9 +2721,12 @@ struct StatsView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @State private var caloriePercentage: Double
+    @State private var dailyCalorieLimit: Double
+    @State private var showLimitPicker = false
     
     init() {
         _caloriePercentage = State(initialValue: CalorieSettings.shared.loadPercentage())
+        _dailyCalorieLimit = State(initialValue: CalorieLimitSettings.shared.loadLimit())
     }
     
     var body: some View {
@@ -2718,25 +2734,103 @@ struct SettingsView: View {
             Color(red: 0.06, green: 0.06, blue: 0.07)
                 .ignoresSafeArea()
             
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Settings")
-                    .font(.largeTitle)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("Settings")
+                        .font(.largeTitle)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: 16) {
+                        // Daily Calorie Limit Card
+                        calorieLimitCard
+                        
+                        // Calorie Bank Card
+                        calorieBankCard
+                    }
                     .padding(.horizontal)
-                
-                VStack(spacing: 16) {
-                    settingsCard
+                    
+                    Spacer()
                 }
-                .padding(.horizontal)
-                
-                Spacer()
+                .padding(.top, 20)
             }
-            .padding(.top, 20)
+            
+            // Calorie Limit Picker Overlay
+            if showLimitPicker {
+                calorieLimitPicker
+            }
         }
     }
     
-    private var settingsCard: some View {
+    // MARK: - Profile View
+    struct ProfileView: View {
+        var body: some View {
+            ZStack {
+                Color(red: 0.06, green: 0.06, blue: 0.07)
+                    .ignoresSafeArea()
+                
+                VStack {
+                    Text("Profile")
+                        .font(.largeTitle)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text("User profile coming soon...")
+                        .foregroundColor(.gray)
+                        .padding(.top, 20)
+                }
+            }
+        }
+    }
+
+    // MARK: - Calorie Limit Card
+    private var calorieLimitCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Calorie Target")
+                .font(.headline)
+                .foregroundColor(.white)
+            
+            Text("Set your baseline daily calorie budget (before workout adjustments)")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Button(action: {
+                showLimitPicker = true
+            }) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Current Target")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Text("\(Int(dailyCalorieLimit)) calories")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                )
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(red: 0.12, green: 0.12, blue: 0.14))
+        )
+    }
+    
+    // MARK: - Calorie Bank Card
+    private var calorieBankCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Calorie Bank Settings")
                 .font(.headline)
@@ -2763,6 +2857,103 @@ struct SettingsView: View {
         )
     }
     
+    // MARK: - Calorie Limit Picker Overlay
+    private var calorieLimitPicker: some View {
+        ZStack {
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    showLimitPicker = false
+                }
+            
+            VStack(spacing: 24) {
+                Text("Set Daily Calorie Target")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                // Picker with common values
+                VStack(spacing: 12) {
+                    limitOptionButton(1500, "Weight Loss (Low)")
+                    limitOptionButton(1800, "Weight Loss (Moderate)")
+                    limitOptionButton(2000, "Maintenance (Light)")
+                    limitOptionButton(2200, "Maintenance (Standard)")
+                    limitOptionButton(2500, "Muscle Gain (Moderate)")
+                    limitOptionButton(2800, "Muscle Gain (High)")
+                    limitOptionButton(3000, "Bulking")
+                }
+                
+                // Custom input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Or enter custom value:")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    HStack {
+                        TextField("", value: $dailyCalorieLimit, format: .number)
+                            .keyboardType(.numberPad)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                            )
+                        
+                        Text("cal")
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                // Save button
+                Button(action: {
+                    CalorieLimitSettings.shared.saveLimit(dailyCalorieLimit)
+                    showLimitPicker = false
+                }) {
+                    Text("Save")
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                }
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+            )
+            .padding(.horizontal, 32)
+        }
+    }
+    
+    // MARK: - Helper Functions
+    func limitOptionButton(_ value: Double, _ label: String) -> some View {
+        Button(action: {
+            dailyCalorieLimit = value
+        }) {
+            HStack {
+                Text(label)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("\(Int(value)) cal")
+                    .foregroundColor(dailyCalorieLimit == value ? .blue : .gray)
+                    .fontWeight(dailyCalorieLimit == value ? .bold : .regular)
+                
+                if dailyCalorieLimit == value {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(dailyCalorieLimit == value ? Color.blue.opacity(0.2) : Color(red: 0.15, green: 0.15, blue: 0.17))
+            )
+        }
+    }
+    
     func percentageButton(_ value: Double, _ label: String) -> some View {
         Button(action: {
             caloriePercentage = value
@@ -2777,18 +2968,6 @@ struct SettingsView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(caloriePercentage == value ? Color.blue : Color(red: 0.2, green: 0.2, blue: 0.22))
                 )
-        }
-    }
-}
-
-struct ProfileView: View {
-    var body: some View {
-        ZStack {
-            Color(red: 0.06, green: 0.06, blue: 0.07).ignoresSafeArea()
-            VStack {
-                Text("Profile").font(.largeTitle).fontWeight(.semibold).foregroundColor(.white)
-                Text("User profile coming soon...").foregroundColor(.gray).padding(.top, 20)
-            }
         }
     }
 }
