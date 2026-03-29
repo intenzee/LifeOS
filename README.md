@@ -23,10 +23,13 @@
 
 - 🏋️ **Unified Fitness Dashboard** - Real-time stats from Apple Watch & Health
 - 🥗 **Smart Nutrition Tracking** - Log meals and auto-sync with HealthKit
+- 💧 **Smart Water Tracker** - Interactive tap-and-drag gestures for seamless hydration logging
 - 📊 **Analytics & Insights** - Weekly/monthly trends and progress visualization
 - ⏰ **Schedule Management** - Meal times, workout reminders, daily goals
 - 🎯 **Goal Setting** - Define targets and track completion rates
 - 💪 **Habit Tracking** - Build streaks and monitor discipline
+- 📝 **Task Manager & Reminders** - Apple Reminders-style UI with custom preset Local Push Notifications
+- 🎨 **Fluid UI/UX** - Featuring a custom liquid-glass floating tab bar and a unified design system
 - 🔄 **Real-time Sync** - Seamless HealthKit integration
 - 🌙 **Dark Mode Support** - Native iOS dark mode compatibility
 
@@ -193,10 +196,12 @@ Test coverage includes:
 ## 🎓 What I Learned
 
 Building LifeOS taught me:
-- ✅ Advanced SwiftUI patterns (custom modifiers, view composition)
+- ✅ Advanced SwiftUI patterns (custom modifiers, view composition, liquid-glass aesthetics)
+- ✅ Handling interactive gestures (Sequence interactions for dual tap/drag controls)
 - ✅ HealthKit framework and privacy-first design
 - ✅ MVVM architecture at scale
-- ✅ Real-time data synchronization
+- ✅ Real-time data synchronization and date-keyed UserDefaults persistence
+- ✅ Push Notifications (`UNUserNotificationCenter`) scheduling and lifecycle management
 - ✅ App Store optimization and deployment
 - ✅ User-centric design for fitness apps
 
