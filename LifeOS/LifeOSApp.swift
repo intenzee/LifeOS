@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct LifeOSApp: App {
+    init() {
+        NotificationService.shared.requestPermission()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

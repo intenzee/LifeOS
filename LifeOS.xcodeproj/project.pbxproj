@@ -10,9 +10,22 @@
 		3D08A1D92EF9524500C3B6B6 /* LifeOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LifeOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3D8CA0AE2F1A10D5008E4357 /* Exceptions for "LifeOS" folder in "LifeOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3D08A1D82EF9524500C3B6B6 /* LifeOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3D08A1DB2EF9524500C3B6B6 /* LifeOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3D8CA0AE2F1A10D5008E4357 /* Exceptions for "LifeOS" folder in "LifeOS" target */,
+			);
 			path = LifeOS;
 			sourceTree = "<group>";
 		};
@@ -257,15 +270,18 @@
 				DEVELOPMENT_TEAM = DN9P7V5R2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan barcodes and take meal photos for AI analysis";
+				INFOPLIST_FILE = LifeOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
+				INFOPLIST_KEY_NSCameraUsageDescription = "LifeOS uses camera to scan food barcodes and analyze meals with AI.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "LifeOS needs to read your health data to track calories and weight";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "LifeOS needs to update your weight in Apple Health";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select meal images for AI calorie tracking";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LifeOS needs access to your photos to analyze meal images.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -294,15 +310,18 @@
 				DEVELOPMENT_TEAM = DN9P7V5R2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan barcodes and take meal photos for AI analysis";
+				INFOPLIST_FILE = LifeOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
+				INFOPLIST_KEY_NSCameraUsageDescription = "LifeOS uses camera to scan food barcodes and analyze meals with AI.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "LifeOS needs to read your health data to track calories and weight";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "LifeOS needs to update your weight in Apple Health";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select meal images for AI calorie tracking";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LifeOS needs access to your photos to analyze meal images.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
