@@ -8,7 +8,7 @@ final class PersistenceManager {
     static let shared = PersistenceManager()
 
     // Water is stored per-day: "waterCount_YYYY-MM-dd"
-    private let moodKey = "moodIndex"
+
     private let targetWeightKey = "targetWeight"
     private let currentWeightKey = "currentWeight"
     private let weekFoodKey = "weekFoodLog"
@@ -31,14 +31,6 @@ final class PersistenceManager {
 
     func loadWaterCount(for date: Date = Date()) -> Int {
         UserDefaults.standard.integer(forKey: waterKey(for: date))
-    }
-
-    func saveMoodIndex(_ index: Int) {
-        UserDefaults.standard.set(index, forKey: moodKey)
-    }
-
-    func loadMoodIndex() -> Int {
-        UserDefaults.standard.integer(forKey: moodKey)
     }
 
     func saveTargetWeight(_ weight: Double) {

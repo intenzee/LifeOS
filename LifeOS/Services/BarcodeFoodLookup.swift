@@ -1,54 +1,73 @@
 import Foundation
 
-final class BarcodeFoodLookup {
-    static func lookup(barcode: String, completion: @escaping (FoodItem?) -> Void) {
-        let urlString = "https://world.openfoodfacts.org/api/v0/product/\(barcode).json"
+enum BarcodeFoodLookupError: Error {
+    case invalidURL
+}
 
+struct OpenFoodFactsResponse: Decodable {
+    let status: Int
+    let product: OpenFoodFactsProduct?
+}
+
+struct OpenFoodFactsProduct: Decodable {
+    let productName: String?
+    let servingSize: String?
+    let nutriments: OpenFoodFactsNutriments
+
+    enum CodingKeys: String, CodingKey {
+        case productName = "product_name"
+        case servingSize = "serving_size"
+        case nutriments
+    }
+}
+
+struct OpenFoodFactsNutriments: Decodable {
+    let energyKcal100g: Double?
+    let proteins100g: Double?
+    let carbohydrates100g: Double?
+    let fat100g: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case energyKcal100g = "energy-kcal_100g"
+        case proteins100g = "proteins_100g"
+        case carbohydrates100g = "carbohydrates_100g"
+        case fat100g = "fat_100g"
+    }
+}
+
+final class BarcodeFoodLookup {
+    static func lookup(barcode: String, apiClient: any APIClient) async throws -> FoodItem? {
+        let urlString = "https://world.openfoodfacts.org/api/v2/product/\(barcode).json"
         guard let url = URL(string: urlString) else {
-            completion(nil)
-            return
+            throw BarcodeFoodLookupError.invalidURL
         }
 
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            guard let data = data, error == nil else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
+        let headers = [
+            "User-Agent": "LifeOS/1.0 (support@lifeos.app)",
+            "Accept": "application/json"
+        ]
 
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let status = json["status"] as? Int,
-                   status == 1,
-                   let product = json["product"] as? [String: Any] {
+        let request = APIRequest<OpenFoodFactsResponse>(
+            url: url,
+            method: .get,
+            headers: headers
+        )
 
-                    let name = product["product_name"] as? String ?? "Unknown Product"
-                    let nutriments = product["nutriments"] as? [String: Any] ?? [:]
+        let response = try await apiClient.send(request)
+        guard response.status == 1, let product = response.product else {
+            return nil
+        }
 
-                    let calories = (nutriments["energy-kcal_100g"] as? Double) ?? 0
-                    let protein = (nutriments["proteins_100g"] as? Double) ?? 0
-                    let carbs = (nutriments["carbohydrates_100g"] as? Double) ?? 0
-                    let fat = (nutriments["fat_100g"] as? Double) ?? 0
-
-                    let food = FoodItem(
-                        name: name,
-                        calories: calories,
-                        protein: protein,
-                        carbs: carbs,
-                        fat: fat,
-                        servingSize: "100g",
-                        barcode: barcode,
-                        mealType: .snacks
-                    )
-
-                    DispatchQueue.main.async {
-                        completion(food)
-                    }
-                } else {
-                    DispatchQueue.main.async { completion(nil) }
-                }
-            } catch {
-                DispatchQueue.main.async { completion(nil) }
-            }
-        }.resume()
+        let nutriments = product.nutriments
+        return FoodItem(
+            name: product.productName ?? "Unknown Product",
+            calories: nutriments.energyKcal100g ?? 0,
+            protein: nutriments.proteins100g ?? 0,
+            carbs: nutriments.carbohydrates100g ?? 0,
+            fat: nutriments.fat100g ?? 0,
+            servingSize: product.servingSize ?? "100g",
+            barcode: barcode,
+            mealType: .snacks
+        )
     }
 }

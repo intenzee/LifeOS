@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>LifeOS needs camera access to scan food barcodes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>LifeOS needs photo library access to select food images for AI meal scanning.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>LifeOS reads your health data to display fitness and wellness insights.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>LifeOS writes health data to keep your records up to date.</string>
+</dict>
 </plist>

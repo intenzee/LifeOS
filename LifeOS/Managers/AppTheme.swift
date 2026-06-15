@@ -65,20 +65,19 @@ enum DesignSystem {
 }
 
 // MARK: - Colors
-/// Dynamic theme palette adapter matching the requested themes.
 struct ThemePalette {
     let colorScheme: ColorScheme
 
     var screenBackground: Color {
-        colorScheme == .dark ? Color(red: 0.06, green: 0.06, blue: 0.07) : Color(uiColor: .systemGroupedBackground)
+        colorScheme == .dark ? Color(red: 0.08, green: 0.09, blue: 0.13) : Color(uiColor: .systemGroupedBackground) // #141721
     }
 
     var surface: Color {
-        colorScheme == .dark ? Color(red: 0.12, green: 0.12, blue: 0.14) : Color(uiColor: .secondarySystemBackground)
+        colorScheme == .dark ? Color(red: 0.13, green: 0.14, blue: 0.18) : Color(uiColor: .secondarySystemBackground) // #21242E
     }
 
     var elevatedSurface: Color {
-        colorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.17) : Color(uiColor: .tertiarySystemBackground)
+        colorScheme == .dark ? Color(red: 0.16, green: 0.18, blue: 0.22) : Color(uiColor: .tertiarySystemBackground) // #292E38
     }
 
     var textPrimary: Color {
@@ -86,14 +85,18 @@ struct ThemePalette {
     }
 
     var textSecondary: Color {
-        colorScheme == .dark ? .gray : .secondary
+        colorScheme == .dark ? Color(red: 0.65, green: 0.68, blue: 0.73) : .secondary
     }
 
     var inputSurface: Color {
-        colorScheme == .dark ? Color(red: 0.20, green: 0.20, blue: 0.22) : Color(uiColor: .secondarySystemBackground)
+        colorScheme == .dark ? Color(red: 0.12, green: 0.13, blue: 0.16) : Color(uiColor: .secondarySystemBackground)
     }
 
     var overlay: Color {
         colorScheme == .dark ? Color.black.opacity(0.7) : Color.black.opacity(0.25)
+    }
+
+    var primaryAccent: Color {
+        Color(red: 0.44, green: 0.93, blue: 0.78) // #70EDC6 Mint Cyan
     }
 }

@@ -1,20 +1,27 @@
 import SwiftUI
 
+// MARK: - Redesigned Gym Week View
 struct GymWeekView: View {
     @StateObject private var workoutDatabase = WorkoutDatabaseManager.shared
     @ObservedObject var healthManager: HealthManager
     @Binding var isPresented: Bool
     let onDismiss: () -> Void
     let currentWeight: Double
+    @Environment(\.colorScheme) private var colorScheme
 
+    @State private var selectedDayIndex: Int = 0
+    @State private var showAddExercise = false
     @State private var selectedBodyPart: BodyPart = .chest
     @State private var selectedMaxSets: Int = 3
-    @State private var showAddExercise = false
-    @State private var selectedDay: String = ""
     @State private var showTreadmillTimePicker = false
     @State private var treadmillTime: Double = 20.0
 
     let daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    let dayAbbreviations = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+
+    private var palette: ThemePalette {
+        ThemePalette(colorScheme: colorScheme)
+    }
 
     var currentDay: String {
         let formatter = DateFormatter()
@@ -22,396 +29,734 @@ struct GymWeekView: View {
         return formatter.string(from: Date())
     }
 
+    var currentDayIndex: Int {
+        daysOfWeek.firstIndex(of: currentDay) ?? 0
+    }
+
+    var selectedDay: String {
+        daysOfWeek[selectedDayIndex]
+    }
+
+    var selectedWorkout: DayWorkout {
+        workoutDatabase.loadWorkoutForDay(selectedDay)
+    }
+
+    var selectedCalories: Double {
+        workoutDatabase.getCaloriesBurnedForDay(selectedDay, weightKg: currentWeight)
+    }
+
+    var intensityPercent: Int {
+        // Map calories to a 0–100% intensity scale (450 cal = 100%)
+        let maxCalories: Double = 450
+        return min(100, Int((selectedCalories / maxCalories) * 100))
+    }
+
+    var intensityLevel: String {
+        selectedWorkout.intensity(weightKg: currentWeight)
+    }
+
+    // Calendar info for the selected day
+    var selectedDate: Date {
+        let calendar = Calendar.current
+        let today = Date()
+        let todayIndex = currentDayIndex
+        let offset = selectedDayIndex - todayIndex
+        return calendar.date(byAdding: .day, value: offset, to: today)!
+    }
+
+    var monthName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: selectedDate)
+    }
+
+    var weekNumber: Int {
+        Calendar.current.component(.weekOfYear, from: selectedDate)
+    }
+
     var body: some View {
         ZStack {
-            Color.black.opacity(0.7)
+            // Backdrop
+            palette.screenBackground
                 .ignoresSafeArea()
                 .onTapGesture {
                     onDismiss()
                     isPresented = false
                 }
 
-            ScrollView {
-                VStack(spacing: 24) {
-                    VStack(spacing: 12) {
-                        Text("Weekly Workout")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
+            VStack(spacing: 0) {
+                // Top bar
+                topBar
+                
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 28) {
+                        // Intensity Ring
+                        intensityRing
 
-                        Text("Today: \(Int(workoutDatabase.getCaloriesBurnedForDay(currentDay, weightKg: currentWeight))) cal burned")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
+                        // Month + Week selector
+                        weekSelector
 
-                    VStack(spacing: 16) {
-                        ForEach(daysOfWeek, id: \.self) { day in
-                            dayCard(for: day)
-                        }
-                    }
+                        // Active Session card
+                        activeSessionCard
 
-                    Button(action: {
-                        onDismiss()
-                        isPresented = false
-                    }) {
-                        Text("Done")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(12)
+                        // Exercises list
+                        exercisesSection
+
+                        Spacer(minLength: 100)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
                 }
-                .padding(24)
             }
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
-            )
-            .padding(.horizontal, 32)
-            .padding(.vertical, 60)
 
+            // Floating Add button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: { showAddExercise = true }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(width: 56, height: 56)
+                            .background(
+                                Circle()
+                                    .fill(palette.primaryAccent)
+                                    .shadow(color: palette.primaryAccent.opacity(0.4), radius: 12, y: 4)
+                            )
+                    }
+                    .padding(.trailing, 24)
+                    .padding(.bottom, 36)
+                }
+            }
+
+            // Popups
             if showAddExercise {
-                addExercisePopup
+                addExerciseSheet
             }
 
             if showTreadmillTimePicker {
-                treadmillTimePicker
+                treadmillSheet
             }
         }
         .onAppear {
+            selectedDayIndex = currentDayIndex
             workoutDatabase.checkWeeklyReset()
         }
     }
 
-    private func dayCard(for day: String) -> some View {
-        let workout = workoutDatabase.loadWorkoutForDay(day)
-        let caloriesBurned = workoutDatabase.getCaloriesBurnedForDay(day, weightKg: currentWeight)
-        let intensityLevel = workout.intensity(weightKg: currentWeight)
-
-        return VStack(spacing: 12) {
-            HStack {
-                Text(day)
-                    .font(.headline)
-                    .foregroundColor(day == currentDay ? .blue : .white)
-
-                if day == currentDay {
-                    Text("(Today)")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing) {
-                    Text(intensityLevel)
-                        .font(.caption)
-                        .foregroundColor(intensityColor(for: intensityLevel))
-                    Text("\(Int(caloriesBurned)) cal")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                }
-
-                Button(action: {
-                    selectedDay = day
-                    showAddExercise = true
-                }) {
-                    Image(systemName: "plus.circle")
-                        .foregroundColor(.blue)
-                        .font(.title3)
-                }
-            }
-
-            HStack(spacing: 0) {
-                Button(action: {
-                    selectedDay = day
-                    treadmillTime = workout.treadmillDuration
-                    showTreadmillTimePicker = true
-                }) {
-                    HStack {
-                        Image(systemName: "figure.run")
-                            .foregroundColor(.white)
-                        VStack(alignment: .leading) {
-                            Text("Treadmill")
-                                .font(.subheadline)
-                                .foregroundColor(.white)
-                            Text("\(Int(workout.treadmillDuration)) min • 15% incline")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.leading, 12)
-                }
-
-                Button(action: {
-                    workoutDatabase.toggleTreadmillForDay(day, durationMinutes: workout.treadmillDuration)
-                    syncWorkoutToAppleHealth(day: day)
-                }) {
-                    Image(systemName: workout.treadmillDone ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(workout.treadmillDone ? .green : .gray)
-                        .font(.title3)
-                        .frame(width: 50, height: 40)
-                }
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(workout.treadmillDone ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
-            )
-
-            if workout.exercises.isEmpty {
-                Text("No exercises")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .padding(.vertical, 8)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(workout.exercises) { exercise in
-                        exerciseRow(exercise: exercise, day: day)
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(day == currentDay ? Color.blue.opacity(0.6) : .clear, lineWidth: 2)
-                )
-        )
-    }
-
-    private func exerciseRow(exercise: Exercise, day: String) -> some View {
+    // MARK: - Top Bar
+    private var topBar: some View {
         HStack {
-            Text(exercise.bodyPart.rawValue)
-                .foregroundColor(.white)
-                .frame(width: 80, alignment: .leading)
-
-            HStack(spacing: 6) {
-                ForEach(0..<exercise.maxSets, id: \.self) { i in
-                    Circle()
-                        .fill(i < exercise.setsCompleted ? Color.green : Color.gray.opacity(0.3))
-                        .frame(width: 12, height: 12)
-                }
+            Button(action: {
+                onDismiss()
+                isPresented = false
+            }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(palette.textSecondary)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(palette.surface))
             }
 
             Spacer()
 
-            Button(action: {
-                cycleExerciseSets(day: day, exerciseId: exercise.id)
-            }) {
-                Text("\(exercise.setsCompleted)/\(exercise.maxSets)")
-                    .font(.caption)
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.2))
-                    .cornerRadius(6)
+            Text("FITNESS")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .kerning(2)
+                .foregroundColor(palette.primaryAccent)
+
+            Spacer()
+
+            // Placeholder for symmetry
+            Color.clear.frame(width: 36, height: 36)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+    }
+
+    // MARK: - Intensity Ring
+    private var intensityRing: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                // Outer track
+                Circle()
+                    .stroke(palette.elevatedSurface, lineWidth: 16)
+
+                // Progress arc
+                Circle()
+                    .trim(from: 0, to: CGFloat(intensityPercent) / 100)
+                    .stroke(
+                        palette.primaryAccent,
+                        style: StrokeStyle(lineWidth: 16, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: palette.primaryAccent.opacity(0.45), radius: 10, x: 0, y: 0)
+
+                // Center label
+                VStack(spacing: 4) {
+                    Text("INTENSITY")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .kerning(1.5)
+                        .foregroundColor(palette.textSecondary)
+
+                    Text("\(intensityPercent)%")
+                        .font(.system(size: 38, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(width: 170, height: 170)
+
+            // Recovery chip
+            HStack(spacing: 8) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(palette.primaryAccent)
+
+                Text(intensityLevel.uppercased())
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .kerning(1)
+                    .foregroundColor(palette.textPrimary)
+
+                // Mini bar
+                HStack(spacing: 2) {
+                    ForEach(0..<4, id: \.self) { i in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(barColor(index: i))
+                            .frame(width: 18, height: 5)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(palette.surface)
+            )
+        }
+        .padding(.top, 4)
+    }
+
+    private func barColor(index: Int) -> Color {
+        let filled: Int
+        switch intensityLevel {
+        case "High": filled = 4
+        case "Medium": filled = 3
+        case "Low": filled = 2
+        default: filled = 0
+        }
+        return index < filled ? palette.primaryAccent : palette.elevatedSurface
+    }
+
+    // MARK: - Week Selector
+    private var weekSelector: some View {
+        VStack(spacing: 16) {
+            // Month & Week
+            HStack {
+                Text(monthName)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(palette.textPrimary)
+
+                Spacer()
+
+                Text("Week \(weekNumber)")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.textSecondary)
             }
 
-            Button(action: {
-                deleteExercise(day: day, exerciseId: exercise.id)
-            }) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red.opacity(0.7))
-                    .font(.caption)
+            // Day pills
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { i in
+                    let isSelected = i == selectedDayIndex
+                    let isToday = i == currentDayIndex
+                    let dayDate = Calendar.current.date(byAdding: .day, value: i - currentDayIndex, to: Date())!
+                    let dayNum = Calendar.current.component(.day, from: dayDate)
+
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedDayIndex = i
+                        }
+                    }) {
+                        VStack(spacing: 6) {
+                            Text(dayAbbreviations[i])
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundColor(isSelected ? .black : palette.textSecondary)
+
+                            Text("\(dayNum)")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(isSelected ? .black : (isToday ? palette.primaryAccent : palette.textPrimary))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(isSelected ? palette.primaryAccent : Color.clear)
+                        )
+                    }
+                }
             }
         }
     }
 
-    private var addExercisePopup: some View {
-        ZStack {
-            Color.black.opacity(0.8)
-                .ignoresSafeArea()
+    // MARK: - Active Session Card
+    private var activeSessionCard: some View {
+        let workout = selectedWorkout
+        let bodyParts = Array(Set(workout.exercises.map { $0.bodyPart.rawValue }))
+        let sessionName = bodyParts.isEmpty ? "Rest Day" : bodyParts.prefix(2).joined(separator: " & ")
+        let totalSets = workout.exercises.reduce(0) { $0 + $1.setsCompleted }
+        let maxSets = workout.exercises.reduce(0) { $0 + $1.maxSets }
 
-            VStack(spacing: 16) {
-                Text("Add Exercise for \(selectedDay)")
-                    .font(.headline)
-                    .foregroundColor(.white)
+        return VStack(alignment: .leading, spacing: 14) {
+            // Header row
+            HStack {
+                Text("ACTIVE SESSION")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .kerning(1.2)
+                    .foregroundColor(palette.textSecondary)
 
-                Picker("Body Part", selection: $selectedBodyPart) {
-                    ForEach(BodyPart.allCases, id: \.self) { part in
-                        Text(part.rawValue).tag(part)
+                Spacer()
+
+                if !workout.exercises.isEmpty || workout.treadmillDone {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(palette.primaryAccent)
+                            .frame(width: 6, height: 6)
+                        Text("\(totalSets)/\(maxSets) sets")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(palette.textSecondary)
                     }
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 120)
+            }
 
+            // Session name
+            Text(sessionName)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(palette.textPrimary)
+
+            // Stats row
+            HStack(spacing: 24) {
+                // Treadmill
+                HStack(spacing: 8) {
+                    Image(systemName: "figure.run")
+                        .font(.system(size: 14))
+                        .foregroundColor(palette.textSecondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("TREADMILL")
+                            .font(.system(size: 8, weight: .bold, design: .rounded))
+                            .kerning(0.8)
+                            .foregroundColor(palette.textSecondary)
+                        Text(workout.treadmillDone ? "\(Int(workout.treadmillDuration)) Min" : "–")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(palette.textPrimary)
+                    }
+                }
+                .onTapGesture {
+                    treadmillTime = workout.treadmillDuration
+                    showTreadmillTimePicker = true
+                }
+
+                // Calories
+                HStack(spacing: 8) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(palette.textSecondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("EST. CALORIES")
+                            .font(.system(size: 8, weight: .bold, design: .rounded))
+                            .kerning(0.8)
+                            .foregroundColor(palette.textSecondary)
+                        Text("\(Int(selectedCalories)) kcal")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(palette.textPrimary)
+                    }
+                }
+
+                Spacer()
+
+                // Treadmill toggle
+                Button(action: {
+                    workoutDatabase.toggleTreadmillForDay(selectedDay, durationMinutes: workout.treadmillDuration)
+                    syncWorkoutToAppleHealth(day: selectedDay)
+                }) {
+                    Image(systemName: workout.treadmillDone ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .foregroundColor(workout.treadmillDone ? palette.primaryAccent : palette.textSecondary)
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(palette.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(
+                            selectedDay == currentDay ? palette.primaryAccent.opacity(0.3) : Color.clear,
+                            lineWidth: 1
+                        )
+                )
+        )
+    }
+
+    // MARK: - Exercises Section
+    private var exercisesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Exercises")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(palette.textPrimary)
+
+            let workout = selectedWorkout
+
+            if workout.exercises.isEmpty {
+                emptyExerciseCard
+            } else {
+                ForEach(workout.exercises) { exercise in
+                    exerciseCard(exercise: exercise)
+                }
+            }
+        }
+    }
+
+    private var emptyExerciseCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(.system(size: 32))
+                .foregroundColor(palette.textSecondary.opacity(0.5))
+
+            Text("No exercises yet")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(palette.textSecondary)
+
+            Text("Tap + to add your first exercise")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundColor(palette.textSecondary.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(palette.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(palette.elevatedSurface, style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                )
+        )
+    }
+
+    private func exerciseCard(exercise: Exercise) -> some View {
+        HStack(spacing: 16) {
+            // Body part icon
+            ZStack {
+                Circle()
+                    .fill(palette.elevatedSurface)
+                    .frame(width: 52, height: 52)
+
+                Image(systemName: iconForBodyPart(exercise.bodyPart))
+                    .font(.system(size: 20))
+                    .foregroundColor(palette.primaryAccent)
+            }
+
+            // Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.bodyPart.rawValue)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(palette.textPrimary)
+
+                Text("\(exercise.setsCompleted)/\(exercise.maxSets) Sets")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.textSecondary)
+            }
+
+            Spacer()
+
+            // Set cycle button
+            Button(action: {
+                workoutDatabase.cycleExerciseSetsForDay(selectedDay, exerciseId: exercise.id)
+                syncWorkoutToAppleHealth(day: selectedDay)
+            }) {
+                intensityBadge(for: exercise)
+            }
+
+            // Delete
+            Button(action: {
+                workoutDatabase.deleteExerciseForDay(selectedDay, exerciseId: exercise.id)
+                syncWorkoutToAppleHealth(day: selectedDay)
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(palette.textSecondary.opacity(0.5))
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(palette.elevatedSurface))
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(palette.surface)
+        )
+    }
+
+    private func intensityBadge(for exercise: Exercise) -> some View {
+        let progress = exercise.maxSets > 0 ? Double(exercise.setsCompleted) / Double(exercise.maxSets) : 0
+        let label: String
+        let color: Color
+
+        if progress >= 1.0 {
+            label = "DONE"
+            color = palette.primaryAccent
+        } else if progress >= 0.5 {
+            label = "MED"
+            color = .blue
+        } else if progress > 0 {
+            label = "LOW"
+            color = .orange
+        } else {
+            label = "START"
+            color = palette.textSecondary
+        }
+
+        return Text(label)
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .kerning(0.5)
+            .foregroundColor(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(color)
+            )
+    }
+
+    private func iconForBodyPart(_ bp: BodyPart) -> String {
+        switch bp {
+        case .chest: return "figure.strengthtraining.traditional"
+        case .back: return "figure.rowing"
+        case .shoulders: return "figure.boxing"
+        case .arms: return "figure.arms.open"
+        case .legs: return "figure.walk"
+        case .abs: return "figure.core.training"
+        case .cardio: return "figure.run"
+        }
+    }
+
+    // MARK: - Add Exercise Sheet
+    private var addExerciseSheet: some View {
+        ZStack {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture { showAddExercise = false }
+
+            VStack(spacing: 20) {
+                // Header
                 HStack {
-                    Text("Max Sets")
-                        .foregroundColor(.white)
+                    Text("Add Exercise")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(palette.textPrimary)
+
                     Spacer()
-                    ForEach(3...6, id: \.self) { sets in
-                        Button(action: { selectedMaxSets = sets }) {
-                            Text("\(sets)")
-                                .fontWeight(selectedMaxSets == sets ? .bold : .regular)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(selectedMaxSets == sets ? Color.blue : Color.gray.opacity(0.3))
-                                .cornerRadius(8)
+
+                    Button(action: { showAddExercise = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(palette.textSecondary)
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(palette.elevatedSurface))
+                    }
+                }
+
+                Text(selectedDay)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.primaryAccent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Body part picker
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("BODY PART")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .kerning(1)
+                        .foregroundColor(palette.textSecondary)
+
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        ForEach(BodyPart.allCases, id: \.self) { part in
+                            Button(action: { selectedBodyPart = part }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: iconForBodyPart(part))
+                                        .font(.system(size: 12))
+                                    Text(part.rawValue)
+                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(selectedBodyPart == part ? .black : palette.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(selectedBodyPart == part ? palette.primaryAccent : palette.elevatedSurface)
+                                )
+                            }
                         }
                     }
                 }
 
-                HStack(spacing: 12) {
-                    Button("Cancel") {
-                        showAddExercise = false
-                        selectedDay = ""
-                    }
-                    .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(red: 0.2, green: 0.2, blue: 0.22))
-                    .cornerRadius(10)
+                // Sets picker
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("MAX SETS")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .kerning(1)
+                        .foregroundColor(palette.textSecondary)
 
-                    Button("Add") {
-                        addExercise(day: selectedDay, bodyPart: selectedBodyPart, maxSets: selectedMaxSets)
-                        showAddExercise = false
-                        selectedDay = ""
+                    HStack(spacing: 8) {
+                        ForEach(3...6, id: \.self) { sets in
+                            Button(action: { selectedMaxSets = sets }) {
+                                Text("\(sets)")
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundColor(selectedMaxSets == sets ? .black : palette.textPrimary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(selectedMaxSets == sets ? palette.primaryAccent : palette.elevatedSurface)
+                                    )
+                            }
+                        }
                     }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
+                }
+
+                // Add button
+                Button(action: {
+                    let newExercise = Exercise(bodyPart: selectedBodyPart, setsCompleted: 0, maxSets: selectedMaxSets)
+                    workoutDatabase.addExerciseForDay(selectedDay, exercise: newExercise)
+                    syncWorkoutToAppleHealth(day: selectedDay)
+                    showAddExercise = false
+                }) {
+                    Text("Add Exercise")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(palette.primaryAccent)
+                        )
                 }
             }
             .padding(24)
             .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(palette.surface)
+                    .shadow(color: .black.opacity(0.4), radius: 30, y: 10)
             )
-            .padding(.horizontal, 48)
+            .padding(.horizontal, 24)
         }
     }
 
-    private var treadmillTimePicker: some View {
+    // MARK: - Treadmill Sheet
+    private var treadmillSheet: some View {
         ZStack {
-            Color.black.opacity(0.9)
+            Color.black.opacity(0.6)
                 .ignoresSafeArea()
+                .onTapGesture { showTreadmillTimePicker = false }
 
             VStack(spacing: 20) {
-                Text("Treadmill for \(selectedDay)")
-                    .font(.headline)
-                    .foregroundColor(.white)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Duration")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-
-                    Text("\(Int(treadmillTime)) minutes")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                HStack {
+                    Text("Treadmill")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(palette.textPrimary)
+                    Spacer()
+                    Button(action: { showTreadmillTimePicker = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(palette.textSecondary)
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(palette.elevatedSurface))
+                    }
                 }
 
-                VStack {
+                Text(selectedDay)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.primaryAccent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Duration display
+                VStack(spacing: 4) {
+                    Text("\(Int(treadmillTime))")
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("minutes")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(palette.textSecondary)
+                }
+
+                // Slider
+                VStack(spacing: 8) {
                     Slider(value: $treadmillTime, in: 5...60, step: 5)
-                        .accentColor(.blue)
+                        .tint(palette.primaryAccent)
 
                     HStack {
-                        Text("5 min")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        Text("5")
                         Spacer()
-                        Text("30 min")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        Text("30")
                         Spacer()
-                        Text("60 min")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        Text("60")
                     }
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.textSecondary)
                 }
 
-                Text("Calories: \(Int(CalorieCalculator.treadmillCalories(weightKg: currentWeight, durationMinutes: treadmillTime))) cal")
-                    .font(.subheadline)
-                    .foregroundColor(.green)
+                // Calories estimate
+                HStack {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(palette.primaryAccent)
+                    Text("\(Int(CalorieCalculator.treadmillCalories(weightKg: currentWeight, durationMinutes: treadmillTime))) cal estimated")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(palette.textSecondary)
+                }
 
-                HStack(spacing: 12) {
-                    Button("Cancel") {
-                        showTreadmillTimePicker = false
+                // Log button
+                Button(action: {
+                    let dateKey = workoutDatabase.dayToDateKeyPublic(selectedDay)
+                    var workout = workoutDatabase.allDailyWorkouts[dateKey] ?? DayWorkout()
+                    workout.treadmillDuration = treadmillTime
+                    if !workout.treadmillDone {
+                        workout.treadmillDone = true
                     }
-                    .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(red: 0.2, green: 0.2, blue: 0.22))
-                    .cornerRadius(10)
-
-                    Button("Log Workout") {
-                        let dateKey = workoutDatabase.dayToDateKeyPublic(selectedDay)
-                        var workout = workoutDatabase.allDailyWorkouts[dateKey] ?? DayWorkout()
-                        workout.treadmillDuration = treadmillTime
-
-                        if !workout.treadmillDone {
-                            workout.treadmillDone = true
-                        }
-
-                        workoutDatabase.allDailyWorkouts[dateKey] = workout
-                        workoutDatabase.saveAllWorkoutsPublic()
-
-                        syncWorkoutToAppleHealth(day: selectedDay)
-                        showTreadmillTimePicker = false
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
-                    .cornerRadius(10)
+                    workoutDatabase.allDailyWorkouts[dateKey] = workout
+                    workoutDatabase.saveAllWorkoutsPublic()
+                    syncWorkoutToAppleHealth(day: selectedDay)
+                    showTreadmillTimePicker = false
+                }) {
+                    Text("Log Workout")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(palette.primaryAccent)
+                        )
                 }
             }
-            .padding(32)
+            .padding(24)
             .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(palette.surface)
+                    .shadow(color: .black.opacity(0.4), radius: 30, y: 10)
             )
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 24)
         }
     }
 
-    private func cycleExerciseSets(day: String, exerciseId: UUID) {
-        workoutDatabase.cycleExerciseSetsForDay(day, exerciseId: exerciseId)
-        syncWorkoutToAppleHealth(day: day)
-    }
-
-    private func deleteExercise(day: String, exerciseId: UUID) {
-        workoutDatabase.deleteExerciseForDay(day, exerciseId: exerciseId)
-        syncWorkoutToAppleHealth(day: day)
-    }
-
-    private func addExercise(day: String, bodyPart: BodyPart, maxSets: Int) {
-        let newExercise = Exercise(bodyPart: bodyPart, setsCompleted: 0, maxSets: maxSets)
-        workoutDatabase.addExerciseForDay(day, exercise: newExercise)
-        syncWorkoutToAppleHealth(day: day)
-    }
-
+    // MARK: - Helpers
     private func syncWorkoutToAppleHealth(day: String) {
         let workout = workoutDatabase.loadWorkoutForDay(day)
         let totalBurned = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
-        print("📅 \(day): \(Int(totalBurned)) calories burned")
-
         if day == currentDay && healthManager.isAuthorized {
             healthManager.saveWorkoutCalories(totalBurned)
         }
     }
-
-    private func intensityColor(for intensity: String) -> Color {
-        switch intensity {
-        case "High": return .green
-        case "Medium": return .blue
-        case "Low": return .orange
-        default: return .gray
-        }
-    }
 }
 
+// MARK: - Weight Picker (unchanged)
 struct WeightPickerView: View {
     @Binding var currentWeight: Double
     @Binding var targetWeight: Double
@@ -422,6 +767,11 @@ struct WeightPickerView: View {
     @State private var tempCurrent: Double
     @State private var tempTarget: Double
     @State private var syncWithHealth: Bool = true
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var palette: ThemePalette {
+        ThemePalette(colorScheme: colorScheme)
+    }
 
     init(currentWeight: Binding<Double>, targetWeight: Binding<Double>, isPresented: Binding<Bool>, healthManager: HealthManager, onSave: @escaping () -> Void) {
         _currentWeight = currentWeight
@@ -439,80 +789,92 @@ struct WeightPickerView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.7)
+            Color.black.opacity(0.6)
                 .ignoresSafeArea()
-                .onTapGesture {
-                    isPresented = false
-                }
+                .onTapGesture { isPresented = false }
 
-            VStack(spacing: 24) {
-                Text("Weight")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-
-                VStack(spacing: 20) {
-                    currentWeightField
-                    targetWeightField
-
-                    if healthManager.isAuthorized {
-                        healthSyncToggle
+            VStack(spacing: 20) {
+                HStack {
+                    Text("Weight")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(palette.textPrimary)
+                    Spacer()
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(palette.textSecondary)
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(palette.elevatedSurface))
                     }
-
-                    weightRemainingText
                 }
+
+                currentWeightField
+                targetWeightField
+
+                if healthManager.isAuthorized {
+                    healthSyncToggle
+                }
+
+                weightRemainingText
 
                 saveButton
             }
             .padding(24)
             .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(palette.surface)
+                    .shadow(color: .black.opacity(0.4), radius: 30, y: 10)
             )
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 24)
         }
     }
 
     private var currentWeightField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Current Weight")
-                .font(.caption)
-                .foregroundColor(.gray)
+            Text("CURRENT WEIGHT")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .kerning(1)
+                .foregroundColor(palette.textSecondary)
 
             HStack {
                 TextField("", value: $tempCurrent, format: .number)
                     .keyboardType(.decimalPad)
                     .foregroundColor(.white)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
                     .padding()
                     .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(palette.elevatedSurface)
                     )
 
                 Text("kg")
-                    .foregroundColor(.gray)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.textSecondary)
             }
         }
     }
 
     private var targetWeightField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Target Weight")
-                .font(.caption)
-                .foregroundColor(.gray)
+            Text("TARGET WEIGHT")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .kerning(1)
+                .foregroundColor(palette.textSecondary)
 
             HStack {
                 TextField("", value: $tempTarget, format: .number)
                     .keyboardType(.decimalPad)
                     .foregroundColor(.white)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
                     .padding()
                     .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(palette.elevatedSurface)
                     )
 
                 Text("kg")
-                    .foregroundColor(.gray)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.textSecondary)
             }
         }
     }
@@ -520,13 +882,14 @@ struct WeightPickerView: View {
     private var healthSyncToggle: some View {
         HStack {
             Text("Sync with Apple Health")
-                .font(.subheadline)
-                .foregroundColor(.white)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(palette.textPrimary)
 
             Spacer()
 
             Toggle("", isOn: $syncWithHealth)
                 .labelsHidden()
+                .tint(palette.primaryAccent)
         }
         .padding(.horizontal, 4)
     }
@@ -536,27 +899,24 @@ struct WeightPickerView: View {
         if weightRemaining > 0 {
             HStack {
                 Text("\(String(format: "%.1f", weightRemaining)) kg left to go")
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(.orange)
                 Spacer()
             }
-            .padding(.horizontal, 4)
         } else if weightRemaining < 0 {
             HStack {
                 Text("Target achieved! \(String(format: "%.1f", abs(weightRemaining))) kg below")
-                    .font(.subheadline)
-                    .foregroundColor(.green)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.primaryAccent)
                 Spacer()
             }
-            .padding(.horizontal, 4)
         } else {
             HStack {
                 Text("Target achieved!")
-                    .font(.subheadline)
-                    .foregroundColor(.green)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(palette.primaryAccent)
                 Spacer()
             }
-            .padding(.horizontal, 4)
         }
     }
 
@@ -573,12 +933,14 @@ struct WeightPickerView: View {
             isPresented = false
         }) {
             Text("Save")
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(12)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(palette.primaryAccent)
+                )
         }
     }
 }

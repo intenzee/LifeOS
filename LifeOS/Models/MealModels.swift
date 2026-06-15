@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Mini Card Type
 enum MiniCardType: Hashable {
-    case todo, weight, gym, mood, water, food
+    case todo, weight, gym, sleep, water, food
 }
 
 // MARK: - Meal Type

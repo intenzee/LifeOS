@@ -276,14 +276,22 @@ struct TodoTabView: View {
         guard var todos = weekTodoList[day], let index = todos.firstIndex(where: { $0.id == todoId }) else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             todos[index].isCompleted.toggle()
+            let updatedItem = todos[index]
             weekTodoList[day] = todos
             PersistenceManager.shared.saveWeekTodoList(weekTodoList)
+            
+            if updatedItem.isCompleted {
+                NotificationService.shared.cancelReminder(for: updatedItem.id)
+            } else if let date = updatedItem.reminderDate, date > Date() {
+                NotificationService.shared.scheduleReminder(for: updatedItem, at: date)
+            }
         }
     }
 
     private func deleteTodo(day: String, todoId: UUID) {
         weekTodoList[day]?.removeAll { $0.id == todoId }
         PersistenceManager.shared.saveWeekTodoList(weekTodoList)
+        NotificationService.shared.cancelReminder(for: todoId)
     }
 
     private func addTodo(day: String, title: String, notes: String = "", reminderDate: Date? = nil) {
@@ -713,11 +721,13 @@ struct SettingsView: View {
     @AppStorage("appTheme") private var appThemeRaw = AppTheme.system.rawValue
     @State private var caloriePercentage: Double
     @State private var dailyCalorieLimit: Double
+    @State private var smokingEnabled: Bool
     @State private var showLimitPicker = false
 
     init() {
         _caloriePercentage = State(initialValue: CalorieSettings.shared.loadPercentage())
         _dailyCalorieLimit = State(initialValue: CalorieLimitSettings.shared.loadLimit())
+        _smokingEnabled = State(initialValue: SmokingSettings.shared.loadSmokingEnabled())
     }
 
     private var palette: ThemePalette {
@@ -746,6 +756,7 @@ struct SettingsView: View {
                         themeCard
                         calorieLimitCard
                         calorieBankCard
+                        smokingCard
                     }
                     .padding(.horizontal)
 
@@ -859,23 +870,71 @@ struct SettingsView: View {
 
     private var calorieBankCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Calorie Bank Settings")
+            Text("Metabolic Intensity")
                 .font(.headline)
                 .foregroundColor(palette.textPrimary)
 
-            Text("Percentage of burned calories to add back to your calorie budget")
+            Text("Controls how much burned calories return to your daily target")
                 .font(.caption)
                 .foregroundColor(palette.textSecondary)
 
-            HStack(spacing: 12) {
-                percentageButton(0.5, "50%")
-                percentageButton(0.75, "75%")
-                percentageButton(1.0, "100%")
+            VStack(spacing: 10) {
+                intensityOptionButton(
+                    0.5,
+                    title: "Low",
+                    subtitle: "Slow add-back for a tighter deficit."
+                )
+                intensityOptionButton(
+                    0.75,
+                    title: "Medium",
+                    subtitle: "Balanced add-back for steady days."
+                )
+                intensityOptionButton(
+                    1.0,
+                    title: "High",
+                    subtitle: "Fast add-back to support hard training."
+                )
             }
 
-            Text("Current: \(Int(caloriePercentage * 100))% of burned calories added")
+            Text("Current: \(intensityLabel(for: caloriePercentage))")
                 .font(.caption)
-                .foregroundColor(.blue)
+                .foregroundColor(palette.textSecondary)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(palette.surface)
+        )
+    }
+
+    private var smokingCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Smoking")
+                .font(.headline)
+                .foregroundColor(palette.textPrimary)
+
+            Text("Use this if you smoke so future health features can adjust guidance and reminders.")
+                .font(.caption)
+                .foregroundColor(palette.textSecondary)
+
+            Toggle(isOn: Binding(
+                get: { smokingEnabled },
+                set: { newValue in
+                    smokingEnabled = newValue
+                    SmokingSettings.shared.saveSmokingEnabled(newValue)
+                }
+            )) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("I am a smoker")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(palette.textPrimary)
+
+                    Text("Store this preference locally on the device.")
+                        .font(.caption)
+                        .foregroundColor(palette.textSecondary)
+                }
+            }
+            .tint(palette.primaryAccent)
         }
         .padding()
         .background(
@@ -976,20 +1035,51 @@ struct SettingsView: View {
         }
     }
 
-    func percentageButton(_ value: Double, _ label: String) -> some View {
+    func intensityOptionButton(_ value: Double, title: String, subtitle: String) -> some View {
         Button(action: {
             caloriePercentage = value
             CalorieSettings.shared.savePercentage(value)
         }) {
-            Text(label)
-                .fontWeight(caloriePercentage == value ? .bold : .regular)
-                .foregroundColor(palette.textPrimary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(caloriePercentage == value ? Color.blue : palette.elevatedSurface)
-                )
+            let isSelected = caloriePercentage == value
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(palette.textPrimary)
+
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(palette.textSecondary)
+                }
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(palette.primaryAccent)
+                }
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? palette.primaryAccent.opacity(0.12) : palette.elevatedSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? palette.primaryAccent.opacity(0.4) : Color.clear, lineWidth: 1)
+            )
+        }
+    }
+
+    func intensityLabel(for value: Double) -> String {
+        switch value {
+        case 0.5:
+            return "Low"
+        case 0.75:
+            return "Medium"
+        default:
+            return "High"
         }
     }
 }

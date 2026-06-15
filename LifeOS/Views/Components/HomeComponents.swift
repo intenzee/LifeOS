@@ -10,7 +10,7 @@ struct DailyProgressContainer: View {
     let targetWeight: Double
     let showCurrentWeight: Bool
     let todayWorkout: DayWorkout
-    let moodIndex: Int
+    let sleepDuration: Double
     let todayMeals: DayMeals
 
     let onCardTap: (MiniCardType) -> Void
@@ -46,12 +46,11 @@ struct DailyProgressContainer: View {
 
                 HStack(spacing: 12) {
                     miniCard(.weight).onTapGesture { onCardTap(.weight) }
-                    miniCard(.mood).onTapGesture { onCardTap(.mood) }
+                    miniCard(.sleep).onTapGesture { onCardTap(.sleep) }
                 }
             }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 18).fill(palette.surface))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.blue.opacity(0.6)))
+            .padding(24)
+            .background(RoundedRectangle(cornerRadius: 32).fill(palette.surface))
         }
     }
 
@@ -70,7 +69,7 @@ struct DailyProgressContainer: View {
             Text(value(for: type)).font(.headline).foregroundColor(color(for: type)).lineLimit(2).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
-        .padding()
+        .padding(16)
         .background(RoundedRectangle(cornerRadius: 14).fill(palette.elevatedSurface))
     }
 
@@ -79,7 +78,7 @@ struct DailyProgressContainer: View {
         case .todo: return "To‑Do"
         case .weight: return "Weight"
         case .gym: return "Gym Intensity"
-        case .mood: return "Mood"
+        case .sleep: return "Sleep"
         case .water: return "Water"
         case .food: return "Protein Food"
         }
@@ -90,7 +89,7 @@ struct DailyProgressContainer: View {
         case .todo: return "checkmark.circle.fill"
         case .weight: return "scalemass.fill"
         case .gym: return "dumbbell.fill"
-        case .mood: return "face.smiling.fill"
+        case .sleep: return "moon.zzz.fill"
         case .water: return "drop.fill"
         case .food: return "fork.knife"
         }
@@ -106,7 +105,7 @@ struct DailyProgressContainer: View {
             }
             return baseWeight
         case .gym: return todayWorkout.intensity(weightKg: currentWeight)
-        case .mood: return ["😞", "😐", "😊"][moodIndex]
+        case .sleep: return "\(String(format: "%.1f", sleepDuration)) hrs"
         case .water: return "\(waterCount)/8"
         case .food: return todayMeals.summary
         }
@@ -114,20 +113,20 @@ struct DailyProgressContainer: View {
 
     func color(for type: MiniCardType) -> Color {
         switch type {
-        case .todo: return todayTodosTotal > 0 && todayTodosCompleted == todayTodosTotal ? .green : .orange
-        case .water: return waterCount >= 8 ? .green : .orange
-        case .mood: return moodIndex == 2 ? .green : .orange
+        case .todo: return todayTodosTotal > 0 && todayTodosCompleted == todayTodosTotal ? palette.primaryAccent : .orange
+        case .water: return waterCount >= 8 ? palette.primaryAccent : .orange
+        case .sleep: return sleepDuration >= 7.0 ? palette.primaryAccent : (sleepDuration > 0 ? .orange : palette.textSecondary)
         case .gym:
             let intensityLevel = todayWorkout.intensity(weightKg: currentWeight)
             switch intensityLevel {
-            case "High": return .green
+            case "High": return palette.primaryAccent
             case "Medium": return .blue
             case "Low": return .orange
-            default: return .gray
+            default: return palette.textSecondary
             }
         case .food:
             let count = todayMeals.highProteinCount
-            return count == 3 ? .green : (count == 0 ? .orange : .blue)
+            return count == 3 ? palette.primaryAccent : (count == 0 ? .orange : .blue)
         default: return .blue
         }
     }
@@ -150,7 +149,7 @@ private struct WaterMiniCard: View {
 
     private var palette: ThemePalette { ThemePalette(colorScheme: colorScheme) }
     private var displayCount: Int { isDragging ? dragGlasses : waterCount }
-    private var tintColor: Color { displayCount >= 8 ? .green : .orange }
+    private var tintColor: Color { displayCount >= 8 ? palette.primaryAccent : .orange }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -164,14 +163,36 @@ private struct WaterMiniCard: View {
             }
         }
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragging)
-        // Tap: +1 glass (only when not dragging)
-        .onTapGesture {
-            guard !isDragging else { return }
-            let newValue = min(12, waterCount + 1)
-            onWaterChange(newValue)
-        }
-        // Long-press then drag: pick an exact count
-        .simultaneousGesture(longPressDragGesture)
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded {
+                    guard !isDragging else { return }
+                    let newValue = min(12, waterCount + 1)
+                    onWaterChange(newValue)
+                }
+        )
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5)
+                .onEnded { _ in
+                    isDragging = true
+                    dragStartCount = waterCount
+                    dragGlasses = waterCount
+                }
+                .sequenced(before: DragGesture(minimumDistance: 5))
+                .onChanged { value in
+                    if case .second(true, let drag?) = value {
+                        let delta = Int(drag.translation.width / 20.0)
+                        dragGlasses = max(0, min(12, dragStartCount + delta))
+                    }
+                }
+                .onEnded { _ in
+                    if isDragging {
+                        onWaterChange(dragGlasses)
+                    }
+                    withAnimation { isDragging = false }
+                }
+        )
     }
 
     // MARK: - Subviews
@@ -193,7 +214,7 @@ private struct WaterMiniCard: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
-        .padding()
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(isDragging ? palette.surface : palette.elevatedSurface)
@@ -206,73 +227,83 @@ private struct WaterMiniCard: View {
             Image(systemName: "drop.fill").font(.caption2)
             Text("\(dragGlasses) / 12").font(.caption.weight(.semibold))
         }
-        .foregroundColor(.white)
+        .foregroundColor(.black)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(Capsule().fill(Color.blue))
-    }
-
-    // MARK: - Gesture
-
-    private var longPressDragGesture: some Gesture {
-        SequenceGesture(
-            LongPressGesture(minimumDuration: 0.4),
-            DragGesture(minimumDistance: 0)
-        )
-        .onChanged { value in
-            switch value {
-            case .first(true):
-                // Long press just recognised — enter drag mode from current count
-                if !isDragging {
-                    isDragging = true
-                    dragStartCount = waterCount
-                    dragGlasses = waterCount
-                }
-            case .second(_, let drag?):
-                // Finger is moving — map horizontal translation to glass count
-                let delta = Int(drag.translation.width / 20.0)
-                dragGlasses = max(0, min(12, dragStartCount + delta))
-            default:
-                break
-            }
-        }
-        .onEnded { _ in
-            // Finger lifted — commit the new count and close the indicator
-            if isDragging {
-                onWaterChange(dragGlasses)
-            }
-            withAnimation { isDragging = false }
-        }
+        .background(Capsule().fill(palette.primaryAccent))
     }
 }
 
 // MARK: - Calories Ring
-
 struct CaloriesRing: View {
     @Environment(\.colorScheme) private var colorScheme
     let consumed: Double
     let limit: Double
     let burned: Double
+    let water: Int // using water for the third stat
+
     var progress: Double { min(consumed / limit, 1.0) }
+    var remaining: Int { max(0, Int(limit) - Int(consumed)) }
 
     private var palette: ThemePalette {
         ThemePalette(colorScheme: colorScheme)
     }
 
     var body: some View {
-        ZStack {
-            Circle().stroke(Color.blue.opacity(0.15), lineWidth: 20)
-            Circle().trim(from: 0, to: progress).stroke(Color.blue, style: StrokeStyle(lineWidth: 20, lineCap: .round)).rotationEffect(.degrees(-90))
-            VStack(spacing: 6) {
-                Text("Calorie Budget").font(.title3).fontWeight(.semibold).foregroundColor(palette.textPrimary)
-                Text("\(Int(consumed))").font(.system(size: 36, weight: .bold)).foregroundColor(.blue)
-                Text("of \(Int(limit))").font(.subheadline).foregroundColor(palette.textSecondary)
+        VStack(spacing: 32) {
+            // Ring
+            ZStack {
+                Circle()
+                    .stroke(palette.elevatedSurface, lineWidth: 22)
+                
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        palette.primaryAccent,
+                        style: StrokeStyle(lineWidth: 22, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: palette.primaryAccent.opacity(0.4), radius: 10, x: 0, y: 0)
 
-                if burned > 0 {
-                    Text("🔥 \(Int(burned)) burned").font(.caption).foregroundColor(.orange)
+                VStack(spacing: 4) {
+                    Text("CALORIES REMAINING")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .kerning(1.5)
+                        .foregroundColor(palette.textSecondary)
+                    
+                    Text("\(remaining)")
+                        .font(.system(size: 46, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    
+                    Text("kcal")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(palette.primaryAccent)
                 }
             }
+            .frame(width: 250, height: 250)
+            
+            // Sub-metrics (Eaten, Burned, Water)
+            HStack(spacing: 0) {
+                metricColumn(title: "EATEN", value: "\(Int(consumed))")
+                Spacer()
+                metricColumn(title: "BURNED", value: "\(Int(burned))")
+                Spacer()
+                metricColumn(title: "WATER", value: "\(water)")
+            }
+            .padding(.horizontal, 40)
         }
-        .frame(width: 220, height: 220)
+    }
+    
+    @ViewBuilder
+    private func metricColumn(title: String, value: String) -> some View {
+        VStack(spacing: 6) {
+            Text(title)
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .kerning(1.2)
+                .foregroundColor(palette.textSecondary)
+            Text(value)
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+        }
     }
 }

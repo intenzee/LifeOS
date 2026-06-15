@@ -7,6 +7,7 @@ final class HealthManager: ObservableObject {
 
     @Published var caloriesConsumed: Double = 1450
     @Published var healthWeight: Double = 72.5
+    @Published var sleepDurationHours: Double = 0.0
     @Published var isAuthorized = false
 
     func requestAuthorization() {
@@ -17,7 +18,8 @@ final class HealthManager: ObservableObject {
 
         let typesToRead: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
-            HKObjectType.quantityType(forIdentifier: .bodyMass)!
+            HKObjectType.quantityType(forIdentifier: .bodyMass)!,
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
 
         let typesToWrite: Set<HKSampleType> = [
@@ -30,6 +32,7 @@ final class HealthManager: ObservableObject {
                 if success {
                     self.fetchTodayCalories()
                     self.fetchLatestWeight()
+                    self.fetchLastNightSleep()
                 }
             }
         }
@@ -159,7 +162,8 @@ extension HealthManager {
         let typesToRead: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
-            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
+            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
 
         let typesToWrite: Set<HKSampleType> = [
@@ -173,6 +177,7 @@ extension HealthManager {
                 if success {
                     self.fetchTodayCalories()
                     self.fetchLatestWeight()
+                    self.fetchLastNightSleep()
                 }
             }
         }
@@ -200,6 +205,40 @@ extension HealthManager {
             }
         }
 
+        healthStore.execute(query)
+    }
+
+    func fetchLastNightSleep() {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return }
+        
+        // From yesterday evening to now
+        let now = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Calendar.current.startOfDay(for: now))!
+        let endOfToday = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: now))!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: yesterday, end: endOfToday, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        
+        let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+            guard let samples = samples as? [HKCategorySample] else { return }
+            
+            // Filter for actual sleep (asleepUnspecified, asleepCore, asleepDeep, asleepREM)
+            let sleepSamples = samples.filter { sample in
+                sample.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
+                sample.value == HKCategoryValueSleepAnalysis.asleepCore.rawValue ||
+                sample.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
+                sample.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
+            }
+            
+            let totalSleepSeconds = sleepSamples.reduce(0.0) { result, sample in
+                result + sample.endDate.timeIntervalSince(sample.startDate)
+            }
+            
+            DispatchQueue.main.async {
+                self.sleepDurationHours = totalSleepSeconds / 3600.0
+            }
+        }
+        
         healthStore.execute(query)
     }
 }

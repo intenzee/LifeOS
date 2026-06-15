@@ -30,3 +30,17 @@ final class CalorieLimitSettings {
         return saved > 0 ? saved : defaultLimit
     }
 }
+
+final class SmokingSettings {
+    static let shared = SmokingSettings()
+
+    private let smokingKey = "smokingEnabled"
+
+    func saveSmokingEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: smokingKey)
+    }
+
+    func loadSmokingEnabled() -> Bool {
+        return UserDefaults.standard.bool(forKey: smokingKey)
+    }
+}

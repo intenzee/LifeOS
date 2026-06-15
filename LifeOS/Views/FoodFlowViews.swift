@@ -724,6 +724,7 @@ class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOutputObj
 struct AIMealScanView: View {
     @Binding var isPresented: Bool
     let selectedMeal: MealType
+    let apiClient: any APIClient
     let onFoodDetected: (FoodItem) -> Void
 
     @State private var selectedImage: UIImage?
@@ -733,10 +734,39 @@ struct AIMealScanView: View {
     @State private var showConfirmation = false
     @State private var apiKey = ""
     @State private var selectedAI: AIProvider = .chatgpt
+    @State private var errorMessage: String? = nil
 
     enum AIProvider: String, CaseIterable {
         case chatgpt = "ChatGPT"
         case perplexity = "Perplexity"
+    }
+
+    private enum AIMealScanError: Error {
+        case missingAPIKey
+        case imageEncodingFailed
+        case emptyResponse
+        case invalidJSON
+    }
+
+    private struct ChatCompletionResponse: Decodable {
+        struct Choice: Decodable {
+            let message: Message
+        }
+
+        struct Message: Decodable {
+            let content: String
+        }
+
+        let choices: [Choice]
+    }
+
+    private struct MealScanPayload: Decodable {
+        let name: String?
+        let calories: Double?
+        let protein: Double?
+        let carbs: Double?
+        let fat: Double?
+        let servingSize: String?
     }
 
     var body: some View {
@@ -859,32 +889,49 @@ struct AIMealScanView: View {
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
         }
+        .alert("Meal Scan Failed", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "Unknown error")
+        }
     }
 
-    func analyzeImage() {
+    private func analyzeImage() {
         guard let image = selectedImage else { return }
         isAnalyzing = true
+        errorMessage = nil
 
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            isAnalyzing = false
-            return
-        }
-        let base64Image = imageData.base64EncodedString()
-
-        if selectedAI == .chatgpt {
-            analyzewithChatGPT(base64Image: base64Image)
-        } else {
-            analyzeWithPerplexity(base64Image: base64Image)
+        Task {
+            do {
+                let food = try await scanMeal(image: image)
+                await MainActor.run {
+                    detectedFood = food
+                    showConfirmation = true
+                    isAnalyzing = false
+                }
+            } catch {
+                await MainActor.run {
+                    isAnalyzing = false
+                    errorMessage = message(for: error)
+                }
+            }
         }
     }
 
-    func analyzewithChatGPT(base64Image: String) {
-        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+    private func scanMeal(image: UIImage) async throws -> FoodItem {
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedKey.isEmpty else {
+            throw AIMealScanError.missingAPIKey
+        }
 
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw AIMealScanError.imageEncodingFailed
+        }
+
+        let base64Image = imageData.base64EncodedString()
         let prompt = """
         Analyze this food image and return ONLY a JSON object with this exact format (no markdown, no explanation):
         {
@@ -897,6 +944,63 @@ struct AIMealScanView: View {
         }
         """
 
+        let content = try await requestChatCompletion(prompt: prompt, base64Image: base64Image)
+        let payload = try parseFoodPayload(from: content)
+
+        return FoodItem(
+            name: payload.name ?? "Unknown Food",
+            calories: payload.calories ?? 0,
+            protein: payload.protein ?? 0,
+            carbs: payload.carbs ?? 0,
+            fat: payload.fat ?? 0,
+            servingSize: payload.servingSize ?? "1 serving",
+            mealType: selectedMeal
+        )
+    }
+
+    private func requestChatCompletion(prompt: String, base64Image: String) async throws -> String {
+        switch selectedAI {
+        case .chatgpt:
+            let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+            let body = try makeOpenAIRequestBody(prompt: prompt, base64Image: base64Image)
+            let request = APIRequest<ChatCompletionResponse>(
+                url: url,
+                method: .post,
+                headers: [
+                    "Authorization": "Bearer \(apiKey)",
+                    "Content-Type": "application/json"
+                ],
+                body: body
+            )
+
+            let response = try await apiClient.send(request)
+            guard let content = response.choices.first?.message.content else {
+                throw AIMealScanError.emptyResponse
+            }
+            return content
+
+        case .perplexity:
+            let url = URL(string: "https://api.perplexity.ai/chat/completions")!
+            let body = try makePerplexityRequestBody(prompt: prompt)
+            let request = APIRequest<ChatCompletionResponse>(
+                url: url,
+                method: .post,
+                headers: [
+                    "Authorization": "Bearer \(apiKey)",
+                    "Content-Type": "application/json"
+                ],
+                body: body
+            )
+
+            let response = try await apiClient.send(request)
+            guard let content = response.choices.first?.message.content else {
+                throw AIMealScanError.emptyResponse
+            }
+            return content
+        }
+    }
+
+    private func makeOpenAIRequestBody(prompt: String, base64Image: String) throws -> Data {
         let payload: [String: Any] = [
             "model": "gpt-4o",
             "messages": [
@@ -911,47 +1015,10 @@ struct AIMealScanView: View {
             "max_tokens": 300
         ]
 
-        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
-
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            DispatchQueue.main.async {
-                isAnalyzing = false
-
-                guard let data = data, error == nil else {
-                    print("Error: \(error?.localizedDescription ?? "Unknown")")
-                    return
-                }
-
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let choices = json["choices"] as? [[String: Any]],
-                   let message = choices.first?["message"] as? [String: Any],
-                   let content = message["content"] as? String {
-
-                    parseFoodResponse(content)
-                }
-            }
-        }.resume()
+        return try JSONSerialization.data(withJSONObject: payload)
     }
 
-    func analyzeWithPerplexity(base64Image: String) {
-        let url = URL(string: "https://api.perplexity.ai/chat/completions")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let prompt = """
-        Analyze this food image and return ONLY a JSON object with this exact format:
-        {
-          "name": "Food name",
-          "calories": 250,
-          "protein": 20,
-          "carbs": 30,
-          "fat": 10,
-          "servingSize": "1 cup"
-        }
-        """
-
+    private func makePerplexityRequestBody(prompt: String) throws -> Data {
         let payload: [String: Any] = [
             "model": "llama-3.1-sonar-large-128k-online",
             "messages": [
@@ -959,49 +1026,67 @@ struct AIMealScanView: View {
             ]
         ]
 
-        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
-
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            DispatchQueue.main.async {
-                isAnalyzing = false
-
-                guard let data = data, error == nil else { return }
-
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let choices = json["choices"] as? [[String: Any]],
-                   let message = choices.first?["message"] as? [String: Any],
-                   let content = message["content"] as? String {
-
-                    parseFoodResponse(content)
-                }
-            }
-        }.resume()
+        return try JSONSerialization.data(withJSONObject: payload)
     }
 
-    func parseFoodResponse(_ response: String) {
-        let cleaned = response
-            .replacingOccurrences(of: "```json", with: "")
-            .replacingOccurrences(of: "```", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard let data = cleaned.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            print("Failed to parse JSON")
-            return
+    private func parseFoodPayload(from response: String) throws -> MealScanPayload {
+        let cleaned = extractJSONPayload(from: response)
+        guard let data = cleaned.data(using: .utf8) else {
+            throw AIMealScanError.invalidJSON
         }
 
-        let food = FoodItem(
-            name: json["name"] as? String ?? "Unknown Food",
-            calories: json["calories"] as? Double ?? 0,
-            protein: json["protein"] as? Double ?? 0,
-            carbs: json["carbs"] as? Double ?? 0,
-            fat: json["fat"] as? Double ?? 0,
-            servingSize: json["servingSize"] as? String ?? "1 serving",
-            mealType: selectedMeal
-        )
+        if let payload = try? JSONDecoder().decode(MealScanPayload.self, from: data) {
+            return payload
+        }
 
-        detectedFood = food
-        showConfirmation = true
+        if let payloads = try? JSONDecoder().decode([MealScanPayload].self, from: data),
+           let first = payloads.first {
+            return first
+        }
+
+        throw AIMealScanError.invalidJSON
+    }
+
+    private func extractJSONPayload(from text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("```") {
+            let lines = trimmed.split(separator: "\n", omittingEmptySubsequences: false)
+            var contentLines = lines
+            if let first = contentLines.first, first.hasPrefix("```") {
+                contentLines.removeFirst()
+            }
+            if let last = contentLines.last, last.hasPrefix("```") {
+                contentLines.removeLast()
+            }
+            return contentLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if let start = trimmed.firstIndex(of: "["), let end = trimmed.lastIndex(of: "]") {
+            return String(trimmed[start...end])
+        }
+
+        if let start = trimmed.firstIndex(of: "{"), let end = trimmed.lastIndex(of: "}") {
+            return String(trimmed[start...end])
+        }
+
+        return trimmed
+    }
+
+    private func message(for error: Error) -> String {
+        if let error = error as? AIMealScanError {
+            switch error {
+            case .missingAPIKey:
+                return "Please enter a valid API key."
+            case .imageEncodingFailed:
+                return "Could not process the selected image."
+            case .emptyResponse:
+                return "The AI service returned an empty response."
+            case .invalidJSON:
+                return "The AI response could not be parsed."
+            }
+        }
+
+        return "Something went wrong. Please try again."
     }
 }
 
