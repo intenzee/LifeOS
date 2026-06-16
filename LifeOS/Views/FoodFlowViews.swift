@@ -43,7 +43,7 @@ struct MealDetailView: View {
                             }) {
                                 Image(systemName: "chevron.left.circle.fill")
                                     .font(.title2)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(ThemePalette.accent)
                             }
 
                             Spacer()
@@ -56,7 +56,7 @@ struct MealDetailView: View {
 
                                 Text("\(Int(foodLog.totalCalories())) calories")
                                     .font(.subheadline)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(ThemePalette.accent)
                             }
 
                             Spacer()
@@ -67,7 +67,7 @@ struct MealDetailView: View {
                             }) {
                                 Image(systemName: "chevron.right.circle.fill")
                                     .font(.title2)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(ThemePalette.accent)
                             }
                         }
 
@@ -130,7 +130,7 @@ struct MealDetailView: View {
 
                 Button(action: { onAddFood(mealType) }) {
                     Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(ThemePalette.accent)
                 }
             }
 
@@ -149,7 +149,7 @@ struct MealDetailView: View {
 
             Text("\(Int(foods.reduce(0) { $0 + $1.calories })) cal")
                 .font(.caption)
-                .foregroundColor(.blue)
+                .foregroundColor(ThemePalette.accent)
         }
         .padding()
         .background(
@@ -174,7 +174,7 @@ struct MealDetailView: View {
 
             Text("\(Int(food.calories)) cal")
                 .font(.caption)
-                .foregroundColor(.blue)
+                .foregroundColor(ThemePalette.accent)
 
             Button(action: {
                 FoodDatabaseManager.shared.removeFood(food.id)
@@ -269,7 +269,7 @@ struct FoodSearchView: View {
                         Button(action: { showingCustomFood = true }) {
                             HStack {
                                 Image(systemName: "plus.circle")
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(ThemePalette.accent)
                                 Text("Add Custom Food")
                                     .foregroundColor(.white)
                                 Spacer()
@@ -349,7 +349,7 @@ struct FoodSearchView: View {
                     HStack(spacing: 8) {
                         Text("\(Int(food.calories)) cal")
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(ThemePalette.accent)
                         Text("•")
                             .foregroundColor(.gray)
                         Text(food.servingSize)
@@ -361,7 +361,7 @@ struct FoodSearchView: View {
                 Spacer()
 
                 Image(systemName: "plus.circle")
-                    .foregroundColor(.blue)
+                    .foregroundColor(ThemePalette.accent)
             }
             .padding()
             .background(
@@ -506,7 +506,7 @@ struct CustomFoodView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(ThemePalette.accent)
                     .cornerRadius(10)
                 }
             }
@@ -575,7 +575,7 @@ struct BarcodeUnrecognizedPromptView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(ThemePalette.accent)
                     .cornerRadius(10)
                 }
             }
@@ -812,7 +812,7 @@ struct AIMealScanView: View {
 
                 Text("Get your API key from \(selectedAI == .chatgpt ? "platform.openai.com" : "perplexity.ai")")
                     .font(.caption)
-                    .foregroundColor(.blue)
+                    .foregroundColor(ThemePalette.accent)
 
                 if let image = selectedImage {
                     Image(uiImage: image)
@@ -822,7 +822,7 @@ struct AIMealScanView: View {
                         .cornerRadius(16)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.blue, lineWidth: 2)
+                                .stroke(ThemePalette.accent, lineWidth: 2)
                         )
                 } else {
                     VStack(spacing: 16) {
@@ -859,7 +859,7 @@ struct AIMealScanView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(selectedImage != nil && !apiKey.isEmpty ? Color.blue : Color.gray)
+                    .background(selectedImage != nil && !apiKey.isEmpty ? ThemePalette.accent : Color.gray)
                     .foregroundColor(.white)
                     .cornerRadius(12)
                     .disabled(selectedImage == nil || apiKey.isEmpty || isAnalyzing)
@@ -1272,7 +1272,7 @@ struct PortionSizeSelectorView: View {
                                     .padding(.vertical, 12)
                                     .background(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .fill(portionGrams == portion.1 ? Color.blue : Color(red: 0.2, green: 0.2, blue: 0.22))
+                                            .fill(portionGrams == portion.1 ? ThemePalette.accent : Color(red: 0.2, green: 0.2, blue: 0.22))
                                     )
                             }
                         }
@@ -1303,7 +1303,7 @@ struct PortionSizeSelectorView: View {
                                     Button("Done") {
                                         hideKeyboard()
                                     }
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(ThemePalette.accent)
                                 }
                             }
 
@@ -1352,7 +1352,7 @@ struct PortionSizeSelectorView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(ThemePalette.accent)
                     .cornerRadius(10)
                 }
             }

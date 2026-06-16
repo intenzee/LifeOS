@@ -42,7 +42,7 @@ struct TodoWeekView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue)
+                            .background(ThemePalette.accent)
                             .cornerRadius(12)
                     }
                 }
@@ -66,19 +66,19 @@ struct TodoWeekView: View {
             HStack {
                 Text(day)
                     .font(.headline)
-                    .foregroundColor(day == currentDay ? .blue : .white)
+                    .foregroundColor(day == currentDay ? ThemePalette.accent : .white)
 
                 if day == currentDay {
                     Text("(Today)")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(ThemePalette.accent)
                 }
 
                 Spacer()
 
                 Button(action: { selectedDay = day }) {
                     Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(ThemePalette.accent)
                 }
             }
 
@@ -101,7 +101,7 @@ struct TodoWeekView: View {
                 .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(day == currentDay ? Color.blue.opacity(0.6) : .clear, lineWidth: 2)
+                        .stroke(day == currentDay ? ThemePalette.accent.opacity(0.6) : .clear, lineWidth: 2)
                 )
         )
     }
@@ -162,7 +162,7 @@ struct TodoWeekView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(ThemePalette.accent)
                 .cornerRadius(10)
             }
         }

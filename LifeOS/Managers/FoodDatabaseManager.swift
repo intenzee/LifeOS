@@ -31,10 +31,14 @@ final class FoodDatabaseManager: ObservableObject {
         dailyLog = allDailyLogs[dateKey] ?? DailyFoodLog()
     }
 
-    private func dateToString(_ date: Date) -> String {
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    private func dateToString(_ date: Date) -> String {
+        return Self.dateFormatter.string(from: date)
     }
 
     func addFood(_ food: FoodItem) {
@@ -126,18 +130,17 @@ final class FoodDatabaseManager: ObservableObject {
 
     var allFoods: [FoodItem] {
         var combined = recentFoods + customFoods + favoriteFoods + Self.commonFoods
+
+        var uniqueFoods: [FoodItem] = []
         var seenNames = Set<String>()
 
-        combined = combined.filter { food in
-            let key = food.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            if seenNames.contains(key) {
-                return false
+        for food in combined {
+            if !seenNames.contains(food.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) {
+                uniqueFoods.append(food)
+                seenNames.insert(food.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
             }
-            seenNames.insert(key)
-            return true
         }
-
-        return combined
+        return uniqueFoods
     }
 
     static let commonFoods: [FoodItem] = [

@@ -99,4 +99,10 @@ struct ThemePalette {
     var primaryAccent: Color {
         Color(red: 0.44, green: 0.93, blue: 0.78) // #70EDC6 Mint Cyan
     }
+
+    /// UIColor equivalent of `primaryAccent` for UIKit components (e.g. tab bar).
+    static let primaryAccentUIColor = UIColor(red: 0.44, green: 0.93, blue: 0.78, alpha: 1.0)
+
+    /// Static SwiftUI Color for views that don't have access to a palette instance.
+    static let accent = Color(red: 0.44, green: 0.93, blue: 0.78)
 }

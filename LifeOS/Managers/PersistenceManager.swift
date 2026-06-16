@@ -14,6 +14,23 @@ final class PersistenceManager {
     private let weekFoodKey = "weekFoodLog"
     private let weekTodoKey = "weekTodoList"
     private let weekGymKey = "weekGymLog"
+    private let userProfileKey = "userProfile"
+
+    // MARK: - User Profile (onboarding)
+
+    func saveUserProfile(_ profile: UserProfile) {
+        if let encoded = try? JSONEncoder().encode(profile) {
+            UserDefaults.standard.set(encoded, forKey: userProfileKey)
+        }
+    }
+
+    func loadUserProfile() -> UserProfile? {
+        guard let data = UserDefaults.standard.data(forKey: userProfileKey),
+              let decoded = try? JSONDecoder().decode(UserProfile.self, from: data) else {
+            return nil
+        }
+        return decoded
+    }
 
     // MARK: - Water (date-keyed)
 

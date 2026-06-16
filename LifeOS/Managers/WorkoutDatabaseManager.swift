@@ -27,10 +27,14 @@ final class WorkoutDatabaseManager: ObservableObject {
         return getCaloriesBurnedForDay(dayName, weightKg: weight)
     }
 
-    private func dayNameFromDate(_ date: Date) -> String {
+    private static let dayNameFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE"
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    private func dayNameFromDate(_ date: Date) -> String {
+        return Self.dayNameFormatter.string(from: date)
     }
 
     func getCaloriesBurnedForDay(_ day: String, weightKg: Double) -> Double {
@@ -102,6 +106,12 @@ final class WorkoutDatabaseManager: ObservableObject {
         saveAllWorkouts()
     }
 
+    private static let dateKeyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
     private func dayToDateKey(_ dayName: String) -> String {
         let calendar = Calendar.current
         let today = Date()
@@ -123,9 +133,7 @@ final class WorkoutDatabaseManager: ObservableObject {
         let daysOffset = dayIndex - todayIndex
         let targetDate = calendar.date(byAdding: .day, value: daysOffset, to: today)!
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: targetDate)
+        return Self.dateKeyFormatter.string(from: targetDate)
     }
 
     private func saveAllWorkouts() {

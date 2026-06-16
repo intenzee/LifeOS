@@ -13,6 +13,7 @@ struct ContentView: View {
     let dependencies: AppDependencies
     @State private var selectedTab = 0
     @AppStorage("appTheme") private var appThemeRaw = AppTheme.system.rawValue
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var scrollOffset: CGFloat = 0
 
     init(dependencies: AppDependencies) {
@@ -43,20 +44,20 @@ struct ContentView: View {
             appearance.backgroundColor = UIColor.clear
             appearance.stackedLayoutAppearance.normal.iconColor = UIColor.secondaryLabel
             appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.secondaryLabel]
-            appearance.stackedLayoutAppearance.selected.iconColor = UIColor.systemBlue
-            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.systemBlue]
+            appearance.stackedLayoutAppearance.selected.iconColor = ThemePalette.primaryAccentUIColor
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: ThemePalette.primaryAccentUIColor]
         case .light:
             appearance.backgroundColor = UIColor.clear
             appearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
             appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.gray]
-            appearance.stackedLayoutAppearance.selected.iconColor = UIColor.systemBlue
-            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.systemBlue]
+            appearance.stackedLayoutAppearance.selected.iconColor = ThemePalette.primaryAccentUIColor
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: ThemePalette.primaryAccentUIColor]
         case .dark:
             appearance.backgroundColor = UIColor.clear
             appearance.stackedLayoutAppearance.normal.iconColor = UIColor.lightGray
             appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.lightGray]
-            appearance.stackedLayoutAppearance.selected.iconColor = UIColor.systemBlue
-            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.systemBlue]
+            appearance.stackedLayoutAppearance.selected.iconColor = ThemePalette.primaryAccentUIColor
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: ThemePalette.primaryAccentUIColor]
         }
 
         UITabBar.appearance().standardAppearance = appearance
@@ -71,7 +72,35 @@ struct ContentView: View {
 
     var body: some View {
         let palette = ThemePalette(colorScheme: colorScheme)
-        
+
+        ZStack {
+            mainContent(palette: palette)
+
+            if !hasCompletedOnboarding {
+                OnboardingView(onComplete: completeOnboarding)
+                    .transition(.asymmetric(
+                        insertion: .opacity,
+                        removal: .scale(scale: 1.05).combined(with: .opacity)
+                    ))
+                    .zIndex(1)
+            }
+        }
+        .preferredColorScheme(preferredColorScheme)
+        .animation(.spring(response: 0.55, dampingFraction: 0.85), value: hasCompletedOnboarding)
+    }
+
+    private func completeOnboarding(with profile: UserProfile) {
+        dependencies.persistence.saveUserProfile(profile)
+        dependencies.persistence.saveCurrentWeight(profile.currentWeightKg)
+        dependencies.persistence.saveTargetWeight(profile.targetWeightKg)
+        SmokingSettings.shared.saveSmokingEnabled(profile.smokes)
+        CalorieLimitSettings.shared.saveLimit(CalorieGoalCalculator.dailyCalorieGoal(profile: profile))
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
+            hasCompletedOnboarding = true
+        }
+    }
+
+    private func mainContent(palette: ThemePalette) -> some View {
         ZStack {
             palette.screenBackground
                 .ignoresSafeArea()
@@ -86,6 +115,8 @@ struct ContentView: View {
                         StreaksView()
                     case 2:
                         TodoTabView()
+                    case 3:
+                        ProfileHubView(isPresented: .constant(true), embeddedAsTab: true)
                     default:
                         EmptyView()
                     }
@@ -112,7 +143,7 @@ struct ContentView: View {
             scrollOffset = value
         }
     }
-    
+
     // MARK: - Custom Tab Bar
     private func customTabBar(palette: ThemePalette) -> some View {
         HStack(spacing: 0) {
@@ -167,41 +198,28 @@ private struct TopStatusBarScrim: View {
 
     var body: some View {
         let clamped = min(max(progress, 0), 1)
-        
-        // Graduated-blur mask: opaque at top → transparent at bottom
-        let baseMask = LinearGradient(
+
+        // Single graduated-blur layer (replaces previous 3-layer stack for GPU savings)
+        let mask = LinearGradient(
             stops: [
                 .init(color: .black, location: 0),
-                .init(color: .black.opacity(0.8), location: 0.35),
-                .init(color: .black.opacity(0.4), location: 0.65),
+                .init(color: .black.opacity(0.7), location: 0.4),
                 .init(color: .black.opacity(0), location: 1.0)
             ],
             startPoint: .top,
             endPoint: .bottom
         )
 
-        ZStack {
-            // Layer 1 — Always-visible graduated blur (base)
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .mask(baseMask)
-                .frame(height: 100)
-                .opacity(0.85)
-
-            // Layer 2 — Screen-background tint (anchors the notch color)
-            Rectangle()
-                .fill(palette.screenBackground.opacity(0.55))
-                .mask(baseMask)
-                .frame(height: 100)
-
-            // Layer 3 — Extra intensity layer that fades in on scroll
-            Rectangle()
-                .fill(.thinMaterial)
-                .mask(baseMask)
-                .frame(height: 120)
-                .opacity(clamped * 0.7)
-        }
-        .animation(.easeOut(duration: 0.22), value: clamped)
-        .allowsHitTesting(false)
+        Rectangle()
+            .fill(palette.screenBackground.opacity(0.6 + clamped * 0.3))
+            .overlay(
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.7 + clamped * 0.3)
+            )
+            .mask(mask)
+            .frame(height: 100)
+            .animation(.easeOut(duration: 0.22), value: clamped)
+            .allowsHitTesting(false)
     }
 }

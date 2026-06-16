@@ -60,7 +60,7 @@ struct QuickActionsMenu: View {
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.blue.opacity(0.25), lineWidth: 1)
+                                    .stroke(ThemePalette.accent.opacity(0.25), lineWidth: 1)
                             )
                         }
                     }
@@ -87,7 +87,7 @@ struct QuickActionsMenu: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.blue.opacity(0.35), lineWidth: 1)
+                    .stroke(ThemePalette.accent.opacity(0.35), lineWidth: 1)
             )
             .padding(.horizontal, 20)
         }

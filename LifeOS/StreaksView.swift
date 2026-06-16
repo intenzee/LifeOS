@@ -296,7 +296,7 @@ struct StreaksView: View {
         return HStack(spacing: 12) {
             Text(isToday ? "Today" : formatter.string(from: date))
                 .font(.subheadline)
-                .foregroundColor(isToday ? .blue : palette.textPrimary)
+                .foregroundColor(isToday ? palette.primaryAccent : palette.textPrimary)
                 .frame(width: 100, alignment: .leading)
 
             if let s = summary {
@@ -329,7 +329,7 @@ struct StreaksView: View {
         .padding(.horizontal, 10)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(isToday ? Color.blue.opacity(0.1) : palette.elevatedSurface)
+                .fill(isToday ? palette.primaryAccent.opacity(0.1) : palette.elevatedSurface)
         )
     }
 

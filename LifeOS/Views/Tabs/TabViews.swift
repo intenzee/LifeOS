@@ -99,7 +99,7 @@ struct TodoTabView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("Today")
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(palette.primaryAccent)
 
                     Text(currentDay)
                         .font(.headline.weight(.semibold))
@@ -110,7 +110,7 @@ struct TodoTabView: View {
             HStack(spacing: 8) {
                 ForEach(daysOfWeek.indices, id: \.self) { index in
                     Capsule()
-                        .fill(index == selectedDayIndex ? Color.blue : palette.elevatedSurface)
+                        .fill(index == selectedDayIndex ? palette.primaryAccent : palette.elevatedSurface)
                         .frame(width: index == selectedDayIndex ? 24 : 8, height: 8)
                         .animation(.spring(response: 0.28, dampingFraction: 0.8), value: selectedDayIndex)
                 }
@@ -134,10 +134,10 @@ struct TodoTabView: View {
                         if day == currentDay {
                             Text("Today")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(.blue)
+                                .foregroundColor(palette.primaryAccent)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(Capsule().fill(Color.blue.opacity(0.16)))
+                                .background(Capsule().fill(palette.primaryAccent.opacity(0.16)))
                         }
                     }
 
@@ -151,12 +151,12 @@ struct TodoTabView: View {
                 Button(action: { selectedDay = day }) {
                     Label("Add", systemImage: "plus.circle.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(palette.primaryAccent)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
                             Capsule()
-                                .fill(Color.blue.opacity(0.12))
+                                .fill(palette.primaryAccent.opacity(0.12))
                         )
                 }
             }
@@ -185,7 +185,7 @@ struct TodoTabView: View {
                             isCompletedDay
                             ? Color.green.opacity(0.42)
                             : day == currentDay && hasTasks
-                                ? Color.blue.opacity(0.7)
+                                ? palette.primaryAccent.opacity(0.7)
                                 : Color.white.opacity(0.06),
                             lineWidth: isCompletedDay ? 1.5 : (day == currentDay && hasTasks ? 2 : 1)
                         )
@@ -194,16 +194,16 @@ struct TodoTabView: View {
                     color: isCompletedDay
                     ? Color.green.opacity(colorScheme == .dark ? 0.35 : 0.25)
                     : .black.opacity(colorScheme == .dark ? 0.28 : 0.08),
-                    radius: isCompletedDay ? 22 : 16,
+                    radius: isCompletedDay ? 12 : 10,
                     x: 0,
-                    y: isCompletedDay ? 12 : 10
+                    y: isCompletedDay ? 8 : 6
                 )
         )
         .scaleEffect(isCompletedDay ? 1.01 : (day == currentDay ? 1.0 : 0.97))
     }
 
     private func taskList(for day: String, todos: [TodoItem]) -> some View {
-        let isCompletedDay = !todos.isEmpty && todos.allSatisfy { $0.isCompleted }
+
 
         return ScrollView(.vertical, showsIndicators: true) {
             VStack(spacing: 12) {
@@ -457,7 +457,7 @@ private struct AddTaskSheet: View {
                                         Image(systemName: "clock").font(.caption2.weight(.medium))
                                         Text(reminderChip).font(.subheadline)
                                     }
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(ThemePalette.accent)
                                 }
                             }
                         }
@@ -476,7 +476,7 @@ private struct AddTaskSheet: View {
                         Button(action: { showReminderPicker = true }) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(reminderPreset != .none ? Color.blue : Color.white.opacity(0.10))
+                                    .fill(reminderPreset != .none ? ThemePalette.accent : Color.white.opacity(0.10))
                                     .frame(width: 44, height: 44)
                                 Image(systemName: "calendar.badge.clock")
                                     .font(.system(size: 18))
@@ -594,7 +594,7 @@ private struct ReminderPresetPicker: View {
                     Text("Done")
                         .font(.body.weight(.semibold)).foregroundColor(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue))
+                        .background(RoundedRectangle(cornerRadius: 14).fill(ThemePalette.accent))
                 }
                 .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 28)
             }
@@ -610,7 +610,12 @@ struct ProfileHubView: View {
     @AppStorage("profileDisplayName") private var profileDisplayName = "LifeOS User"
     @AppStorage("profileEmail") private var profileEmail = "user@example.com"
     @State private var showSettings = false
+    @State private var showHealthProfile = false
     @Environment(\.colorScheme) private var colorScheme
+
+    /// When true, the close (xmark) button is hidden. Used when the view is
+    /// embedded as a tab rather than presented modally.
+    var embeddedAsTab: Bool = false
 
     private var palette: ThemePalette {
         ThemePalette(colorScheme: colorScheme)
@@ -626,7 +631,7 @@ struct ProfileHubView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "person.crop.circle.fill")
                                 .font(.system(size: 64))
-                                .foregroundColor(.blue)
+                                .foregroundColor(palette.primaryAccent)
 
                             Text(isLoggedIn ? profileDisplayName : "Guest")
                                 .font(.title2)
@@ -643,6 +648,13 @@ struct ProfileHubView: View {
                             RoundedRectangle(cornerRadius: 18)
                                 .fill(palette.surface)
                         )
+
+                        Button(action: { showHealthProfile = true }) {
+                            labelRow(
+                                title: "Health Profile",
+                                systemImage: "person.text.rectangle.fill"
+                            )
+                        }
 
                         Button(action: {
                             isLoggedIn.toggle()
@@ -665,11 +677,13 @@ struct ProfileHubView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark")
-                            .font(.headline)
-                            .foregroundColor(palette.textPrimary)
+                if !embeddedAsTab {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: { isPresented = false }) {
+                            Image(systemName: "xmark")
+                                .font(.headline)
+                                .foregroundColor(palette.textPrimary)
+                        }
                     }
                 }
 
@@ -683,6 +697,9 @@ struct ProfileHubView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $showHealthProfile) {
+                ProfileDetailsView()
             }
         }
     }
@@ -724,6 +741,8 @@ struct SettingsView: View {
     @State private var smokingEnabled: Bool
     @State private var showLimitPicker = false
 
+    @State private var showHealthProfile = false
+
     init() {
         _caloriePercentage = State(initialValue: CalorieSettings.shared.loadPercentage())
         _dailyCalorieLimit = State(initialValue: CalorieLimitSettings.shared.loadLimit())
@@ -754,6 +773,7 @@ struct SettingsView: View {
 
                     VStack(spacing: 16) {
                         themeCard
+                        healthProfileCard
                         calorieLimitCard
                         calorieBankCard
                         smokingCard
@@ -769,6 +789,49 @@ struct SettingsView: View {
                 calorieLimitPicker
             }
         }
+        .sheet(isPresented: $showHealthProfile, onDismiss: {
+            dailyCalorieLimit = CalorieLimitSettings.shared.loadLimit()
+            smokingEnabled = SmokingSettings.shared.loadSmokingEnabled()
+        }) {
+            ProfileDetailsView()
+        }
+    }
+
+    private var healthProfileCard: some View {
+        Button(action: { showHealthProfile = true }) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Health Profile")
+                    .font(.headline)
+                    .foregroundColor(palette.textPrimary)
+
+                Text("Edit your age, body metrics, goal, diet and lifestyle. Saving recalculates your daily calorie target.")
+                    .font(.caption)
+                    .foregroundColor(palette.textSecondary)
+                    .multilineTextAlignment(.leading)
+
+                HStack {
+                    Image(systemName: "person.text.rectangle.fill")
+                        .foregroundColor(palette.primaryAccent)
+                    Text("Review & edit details")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(palette.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(palette.elevatedSurface)
+                )
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(palette.surface)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var themeCard: some View {
@@ -791,7 +854,7 @@ struct SettingsView: View {
                             .padding(.vertical, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedTheme == theme ? Color.blue : palette.elevatedSurface)
+                                    .fill(selectedTheme == theme ? palette.primaryAccent : palette.elevatedSurface)
                             )
                     }
                 }
@@ -846,7 +909,7 @@ struct SettingsView: View {
                         Text("\(Int(dailyCalorieLimit)) calories")
                             .font(.title3)
                             .fontWeight(.bold)
-                            .foregroundColor(.blue)
+                            .foregroundColor(palette.primaryAccent)
                     }
 
                     Spacer()
@@ -995,7 +1058,7 @@ struct SettingsView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(palette.primaryAccent)
                         .cornerRadius(12)
                 }
             }
@@ -1024,13 +1087,13 @@ struct SettingsView: View {
 
                 if dailyCalorieLimit == value {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(palette.primaryAccent)
                 }
             }
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(dailyCalorieLimit == value ? Color.blue.opacity(0.2) : palette.elevatedSurface)
+                    .fill(dailyCalorieLimit == value ? palette.primaryAccent.opacity(0.2) : palette.elevatedSurface)
             )
         }
     }

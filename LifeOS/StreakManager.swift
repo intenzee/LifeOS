@@ -124,10 +124,14 @@ class StreakManager: ObservableObject {
         summaries = decoded
     }
 
-    func dateKey(for date: Date) -> String {
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    func dateKey(for date: Date) -> String {
+        Self.dateFormatter.string(from: date)
     }
 }
 
