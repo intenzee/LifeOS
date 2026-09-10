@@ -14,6 +14,7 @@ struct AppDependencies {
     let workoutDatabase: WorkoutDatabaseManager
     let persistence: PersistenceManager
     let notificationService: NotificationService
+    let watchConnectivity: WatchConnectivityManager
     let apiClient: any APIClient
     let dailyMetricsRepository: any DailyMetricsRepository
     let weeklyLogRepository: any WeeklyLogRepository
@@ -25,6 +26,7 @@ struct AppDependencies {
         workoutDatabase: WorkoutDatabaseManager = .shared,
         persistence: PersistenceManager = .shared,
         notificationService: NotificationService = .shared,
+        watchConnectivity: WatchConnectivityManager = .shared,
         apiClient: any APIClient = URLSessionAPIClient(),
         dailyMetricsRepository: (any DailyMetricsRepository)? = nil,
         weeklyLogRepository: (any WeeklyLogRepository)? = nil
@@ -35,6 +37,7 @@ struct AppDependencies {
         self.workoutDatabase = workoutDatabase
         self.persistence = persistence
         self.notificationService = notificationService
+        self.watchConnectivity = watchConnectivity
         self.apiClient = apiClient
         self.dailyMetricsRepository = dailyMetricsRepository ?? LocalDailyMetricsRepository(persistence: persistence)
         self.weeklyLogRepository = weeklyLogRepository ?? LocalWeeklyLogRepository(persistence: persistence)
@@ -47,6 +50,7 @@ struct LifeOSApp: App {
 
     init() {
         dependencies.notificationService.requestPermission()
+        dependencies.watchConnectivity.activate()
     }
 
     var body: some Scene {

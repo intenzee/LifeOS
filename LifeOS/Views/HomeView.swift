@@ -56,6 +56,7 @@ final class HomeViewModel: ObservableObject {
     let workoutDatabase: WorkoutDatabaseManager
     let dailyMetricsRepository: any DailyMetricsRepository
     let weeklyLogRepository: any WeeklyLogRepository
+    let watchConnectivity: WatchConnectivityManager
 
     let cardOrder: [MiniCardType] = [.todo, .gym, .water, .food]
 
@@ -66,6 +67,7 @@ final class HomeViewModel: ObservableObject {
         self.workoutDatabase = dependencies.workoutDatabase
         self.dailyMetricsRepository = dependencies.dailyMetricsRepository
         self.weeklyLogRepository = dependencies.weeklyLogRepository
+        self.watchConnectivity = dependencies.watchConnectivity
 
         self.state = HomeViewState(
             waterCount: dailyMetricsRepository.loadWaterCount(for: Date()),
@@ -166,6 +168,13 @@ final class HomeViewModel: ObservableObject {
         state.weekTodoList = weeklyLogRepository.loadWeekTodoList()
     }
 
+    /// Reloads state that the Apple Watch may have changed (water, todos) so the
+    /// phone UI reflects wrist-side edits.
+    func refreshFromWatchMutation() {
+        state.waterCount = dailyMetricsRepository.loadWaterCount(for: Date())
+        refreshTodoState()
+    }
+
     func updateWaterCount(_ newValue: Int) {
         state.waterCount = newValue
         dailyMetricsRepository.saveWaterCount(newValue, for: Date())
@@ -181,12 +190,23 @@ final class HomeViewModel: ObservableObject {
     }
 
     func syncStreaks() {
+        // Any home-screen data change also refreshes the Watch mirror (always
+        // built from today's data, regardless of the browsed date).
+        watchConnectivity.sendSnapshot()
+
+        // Streak summaries are always recorded under *today's* key, but the food
+        // log and workout reflect the currently selected date. Recording while
+        // browsing another date would corrupt today's summary with that day's
+        // calories/gym intensity. Only record when viewing today.
+        guard Calendar.current.isDateInToday(foodDatabase.selectedDate) else { return }
+
         let intensity = todayWorkout.intensity(weightKg: state.currentWeight)
+        let waterTarget = PersistenceManager.shared.loadUserProfile()?.waterGoalGlasses ?? 8
         streakManager.recordToday(
             caloriesConsumed: foodDatabase.dailyLog.totalCalories(),
             calorieLimit: adjustedCalorieLimit,
             waterGlasses: state.waterCount,
-            waterTarget: 8,
+            waterTarget: waterTarget,
             gymIntensity: intensity,
             todosCompleted: todayTodosCompleted,
             todosTotal: todayTodosTotal
@@ -429,6 +449,10 @@ struct HomeView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .weekTodoListDidChange)) { _ in
             viewModel.refreshTodoState()
+            viewModel.syncStreaks()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .watchDidMutateData)) { _ in
+            viewModel.refreshFromWatchMutation()
             viewModel.syncStreaks()
         }
         .onChange(of: foodDatabase.selectedDate) { oldValue, newValue in

@@ -82,6 +82,21 @@ final class WorkoutDatabaseManager: ObservableObject {
         saveAllWorkouts()
     }
 
+    /// Sets an exercise's completed-set count to an absolute value (clamped to
+    /// `0...maxSets`). Used by the Watch auto-set tracker, which reports totals.
+    func setExerciseSetsForDay(_ day: String, exerciseId: UUID, setsCompleted: Int) {
+        let dateKey = dayToDateKey(day)
+        var workout = allDailyWorkouts[dateKey] ?? DayWorkout()
+
+        if let index = workout.exercises.firstIndex(where: { $0.id == exerciseId }) {
+            let maxSets = workout.exercises[index].maxSets
+            workout.exercises[index].setsCompleted = min(max(setsCompleted, 0), maxSets)
+        }
+
+        allDailyWorkouts[dateKey] = workout
+        saveAllWorkouts()
+    }
+
     func deleteExerciseForDay(_ day: String, exerciseId: UUID) {
         let dateKey = dayToDateKey(day)
         var workout = allDailyWorkouts[dateKey] ?? DayWorkout()

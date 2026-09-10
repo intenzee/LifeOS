@@ -32,6 +32,22 @@
 - 🎨 **Fluid UI/UX** - Featuring a custom liquid-glass floating tab bar and a unified design system
 - 🔄 **Real-time Sync** - Seamless HealthKit integration
 - 🌙 **Dark Mode Support** - Native iOS dark mode compatibility
+- ⌚ **Apple Watch App** - Companion watchOS app with automatic set tracking, water logging, todos, and a live dashboard synced over WatchConnectivity
+
+---
+
+## ⌚ Apple Watch Companion
+
+A native watchOS app (target **LifeOS Watch App**) that pairs with the phone over **WatchConnectivity**:
+
+- **Today dashboard** — calorie ring, water, calories burned, and streak mirrored from the phone.
+- **Quick water logging** — +/- from the wrist, synced instantly back to the phone.
+- **Automatic set tracking** — pick an exercise (e.g. *Chest → Bench Press*), tap *Start Auto-Track*, and the watch counts sets and reps from wrist motion. It samples `CoreMotion` device-motion at ~50 Hz and low-pass filters it into a motion-energy signal; a state machine detects active/rest periods, counts reps via acceleration peaks, finalizes a set after a sustained rest, and auto-advances when the target sets are reached. A manual "Log Set" fallback is always available.
+- **Todo check-off** — see and complete today's todos from the watch.
+
+**How sync works:** the phone pushes a daily *snapshot* via `updateApplicationContext`; the watch sends *mutations* (water, todos, sets) via interactive messages (with a background transfer fallback when unreachable). Writes route through the phone's existing managers so the iPhone UI updates reactively.
+
+> Requires a paired Apple Watch. Motion-based set counting runs while the watch app is in the foreground and is heuristic, tuned for typical resistance-training cadence. Screen-off / background tracking would require an `HKWorkoutSession` (the HealthKit capability, which needs a paid Apple Developer account); the current build keeps the watch app free of the HealthKit entitlement so it signs on a free account.
 
 ---
 

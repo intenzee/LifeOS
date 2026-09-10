@@ -26,6 +26,13 @@ final class FoodDatabaseManager: ObservableObject {
         loadDailyLogForSelectedDate()
     }
 
+    /// Read-only log for an arbitrary date without changing the current selection.
+    /// Used by the Watch snapshot, which must always report *today* regardless of
+    /// which date the phone UI is browsing.
+    func dailyLog(for date: Date) -> DailyFoodLog {
+        allDailyLogs[dateToString(date)] ?? DailyFoodLog()
+    }
+
     private func loadDailyLogForSelectedDate() {
         let dateKey = dateToString(selectedDate)
         dailyLog = allDailyLogs[dateKey] ?? DailyFoodLog()
