@@ -61,11 +61,38 @@ final class PersistenceManager {
 
     func saveCurrentWeight(_ weight: Double) {
         UserDefaults.standard.set(weight, forKey: currentWeightKey)
+        recordWeightPoint(weight)
     }
 
     func loadCurrentWeight() -> Double {
         let saved = UserDefaults.standard.double(forKey: currentWeightKey)
         return saved > 0 ? saved : 72.5
+    }
+
+    // MARK: - Weight history (date-keyed, one point per day)
+
+    private let weightHistoryKey = "weightHistory"
+
+    /// Records today's weight, overwriting any earlier entry for the same day.
+    func recordWeightPoint(_ weight: Double, on date: Date = Date()) {
+        guard weight > 0 else { return }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        var history = (UserDefaults.standard.dictionary(forKey: weightHistoryKey) as? [String: Double]) ?? [:]
+        history[formatter.string(from: date)] = weight
+        UserDefaults.standard.set(history, forKey: weightHistoryKey)
+    }
+
+    /// Weight history as dated points, oldest first.
+    func loadWeightHistory() -> [(date: Date, weightKg: Double)] {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let history = (UserDefaults.standard.dictionary(forKey: weightHistoryKey) as? [String: Double]) ?? [:]
+        return history.compactMap { key, value in
+            formatter.date(from: key).map { ($0, value) }
+        }.sorted { $0.0 < $1.0 }
     }
 
     func saveWeekFoodLog(_ log: [String: DayMeals]) {

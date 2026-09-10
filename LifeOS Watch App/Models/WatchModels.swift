@@ -13,16 +13,21 @@ struct WatchSnapshot: Equatable {
     var waterCount: Int
     var waterTarget: Int
     var perfectStreak: Int
+    var currentWeight: Double
+    var targetWeight: Double
+    var steps: Int
     var todos: [WatchTodo]
     var exercises: [WatchExercise]
 
     static let empty = WatchSnapshot(
         date: "", caloriesConsumed: 0, calorieLimit: 0, caloriesBurned: 0,
-        waterCount: 0, waterTarget: 8, perfectStreak: 0, todos: [], exercises: []
+        waterCount: 0, waterTarget: 8, perfectStreak: 0, currentWeight: 0, targetWeight: 0,
+        steps: 0, todos: [], exercises: []
     )
 
     init(date: String, caloriesConsumed: Double, calorieLimit: Double, caloriesBurned: Double,
          waterCount: Int, waterTarget: Int, perfectStreak: Int,
+         currentWeight: Double, targetWeight: Double, steps: Int,
          todos: [WatchTodo], exercises: [WatchExercise]) {
         self.date = date
         self.caloriesConsumed = caloriesConsumed
@@ -31,6 +36,9 @@ struct WatchSnapshot: Equatable {
         self.waterCount = waterCount
         self.waterTarget = waterTarget
         self.perfectStreak = perfectStreak
+        self.currentWeight = currentWeight
+        self.targetWeight = targetWeight
+        self.steps = steps
         self.todos = todos
         self.exercises = exercises
     }
@@ -44,6 +52,9 @@ struct WatchSnapshot: Equatable {
         self.waterCount = (dict["waterCount"] as? Int) ?? 0
         self.waterTarget = (dict["waterTarget"] as? Int) ?? 8
         self.perfectStreak = (dict["perfectStreak"] as? Int) ?? 0
+        self.currentWeight = (dict["currentWeight"] as? Double) ?? 0
+        self.targetWeight = (dict["targetWeight"] as? Double) ?? 0
+        self.steps = (dict["steps"] as? Int) ?? 0
         self.todos = (dict["todos"] as? [[String: Any]] ?? []).compactMap(WatchTodo.init(dictionary:))
         self.exercises = (dict["exercises"] as? [[String: Any]] ?? []).compactMap(WatchExercise.init(dictionary:))
     }

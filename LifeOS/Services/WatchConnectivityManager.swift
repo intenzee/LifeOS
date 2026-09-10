@@ -114,9 +114,19 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "waterCount": persistence.loadWaterCount(for: Date()),
             "waterTarget": waterTarget,
             "perfectStreak": streakManager.perfectDayStreak,
+            "currentWeight": currentWeight,
+            "targetWeight": persistence.loadTargetWeight(),
+            "steps": Int(latestSteps),
             "todos": todos,
             "exercises": exercises
         ]
+    }
+
+    /// Latest step count, fed in by the app so the watch dashboard can show it
+    /// without the (HealthKit-free) watch reading HealthKit itself. Setting it
+    /// re-pushes the snapshot.
+    var latestSteps: Double = 0 {
+        didSet { if Int(latestSteps) != Int(oldValue) { sendSnapshot() } }
     }
 
     func sendSnapshot() {
@@ -142,6 +152,11 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         case "setWater":
             if let value = message["value"] as? Int {
                 persistence.saveWaterCount(max(0, value), for: Date())
+            }
+
+        case "setWeight":
+            if let value = message["value"] as? Double, value > 0 {
+                persistence.saveCurrentWeight(value) // also records weight history
             }
 
         case "toggleTodo":

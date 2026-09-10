@@ -10,46 +10,15 @@
 		1A000000000000000000000C /* LifeOS Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000001 /* LifeOS Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
-/* Begin PBXFileReference section */
-		3D08A1D92EF9524500C3B6B6 /* LifeOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LifeOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		1A0000000000000000000001 /* LifeOS Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "LifeOS Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		3D8CA0AE2F1A10D5008E4357 /* Exceptions for "LifeOS" folder in "LifeOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 3D08A1D82EF9524500C3B6B6 /* LifeOS */;
+/* Begin PBXContainerItemProxy section */
+		1A000000000000000000000E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3D08A1D12EF9524500C3B6B6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A0000000000000000000004;
+			remoteInfo = "LifeOS Watch App";
 		};
-		1A0000000000000000000003 /* Exceptions for "LifeOS Watch App" folder in "LifeOS Watch App" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"LifeOS Watch App.entitlements",
-			);
-			target = 1A0000000000000000000004 /* LifeOS Watch App */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		3D08A1DB2EF9524500C3B6B6 /* LifeOS */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				3D8CA0AE2F1A10D5008E4357 /* Exceptions for "LifeOS" folder in "LifeOS" target */,
-			);
-			path = LifeOS;
-			sourceTree = "<group>";
-		};
-		1A0000000000000000000002 /* LifeOS Watch App */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				1A0000000000000000000003 /* Exceptions for "LifeOS Watch App" folder in "LifeOS Watch App" target */,
-			);
-			path = "LifeOS Watch App";
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		1A000000000000000000000B /* Embed Watch Content */ = {
@@ -65,15 +34,46 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileReference section */
+		1A0000000000000000000001 /* LifeOS Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "LifeOS Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3D08A1D92EF9524500C3B6B6 /* LifeOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LifeOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3D8CA0AE2F1A10D5008E4357 /* Exceptions for "LifeOS" folder in "LifeOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3D08A1D82EF9524500C3B6B6 /* LifeOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		1A0000000000000000000002 /* LifeOS Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "LifeOS Watch App";
+			sourceTree = "<group>";
+		};
+		3D08A1DB2EF9524500C3B6B6 /* LifeOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3D8CA0AE2F1A10D5008E4357 /* Exceptions for "LifeOS" folder in "LifeOS" target */,
+			);
+			path = LifeOS;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
-		3D08A1D62EF9524500C3B6B6 /* Frameworks */ = {
+		1A0000000000000000000006 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1A0000000000000000000006 /* Frameworks */ = {
+		3D08A1D62EF9524500C3B6B6 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -103,17 +103,29 @@
 		};
 /* End PBXGroup section */
 
-/* Begin PBXContainerItemProxy section */
-		1A000000000000000000000E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 3D08A1D12EF9524500C3B6B6 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 1A0000000000000000000004;
-			remoteInfo = "LifeOS Watch App";
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXNativeTarget section */
+		1A0000000000000000000004 /* LifeOS Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000000000000000000008 /* Build configuration list for PBXNativeTarget "LifeOS Watch App" */;
+			buildPhases = (
+				1A0000000000000000000005 /* Sources */,
+				1A0000000000000000000006 /* Frameworks */,
+				1A0000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				1A0000000000000000000002 /* LifeOS Watch App */,
+			);
+			name = "LifeOS Watch App";
+			packageProductDependencies = (
+			);
+			productName = "LifeOS Watch App";
+			productReference = 1A0000000000000000000001 /* LifeOS Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 		3D08A1D82EF9524500C3B6B6 /* LifeOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3D08A1E42EF9524700C3B6B6 /* Build configuration list for PBXNativeTarget "LifeOS" */;
@@ -138,37 +150,7 @@
 			productReference = 3D08A1D92EF9524500C3B6B6 /* LifeOS.app */;
 			productType = "com.apple.product-type.application";
 		};
-		1A0000000000000000000004 /* LifeOS Watch App */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 1A0000000000000000000008 /* Build configuration list for PBXNativeTarget "LifeOS Watch App" */;
-			buildPhases = (
-				1A0000000000000000000005 /* Sources */,
-				1A0000000000000000000006 /* Frameworks */,
-				1A0000000000000000000007 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				1A0000000000000000000002 /* LifeOS Watch App */,
-			);
-			name = "LifeOS Watch App";
-			packageProductDependencies = (
-			);
-			productName = "LifeOS Watch App";
-			productReference = 1A0000000000000000000001 /* LifeOS Watch App.app */;
-			productType = "com.apple.product-type.application";
-		};
 /* End PBXNativeTarget section */
-
-/* Begin PBXTargetDependency section */
-		1A000000000000000000000D /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 1A0000000000000000000004 /* LifeOS Watch App */;
-			targetProxy = 1A000000000000000000000E /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXProject section */
 		3D08A1D12EF9524500C3B6B6 /* Project object */ = {
@@ -178,10 +160,10 @@
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
-					3D08A1D82EF9524500C3B6B6 = {
+					1A0000000000000000000004 = {
 						CreatedOnToolsVersion = 26.2;
 					};
-					1A0000000000000000000004 = {
+					3D08A1D82EF9524500C3B6B6 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -207,14 +189,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		3D08A1D72EF9524500C3B6B6 /* Resources */ = {
+		1A0000000000000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1A0000000000000000000007 /* Resources */ = {
+		3D08A1D72EF9524500C3B6B6 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -224,14 +206,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		3D08A1D52EF9524500C3B6B6 /* Sources */ = {
+		1A0000000000000000000005 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1A0000000000000000000005 /* Sources */ = {
+		3D08A1D52EF9524500C3B6B6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -240,7 +222,81 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		1A000000000000000000000D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A0000000000000000000004 /* LifeOS Watch App */;
+			targetProxy = 1A000000000000000000000E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1A0000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "LifeOS Watch App/LifeOS Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DN9P7V5R2B;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
+				INFOPLIST_KEY_NSMotionUsageDescription = "LifeOS uses motion data to automatically count your exercise sets.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.tanmay.LifeOS;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tanmay.LifeOS.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		1A000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "LifeOS Watch App/LifeOS Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DN9P7V5R2B;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
+				INFOPLIST_KEY_NSMotionUsageDescription = "LifeOS uses motion data to automatically count your exercise sets.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.tanmay.LifeOS;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tanmay.LifeOS.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		3D08A1E22EF9524700C3B6B6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -442,75 +498,18 @@
 			};
 			name = Release;
 		};
-		1A0000000000000000000009 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "LifeOS Watch App/LifeOS Watch App.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = DN9P7V5R2B;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
-				INFOPLIST_KEY_NSMotionUsageDescription = "LifeOS uses motion data to automatically count your exercise sets.";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKApplication = YES;
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.tanmay.LifeOS;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tanmay.LifeOS.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10.0;
-			};
-			name = Debug;
-		};
-		1A000000000000000000000A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "LifeOS Watch App/LifeOS Watch App.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = DN9P7V5R2B;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
-				INFOPLIST_KEY_NSMotionUsageDescription = "LifeOS uses motion data to automatically count your exercise sets.";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKApplication = YES;
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.tanmay.LifeOS;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tanmay.LifeOS.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1A0000000000000000000008 /* Build configuration list for PBXNativeTarget "LifeOS Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000009 /* Debug */,
+				1A000000000000000000000A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		3D08A1D42EF9524500C3B6B6 /* Build configuration list for PBXProject "LifeOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -525,15 +524,6 @@
 			buildConfigurations = (
 				3D08A1E52EF9524700C3B6B6 /* Debug */,
 				3D08A1E62EF9524700C3B6B6 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		1A0000000000000000000008 /* Build configuration list for PBXNativeTarget "LifeOS Watch App" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				1A0000000000000000000009 /* Debug */,
-				1A000000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

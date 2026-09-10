@@ -36,6 +36,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
         send(["action": "setWater", "value": clamped])
     }
 
+    func setWeight(_ kg: Double) {
+        let rounded = (kg * 10).rounded() / 10
+        snapshot.currentWeight = rounded // optimistic
+        send(["action": "setWeight", "value": rounded])
+    }
+
     func toggleTodo(_ id: UUID) {
         if let idx = snapshot.todos.firstIndex(where: { $0.id == id }) {
             snapshot.todos[idx].done.toggle() // optimistic

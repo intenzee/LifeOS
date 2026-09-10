@@ -13,7 +13,12 @@ struct QuickActionsMenu: View {
         ("Water", "drop.fill", .water),
         ("Weight", "scalemass.fill", .weight),
         ("Barcode", "barcode.viewfinder", .barcodeScan),
-        ("AI Meal", "sparkles", .aiMealScan)
+        ("Scan Meal", "camera.viewfinder", .aiMealScan),
+        ("Rest Timer", "timer", .restTimer),
+        ("1RM / Plates", "figure.strengthtraining.traditional", .strengthTools),
+        ("Macros", "chart.pie.fill", .macros),
+        ("Trends", "chart.xyaxis.line", .trends),
+        ("Reminders", "bell.badge.fill", .reminders)
     ]
 
     var body: some View {

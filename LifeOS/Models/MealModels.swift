@@ -251,4 +251,5 @@ struct DailyFoodLog: Codable {
 // MARK: - Quick Action Type
 enum QuickActionType {
     case breakfast, lunch, dinner, snacks, exercise, water, weight, barcodeScan, aiMealScan
+    case restTimer, strengthTools, macros, trends, reminders
 }

@@ -13,6 +13,7 @@ struct WatchDashboardView: View {
                 } else {
                     calorieRing
                     statsRow
+                    secondStatsRow
                     streakChip
                 }
             }
@@ -53,6 +54,15 @@ struct WatchDashboardView: View {
                      label: "Water", systemImage: "drop.fill", color: WatchTheme.water)
             statTile(value: "\(Int(snapshot.caloriesBurned))",
                      label: "Burned", systemImage: "flame.fill", color: WatchTheme.burn)
+        }
+    }
+
+    private var secondStatsRow: some View {
+        HStack(spacing: 8) {
+            statTile(value: snapshot.steps > 0 ? "\(snapshot.steps)" : "—",
+                     label: "Steps", systemImage: "figure.walk", color: WatchTheme.accent)
+            statTile(value: snapshot.currentWeight > 0 ? String(format: "%.1f", snapshot.currentWeight) : "—",
+                     label: "Weight", systemImage: "scalemass.fill", color: WatchTheme.water)
         }
     }
 

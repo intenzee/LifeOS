@@ -11,8 +11,12 @@ struct WatchRootView: View {
                 .tag(1)
             WatchWorkoutView(session: session)
                 .tag(2)
-            WatchTodosView(session: session)
+            NavigationStack { WatchRestTimerView() }
                 .tag(3)
+            NavigationStack { WatchWeightView(session: session) }
+                .tag(4)
+            WatchTodosView(session: session)
+                .tag(5)
         }
         .tabViewStyle(.verticalPage)
     }

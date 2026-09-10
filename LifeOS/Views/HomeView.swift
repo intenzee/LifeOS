@@ -21,6 +21,11 @@ struct HomeViewState {
     var showWeightPicker = false
     var showFoodWeekView = false
     var showGymWeekView = false
+    var showRestTimer = false
+    var showStrengthTools = false
+    var showMacros = false
+    var showTrends = false
+    var showReminders = false
 
     var pendingBarcode: String? = nil
     var scannedFood: FoodItem? = nil
@@ -153,7 +158,12 @@ final class HomeViewModel: ObservableObject {
           state.showWeightPicker ||
           state.showDatePicker ||
           state.showFoodWeekView ||
-          state.showGymWeekView)
+          state.showGymWeekView ||
+          state.showRestTimer ||
+          state.showStrengthTools ||
+          state.showMacros ||
+          state.showTrends ||
+          state.showReminders)
     }
 
     func onAppear() {
@@ -281,6 +291,16 @@ final class HomeViewModel: ObservableObject {
             state.showBarcodeScanner = true
         case .aiMealScan:
             state.showAIMealScan = true
+        case .restTimer:
+            state.showRestTimer = true
+        case .strengthTools:
+            state.showStrengthTools = true
+        case .macros:
+            state.showMacros = true
+        case .trends:
+            state.showTrends = true
+        case .reminders:
+            state.showReminders = true
         }
     }
 }
@@ -476,6 +496,10 @@ struct HomeView: View {
         }
         .onChange(of: workoutDatabase.getTotalCaloriesBurned(weight: viewModel.state.currentWeight)) { _, _ in
             viewModel.syncStreaks()
+        }
+        .onChange(of: healthManager.stepsToday) { _, newSteps in
+            // Feed steps to the watch dashboard (the HealthKit-free watch can't read them).
+            WatchConnectivityManager.shared.latestSteps = newSteps
         }
     }
     
@@ -832,7 +856,7 @@ struct HomeView: View {
         }
         
         if viewModel.state.showAIMealScan {
-            AIMealScanView(
+            SmartMealScanView(
                 isPresented: viewModel.binding(\.showAIMealScan),
                 selectedMeal: viewModel.state.selectedMeal,
                 apiClient: apiClient,
@@ -841,6 +865,36 @@ struct HomeView: View {
                 }
             )
         }
+
+        if viewModel.state.showRestTimer {
+            RestTimerView(isPresented: viewModel.binding(\.showRestTimer))
+        }
+
+        if viewModel.state.showStrengthTools {
+            StrengthCalculatorView(isPresented: viewModel.binding(\.showStrengthTools))
+        }
+
+        if viewModel.state.showMacros {
+            MacrosView(
+                isPresented: viewModel.binding(\.showMacros),
+                protein: foodDatabase.dailyLog.totalProtein(),
+                carbs: foodDatabase.dailyLog.totalCarbs(),
+                fat: foodDatabase.dailyLog.totalFat(),
+                calorieGoal: viewModel.adjustedCalorieLimit
+            )
+        }
+
+        if viewModel.state.showTrends {
+            TrendsView(
+                isPresented: viewModel.binding(\.showTrends),
+                healthManager: healthManager,
+                streakManager: streakManager
+            )
+        }
+
+        if viewModel.state.showReminders {
+            RemindersView(isPresented: viewModel.binding(\.showReminders))
+        }
     }
-    
+
 }

@@ -8,7 +8,36 @@ final class HealthManager: ObservableObject {
     @Published var caloriesConsumed: Double = 1450
     @Published var healthWeight: Double = 72.5
     @Published var sleepDurationHours: Double = 0.0
+    @Published var stepsToday: Double = 0
+    @Published var activeEnergyToday: Double = 0
+
+    /// Reflects whether we can actually *write* to HealthKit. HealthKit never
+    /// reveals read-grant status (by design), and the `requestAuthorization`
+    /// completion's `success` flag only means the user answered the sheet — not
+    /// that anything was granted. So we derive this from the real per-type write
+    /// (share) authorization status instead of trusting `success`.
     @Published var isAuthorized = false
+
+    /// The body-mass write type, if available.
+    private var bodyMassType: HKQuantityType? {
+        HKObjectType.quantityType(forIdentifier: .bodyMass)
+    }
+    /// The active-energy write type, if available.
+    private var activeEnergyType: HKQuantityType? {
+        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)
+    }
+
+    /// Recomputes `isAuthorized` from the actual share-authorization status of the
+    /// types we write. `.sharingAuthorized` is the only value that means "granted";
+    /// `.notDetermined` and `.sharingDenied` both mean we must not assume access.
+    func refreshAuthorizationStatus() {
+        let statuses = [bodyMassType, activeEnergyType]
+            .compactMap { $0 }
+            .map { healthStore.authorizationStatus(for: $0) }
+        // Authorized only when every write type we depend on is granted.
+        let authorized = !statuses.isEmpty && statuses.allSatisfy { $0 == .sharingAuthorized }
+        DispatchQueue.main.async { self.isAuthorized = authorized }
+    }
 
     func requestAuthorization() {
         guard HKHealthStore.isHealthDataAvailable() else {
@@ -26,14 +55,15 @@ final class HealthManager: ObservableObject {
             HKObjectType.quantityType(forIdentifier: .bodyMass)!
         ]
 
-        healthStore.requestAuthorization(toShare: typesToWrite, read: typesToRead) { success, _ in
+        healthStore.requestAuthorization(toShare: typesToWrite, read: typesToRead) { _, error in
+            if let error { print("HealthKit authorization error: \(error.localizedDescription)") }
             DispatchQueue.main.async {
-                self.isAuthorized = success
-                if success {
-                    self.fetchTodayCalories()
-                    self.fetchLatestWeight()
-                    self.fetchLastNightSleep()
-                }
+                // Reads are best-effort regardless of the (uninformative) success flag;
+                // `isAuthorized` is derived from real write status.
+                self.refreshAuthorizationStatus()
+                self.fetchTodayCalories()
+                self.fetchLatestWeight()
+                self.fetchLastNightSleep()
             }
         }
     }
@@ -159,28 +189,72 @@ extension HealthManager {
             return
         }
 
-        let typesToRead: Set<HKObjectType> = [
+        var readTypes: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
+        if let steps = HKObjectType.quantityType(forIdentifier: .stepCount) {
+            readTypes.insert(steps)
+        }
 
         let typesToWrite: Set<HKSampleType> = [
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
         ]
 
-        healthStore.requestAuthorization(toShare: typesToWrite, read: typesToRead) { success, _ in
+        healthStore.requestAuthorization(toShare: typesToWrite, read: readTypes) { _, error in
+            if let error { print("HealthKit authorization error: \(error.localizedDescription)") }
             DispatchQueue.main.async {
-                self.isAuthorized = success
-                if success {
-                    self.fetchTodayCalories()
-                    self.fetchLatestWeight()
-                    self.fetchLastNightSleep()
-                }
+                self.refreshAuthorizationStatus()
+                self.fetchTodayCalories()
+                self.fetchLatestWeight()
+                self.fetchLastNightSleep()
+                self.fetchTodaySteps()
+                self.fetchTodayActiveEnergy()
             }
         }
+    }
+
+    /// Total step count since midnight.
+    func fetchTodaySteps() {
+        guard let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return }
+        let start = Calendar.current.startOfDay(for: Date())
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: Date(), options: .strictStartDate)
+        let query = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+            let steps = result?.sumQuantity()?.doubleValue(for: .count()) ?? 0
+            DispatchQueue.main.async { self.stepsToday = steps }
+        }
+        healthStore.execute(query)
+    }
+
+    /// Total active energy (kcal) burned since midnight.
+    func fetchTodayActiveEnergy() {
+        fetchWalkingCalories { [weak self] kcal in
+            self?.activeEnergyToday = kcal
+        }
+    }
+
+    /// Daily body-mass history (kg) for the last `days` days, oldest first.
+    func fetchWeightHistory(days: Int = 90, completion: @escaping ([(date: Date, weightKg: Double)]) -> Void) {
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
+            completion([]); return
+        }
+        let end = Date()
+        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: end) else {
+            completion([]); return
+        }
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        let query = HKSampleQuery(sampleType: weightType, predicate: predicate,
+                                  limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { _, samples, _ in
+            let points: [(Date, Double)] = (samples as? [HKQuantitySample] ?? []).map {
+                ($0.endDate, $0.quantity.doubleValue(for: .gramUnit(with: .kilo)))
+            }
+            DispatchQueue.main.async { completion(points) }
+        }
+        healthStore.execute(query)
     }
 
     func fetchWalkingCalories(completion: @escaping (Double) -> Void) {
