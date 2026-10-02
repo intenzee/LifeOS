@@ -1,0 +1,32 @@
+{
+  "$description": "Direction-neutral tokens: space, radius, type ramp, motion, elevation. Phase 2 §4, §5, §8.",
+  "space": {
+    "100": 4, "200": 8, "300": 12, "400": 16, "500": 20, "600": 24, "700": 32, "800": 40, "900": 56,
+    "screenMargin": 20, "screenMarginCompact": 16, "cardGap": 12, "minTouchTarget": 44
+  },
+  "radius": { "chip": 12, "tile": 16, "card": 22, "sheet": 28, "hero": 28 },
+  "type": {
+    "displayHero":  { "size": 64, "lineHeight": 68, "weight": "semibold", "relativeTo": "largeTitle", "family": "display" },
+    "displayL":     { "size": 40, "lineHeight": 44, "weight": "semibold", "relativeTo": "largeTitle", "family": "display" },
+    "titleLarge":   { "size": 34, "lineHeight": 41, "weight": "bold",     "relativeTo": "largeTitle", "family": "display" },
+    "title1":       { "size": 28, "lineHeight": 34, "weight": "semibold", "relativeTo": "title",      "family": "ui" },
+    "title2":       { "size": 22, "lineHeight": 28, "weight": "semibold", "relativeTo": "title2",     "family": "ui" },
+    "title3":       { "size": 20, "lineHeight": 25, "weight": "semibold", "relativeTo": "title3",     "family": "ui" },
+    "headline":     { "size": 17, "lineHeight": 22, "weight": "semibold", "relativeTo": "headline",   "family": "ui" },
+    "body":         { "size": 17, "lineHeight": 22, "weight": "regular",  "relativeTo": "body",       "family": "ui" },
+    "callout":      { "size": 16, "lineHeight": 21, "weight": "regular",  "relativeTo": "callout",    "family": "ui" },
+    "subhead":      { "size": 15, "lineHeight": 20, "weight": "regular",  "relativeTo": "subheadline","family": "ui" },
+    "footnote":     { "size": 13, "lineHeight": 18, "weight": "regular",  "relativeTo": "footnote",   "family": "ui" },
+    "caption":      { "size": 12, "lineHeight": 16, "weight": "medium",   "relativeTo": "caption",    "family": "ui" }
+  },
+  "motion": {
+    "instant":   { "kind": "easeOut", "duration": 0.12 },
+    "snappy":    { "kind": "snappy",  "duration": 0.30 },
+    "smooth":    { "kind": "smooth",  "duration": 0.45 },
+    "gentle":    { "kind": "spring",  "duration": 0.60, "bounce": 0.10 },
+    "celebrate": { "kind": "spring",  "duration": 0.70, "bounce": 0.25 },
+    "reduced":   { "kind": "easeInOut", "duration": 0.20 },
+    "staggerPerItem": 0.035, "staggerMaxItems": 6, "exitScale": 0.7
+  },
+  "orb": { "heroSize": 240, "headerSize": 120, "glyphSize": 44, "breathScale": 1.015, "breathPeriod": 4.0, "maxFill": 1.2 }
+}

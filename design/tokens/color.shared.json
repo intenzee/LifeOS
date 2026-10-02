@@ -1,0 +1,20 @@
+{
+  "$description": "Data and status colours shared by every direction so the Phase 1 test compares look and feel, not meaning (Phase 1 §5). One meaning per colour. Status never uses alarm red except `critical`.",
+  "data": {
+    "energy":   { "dark": "#F2A65A", "light": "#A0560B" },
+    "activity": { "dark": "#5FD6C2", "light": "#0F7468" },
+    "protein":  { "dark": "#F08A8A", "light": "#B03B48" },
+    "carbs":    { "dark": "#E3D3A8", "light": "#7F6227" },
+    "fat":      { "dark": "#B67CDE", "light": "#541F7A" },
+    "water":    { "dark": "#8BD6EE", "light": "#1750A1" },
+    "sleep":    { "dark": "#7C86F7", "light": "#4A4FC4" },
+    "weight":   { "dark": "#B4AEA7", "light": "#322F2A" }
+  },
+  "status": {
+    "onTrack":   { "dark": "#8CC9A8", "light": "#2B7350" },
+    "attention": { "dark": "#E6B566", "light": "#8F5E0E" },
+    "over":      { "dark": "#D98C5F", "light": "#A0491F" },
+    "critical":  { "dark": "#F0716A", "light": "#BF3328" },
+    "info":      { "dark": "#8FB3D9", "light": "#2B5F91" }
+  }
+}

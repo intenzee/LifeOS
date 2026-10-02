@@ -776,6 +776,7 @@ struct SettingsView: View {
                         calorieLimitCard
                         calorieBankCard
                         smokingCard
+                        DirectionLabEntryRow()
                     }
                     .padding(.horizontal)
 
