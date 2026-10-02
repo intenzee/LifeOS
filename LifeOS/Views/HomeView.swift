@@ -193,6 +193,18 @@ final class HomeViewModel: ObservableObject {
     func saveWeights() {
         dailyMetricsRepository.saveCurrentWeight(state.currentWeight)
         dailyMetricsRepository.saveTargetWeight(state.targetWeight)
+
+        // Keep the profile (the source for the scientific calorie target) in sync
+        // with the logged weight, then recompute the daily target from BMR/TDEE.
+        // This makes a weight change move the target by a predictable, metabolic
+        // amount instead of drifting via eaten-back workout calories. A manual
+        // custom target set in Settings is left untouched.
+        if var profile = PersistenceManager.shared.loadUserProfile() {
+            profile.currentWeightKg = state.currentWeight
+            profile.targetWeightKg = state.targetWeight
+            PersistenceManager.shared.saveUserProfile(profile)
+        }
+        CalorieLimitSettings.shared.recomputeFromProfileIfAuto()
     }
 
     func saveWeekFoodLog() {
@@ -331,9 +343,8 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
-            palette.screenBackground
-                .ignoresSafeArea()
-            
+            AuroraBackground(colorScheme: colorScheme)
+
             ScrollView {
                 VStack(spacing: 24) {
                     headerView
@@ -385,12 +396,25 @@ struct HomeView: View {
                     HStack {
                         Spacer()
                         Button(action: { viewModel.state.showQuickActions = true }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 60))
-                                .foregroundColor(palette.primaryAccent)
-                                .background(Circle().fill(palette.screenBackground).padding(5))
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(colors: [ThemePalette.accent, ThemePalette.accentSecondary],
+                                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    )
+                                    .frame(width: 62, height: 62)
+                                    .overlay(
+                                        Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                                    )
+                                    .shadow(color: ThemePalette.accent.opacity(0.55), radius: 16, y: 8)
+                                    .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
+                                Image(systemName: "plus")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(.black.opacity(0.85))
+                            }
                         }
-                        .padding(.trailing, 20)
+                        .pressableGlass()
+                        .padding(.trailing, 22)
                         .padding(.bottom, 100) // Adjusted for custom tab bar
                     }
                 }
@@ -551,10 +575,7 @@ struct HomeView: View {
             .padding(.top, 4)
         }
         .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 32)
-                .fill(palette.surface)
-        )
+        .glassCard(cornerRadius: 32)
     }
     
     private var focusListCard: some View {
@@ -619,10 +640,7 @@ struct HomeView: View {
             }
         }
         .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 32)
-                .fill(palette.surface)
-        )
+        .glassCard(cornerRadius: 32)
     }
 
     private var recentFuelCard: some View {
@@ -692,10 +710,7 @@ struct HomeView: View {
             .padding(.top, 4)
         }
         .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 32)
-                .fill(palette.surface)
-        )
+        .glassCard(cornerRadius: 32)
     }
 
     private var logoDots: some View {
@@ -856,7 +871,7 @@ struct HomeView: View {
         }
         
         if viewModel.state.showAIMealScan {
-            SmartMealScanView(
+            AIMealScanView(
                 isPresented: viewModel.binding(\.showAIMealScan),
                 selectedMeal: viewModel.state.selectedMeal,
                 apiClient: apiClient,

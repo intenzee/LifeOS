@@ -94,7 +94,7 @@ struct ContentView: View {
         dependencies.persistence.saveCurrentWeight(profile.currentWeightKg)
         dependencies.persistence.saveTargetWeight(profile.targetWeightKg)
         SmokingSettings.shared.saveSmokingEnabled(profile.smokes)
-        CalorieLimitSettings.shared.saveLimit(CalorieGoalCalculator.dailyCalorieGoal(profile: profile))
+        CalorieLimitSettings.shared.saveAutoLimit(CalorieGoalCalculator.dailyCalorieGoal(profile: profile))
         withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
             hasCompletedOnboarding = true
         }

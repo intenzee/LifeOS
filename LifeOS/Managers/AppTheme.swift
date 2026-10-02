@@ -105,4 +105,115 @@ struct ThemePalette {
 
     /// Static SwiftUI Color for views that don't have access to a palette instance.
     static let accent = Color(red: 0.44, green: 0.93, blue: 0.78)
+
+    /// Secondary accent used for gradients and 3D depth (soft violet).
+    static let accentSecondary = Color(red: 0.55, green: 0.60, blue: 0.98)
+}
+
+// MARK: - Liquid Glass Design System
+//
+// A small set of reusable materials that give the whole app one cohesive look:
+// frosted/liquid glass surfaces, soft layered shadows for 3D depth, and a subtle
+// top-edge highlight so cards feel lit from above. Everything is theme-aware —
+// `.ultraThinMaterial` adapts to light/dark automatically.
+
+/// The signature frosted-glass surface. Layered translucent material + gradient
+/// hairline stroke (bright at the top, fading down) + two shadows for real depth.
+struct GlassSurface: ViewModifier {
+    var cornerRadius: CGFloat = 24
+    var strokeOpacity: Double = 0.5
+    var tint: Color = .clear
+    var elevation: CGFloat = 1
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(tint.opacity(tint == .clear ? 0 : 0.14))
+                    // Soft top-down sheen for a liquid, glossy read.
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.12), Color.clear],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.55 * strokeOpacity),
+                                Color.white.opacity(0.08 * strokeOpacity),
+                                Color.white.opacity(0.02 * strokeOpacity)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(color: Color.black.opacity(0.30), radius: 18 * elevation, x: 0, y: 12 * elevation)
+            .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
+    }
+}
+
+/// A vibrant, blurred aurora backdrop that gives glass surfaces something rich to
+/// refract. Sits behind screen content and adapts to the color scheme.
+struct AuroraBackground: View {
+    var colorScheme: ColorScheme
+
+    var body: some View {
+        let palette = ThemePalette(colorScheme: colorScheme)
+        ZStack {
+            palette.screenBackground.ignoresSafeArea()
+
+            Circle()
+                .fill(ThemePalette.accent.opacity(colorScheme == .dark ? 0.35 : 0.22))
+                .frame(width: 340, height: 340)
+                .blur(radius: 120)
+                .offset(x: -130, y: -260)
+
+            Circle()
+                .fill(ThemePalette.accentSecondary.opacity(colorScheme == .dark ? 0.32 : 0.20))
+                .frame(width: 360, height: 360)
+                .blur(radius: 130)
+                .offset(x: 150, y: 320)
+
+            Circle()
+                .fill(ThemePalette.accent.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                .frame(width: 260, height: 260)
+                .blur(radius: 110)
+                .offset(x: 160, y: -120)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+extension View {
+    /// Wraps the view in the signature liquid-glass surface.
+    func glassCard(cornerRadius: CGFloat = 24, tint: Color = .clear, elevation: CGFloat = 1) -> some View {
+        modifier(GlassSurface(cornerRadius: cornerRadius, tint: tint, elevation: elevation))
+    }
+
+    /// Subtle press-scale for tappable glass — adds tactile, 3D responsiveness.
+    func pressableGlass() -> some View {
+        buttonStyle(PressableGlassButtonStyle())
+    }
+}
+
+struct PressableGlassButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+    }
 }
