@@ -19,6 +19,23 @@
 
 ---
 
+## 🗺️ What's in this repository (status: 3 Oct 2026)
+
+Three plans drive the work: **UI/UX**, **AI** and **engineering**. Each has its own docs folder, its own code area and its own status file. Commits on `main` follow the same split, so `git log` reads as "who built what".
+
+| Workstream | Plan | Code | Status | Start here |
+|---|---|---|---|---|
+| **App baseline** (Sept 2026) | — | `LifeOS/`, `LifeOS Watch App/` | Meal-vision engine with model fallback and learning from corrections, DesignSystemKit, Home revamp | commit `feat: free meal-vision engine…` |
+| **Platform (Phase 0)** | [`docs/engineering-roadmap/`](docs/engineering-roadmap/00-MASTER-PLAN.md) | `Packages/LifeOSKit/` (LifeOSCore · LifeOSData · LifeOSConnectivity), app managers, `LaunchGate` | Storage moved to an on-device date-keyed store with a verified one-time migration; typed watch contract; CI and lint | [`P0-STATUS.md`](docs/engineering-roadmap/P0-STATUS.md), [ADRs](docs/adr/) |
+| **AI (Phase 0)** | [`docs/ai-team/`](docs/ai-team/00-AI-MASTER-PLAN.md) | `LifeOS/AI/`, root `Package.swift`, `Evals/`, `Tests/`, `Tools/ai-eval/` | AI Gateway with tiered providers, privacy gate and consent, quotas, eval harness; meal scanner runs through it | [`PHASE-0-REPORT.md`](docs/ai-team/phase-0/PHASE-0-REPORT.md), [module guide](docs/ai-team/03-ai-module-guide.md) |
+| **UI/UX (Phases 1–2)** | [`docs/uiux-plan/`](docs/uiux-plan/00_UIUX_Master_Plan.md) | `LifeOS/DesignSystem/`, `design/`, `Packages/LifeOSDesign/` | Audit, three visual directions, Life Orb, 30-component design system, Direction Lab in Settings. Waiting on the owner's direction pick (gate D1) | [Phase 1](docs/uiux-plan/phase1/README.md), [Phase 2](docs/uiux-plan/phase2/README.md) |
+
+**Try the new UI:** Profile → ⚙︎ Settings → **Direction Lab**. There you can switch between the Obsidian, Porcelain and Aurora directions, play with the Life Orb, browse the mockups, and open the component gallery. Everyday screens keep their current look until UI/UX Phase 3.
+
+All docs are indexed in [`docs/README.md`](docs/README.md).
+
+---
+
 ## ✨ Key Features
 
 - 🏋️ **Unified Fitness Dashboard** - Real-time stats from Apple Watch & Health
@@ -57,13 +74,14 @@ A native watchOS app (target **LifeOS Watch App**) that pairs with the phone ove
 |-------|-----------|
 | **UI** | SwiftUI (iOS app + watchOS companion) |
 | **State** | `ObservableObject` managers + view models; moving to `@MainActor`/actors (FND-13) |
-| **Data** | Today: JSON in `UserDefaults`. Next: `LifeOSData` date-keyed file store with Data Protection ([ADR 0001](docs/adr/0001-persistence.md)) |
+| **Data** | `LifeOSData` date-keyed file store with Data Protection ([ADR 0001](docs/adr/0001-persistence.md)); one-time verified migration from the old `UserDefaults` JSON runs behind `LaunchGate` |
+| **Design system** | `LifeOS/DesignSystem` (`LX*` tokens and components) generated from `design/tokens/*.json`; Life Orb in SwiftUI Canvas, RealityKit spike |
 | **Health** | HealthKit (dietary energy, weight, sleep, steps, active energy) |
 | **Watch sync** | WatchConnectivity (typed contract in `LifeOSConnectivity`, FND-11) |
 | **AI** | Groq vision via `MealVision`, with Apple Vision fallback and on-device learning from corrections |
 | **Dependencies** | None (no third-party packages) |
 | **Minimum OS** | iOS 17.6 · watchOS 10 |
-| **Toolchain** | Xcode 26 · Swift 6 for packages (app target still in Swift 5 mode) |
+| **Toolchain** | Xcode 26+ (verified on Xcode 27 with an iPhone 15) · Swift 6 for packages (app target still in Swift 5 mode) |
 
 ---
 
@@ -77,12 +95,18 @@ LifeOS/                      iOS app target (Xcode synchronized folder: new file
 ├── Models/                  MealModels, UserProfile
 ├── Services/                calorie maths, notifications, barcode lookup, watch bridge
 │   └── MealVision/          photo meal analysis + learning engine
+├── App/                     LifeOSKitExports (re-exports LifeOSCore into the app)
+├── Data/                    LocalStore (app-side LifeOSData store)
 ├── AI/                      AI team's module (also built by the root Package.swift)
-├── DesignSystem/            design system (UI Engineering)
-└── Views/                   screens and components
+├── DesignSystem/            LX design system: tokens, foundations, components, Life Orb, Direction Lab
+└── Views/                   screens and components (LaunchGate runs the data migration)
 LifeOS Watch App/            watchOS companion (dashboard, water, todos, auto set tracking)
 Packages/LifeOSKit/          shared Swift 6 package: LifeOSCore · LifeOSData · LifeOSConnectivity
-docs/                        engineering roadmap, ADRs, UI/UX plan
+Packages/LifeOSDesign/       test harness for LifeOS/DesignSystem (symlinked sources, snapshots)
+design/tokens/               design tokens, the single source of truth (3 directions + core)
+design/tools/                token generator, contrast/colour-blind checks, raw-colour ratchet, board builder
+Package.swift, Evals/, Tests/, Tools/ai-eval/   AI module test and eval harness
+docs/                        plans (UI/UX, AI, engineering), ADRs, phase reports (index: docs/README.md)
 scripts/test-packages.sh     builds and tests the local packages (works with Xcode or just the CLT)
 ```
 
@@ -158,6 +182,15 @@ Every record (food, workouts, water, weight, tasks) is keyed by calendar date an
 ```bash
 ./scripts/test-packages.sh   # LifeOSKit: DayKey, calculators, streaks, store, migration, watch contract
 swift test                   # AI module harness (root Package.swift)
+python3 design/tools/gen_tokens.py --check      # design tokens up to date; contrast + colour-blind rules
+python3 design/tools/lint_raw_colors.py         # raw colours in feature code may only go down
+(cd Packages/LifeOSDesign && swift test)        # design system: tokens, motion, orb, 33 component snapshots
+```
+
+Device builds (no simulator needed):
+```bash
+xcodebuild -project LifeOS.xcodeproj -scheme LifeOS -configuration Debug \
+  -destination id=<iPhone UDID> -allowProvisioningUpdates build
 ```
 
 CI (`.github/workflows/ci.yml`) runs SwiftLint, both test suites and an iOS + watchOS build on every pull request. App-target unit and UI test targets arrive with QA-01.
