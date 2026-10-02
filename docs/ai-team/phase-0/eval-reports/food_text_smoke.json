@@ -1,0 +1,2956 @@
+[
+  {
+    "dataset" : "food_text_smoke.jsonl",
+    "date" : "2026-10-02T19:33:05Z",
+    "eval" : "food_text",
+    "host" : "tanmays-macbook-air.local",
+    "metrics" : {
+      "cases" : 50,
+      "errors" : 0,
+      "f1" : 1,
+      "f1ByCategory" : {
+        "branded" : 1,
+        "edge" : 1,
+        "hinglish" : 1,
+        "indian" : 1,
+        "western" : 1
+      },
+      "latencyP50Ms" : 2,
+      "latencyP95Ms" : 3,
+      "mealTypeAccuracy" : 0.8181818181818182,
+      "nonFoodAccuracy" : 1,
+      "precision" : 1,
+      "presetAccuracy" : 1,
+      "recall" : 1
+    },
+    "promptVersion" : "2026.10.1",
+    "results" : [
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-001",
+        "latencyMs" : 19,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece roti",
+          "1 serving dal",
+          "1 bowl curd"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 3
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-002",
+        "latencyMs" : 3,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "3 piece idli",
+          "1 serving sambar"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-003",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 piece dosa",
+          "1 cup filter coffee"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-004",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 plate poha"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-005",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece aloo paratha",
+          "1 serving butter",
+          "1 glass lassi"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 3
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-006",
+        "latencyMs" : 1,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving rajma chawal"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-007",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 piece samosa",
+          "1 serving chai"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-008",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl chole",
+          "2 serving bhature"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-009",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving palak paneer",
+          "1 serving jeera rice",
+          "1 serving cucumber raita"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 3
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-010",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "4 piece chicken tikka"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-011",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "200 g paneer bhurji"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-012",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece gulab jamun"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-013",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl khichdi",
+          "1 serving papad"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-014",
+        "latencyMs" : 4,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving upma",
+          "1 serving coconut chutney"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-015",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "3 piece methi thepla"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-016",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 plate chicken biryani"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-017",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving pav bhaji",
+          "2 serving pav"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-018",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "0.5 plate veg pulao"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-019",
+        "latencyMs" : 3,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving egg curry",
+          "2 piece roti"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-020",
+        "latencyMs" : 1,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 glass nimbu pani"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-021",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece medu vada",
+          "1 serving sambar"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-022",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl sprouts salad"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-023",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 cup kheer"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-024",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "4 piece dhokla",
+          "1 serving green chutney"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-025",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving fish curry",
+          "1 cup rice"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-026",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece roti",
+          "1 bowl dal"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-027",
+        "latencyMs" : 3,
+        "mealTypeCorrect" : false,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "3 piece idli",
+          "1 serving chutney nashte mein"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-028",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 plate maggi",
+          "1 serving chai"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-029",
+        "latencyMs" : 3,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving mein rajma chawal",
+          "1 serving salad"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-030",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 serving anda bhurji",
+          "1 piece toast"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-031",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "0.5 glass doodh peeya"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-032",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : false,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving raat ko khichdi thi"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-033",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "4 piece biscuit",
+          "1 cup chai"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-034",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 piece banana",
+          "1 piece mutthi bhar almond"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "hinglish",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-035",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece paneer paratha",
+          "1 serving dahi"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "western",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-036",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece egg",
+          "1 piece toast",
+          "1 serving black coffee"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 3
+      },
+      {
+        "category" : "western",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-037",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving chicken caesar salad"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "western",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-038",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 large latte",
+          "1 piece blueberry muffin"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "western",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-039",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 slice pepperoni pizza"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "western",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-040",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl oatmeal",
+          "1 piece banana",
+          "1 tbsp peanut butter"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 3
+      },
+      {
+        "category" : "western",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-041",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving chicken breast",
+          "1 serving broccoli"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "western",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-042",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 scoop whey protein",
+          "300 ml milk"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "branded",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-043",
+        "latencyMs" : 3,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 can coke zero"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "branded",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-044",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 piece mcdonald's mcaloo tikki burger",
+          "1 medium fries"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "branded",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-045",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece parle-g biscuit",
+          "1 serving tea"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "branded",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-046",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving amul cheese slice",
+          "1 piece sandwich"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 2
+      },
+      {
+        "category" : "branded",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-047",
+        "latencyMs" : 1,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 serving starbucks venti caramel frappuccino"
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 1
+      },
+      {
+        "category" : "edge",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-048",
+        "latencyMs" : 0,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-049",
+        "latencyMs" : 0,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "provider" : "deterministic",
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-050",
+        "latencyMs" : 1,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "presetCorrect" : true,
+        "provider" : "deterministic",
+        "truePositives" : 0
+      }
+    ],
+    "status" : "ran",
+    "tier" : "deterministic"
+  },
+  {
+    "dataset" : "food_text_smoke.jsonl",
+    "date" : "2026-10-02T19:33:06Z",
+    "eval" : "food_text",
+    "host" : "tanmays-macbook-air.local",
+    "metrics" : {
+      "cases" : 50,
+      "errors" : 30,
+      "f1" : 0.5739130434782609,
+      "f1ByCategory" : {
+        "branded" : 0,
+        "edge" : 1,
+        "hinglish" : 0,
+        "indian" : 0.88,
+        "western" : 0
+      },
+      "latencyP50Ms" : 14968,
+      "latencyP95Ms" : 31395,
+      "mealTypeAccuracy" : 0.36363636363636365,
+      "nonFoodAccuracy" : 0,
+      "precision" : 1,
+      "presetAccuracy" : 0,
+      "recall" : 0.4024390243902439
+    },
+    "promptVersion" : "2026.10.1",
+    "results" : [
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-001",
+        "latencyMs" : 26781,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece roti",
+          "1 serving dal",
+          "1 bowl curd"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 3
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-002",
+        "latencyMs" : 31930,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "3 piece idli",
+          "1 bowl sambar"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "error" : "appleOnDevice:timeout",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-003",
+        "latencyMs" : 31916,
+        "missed" : [
+          "masala dosa",
+          "filter coffee"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "appleOnDevice:timeout",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-004",
+        "latencyMs" : 31938,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "poha"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-005",
+        "latencyMs" : 21254,
+        "missed" : [
+          "1 butter"
+        ],
+        "predicted" : [
+          "2 piece paratha",
+          "1 glass lassi"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-006",
+        "latencyMs" : 9978,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl rajma",
+          "1 piece chawal"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-007",
+        "latencyMs" : 8768,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 piece samosa",
+          "1 cup masala chai"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-008",
+        "latencyMs" : 11907,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl chole",
+          "2 piece bhature"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-009",
+        "latencyMs" : 7124,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 piece palak paneer",
+          "1 piece jeera rice",
+          "1 piece cucumber raita"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 3
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-010",
+        "latencyMs" : 5309,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "4 piece chicken tikka"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-011",
+        "latencyMs" : 5893,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "200 g paneer bhurji"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-012",
+        "latencyMs" : 21535,
+        "mealTypeCorrect" : false,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece gulab jamun"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-013",
+        "latencyMs" : 18856,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl khichdi",
+          "1 piece papad"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-014",
+        "latencyMs" : 7429,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl upma",
+          "1 tbsp coconut chutney"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-015",
+        "latencyMs" : 10189,
+        "mealTypeCorrect" : true,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "3 piece thepla"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-016",
+        "latencyMs" : 20123,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 plate chicken biryani"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-017",
+        "latencyMs" : 9181,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 piece pav bhaji",
+          "2 piece pav"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-018",
+        "latencyMs" : 12452,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "0.5 plate veg pulao"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "error" : "appleOnDevice:timeout",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-019",
+        "latencyMs" : 31958,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "egg curry",
+          "roti"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-020",
+        "latencyMs" : 31395,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 glass nimbu pani"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-021",
+        "latencyMs" : 19206,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "2 piece medu vada",
+          "1 bowl sambar"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-022",
+        "latencyMs" : 14968,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "1 bowl sprouts salad"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 1
+      },
+      {
+        "category" : "indian",
+        "error" : "appleOnDevice:timeout",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-023",
+        "latencyMs" : 31876,
+        "missed" : [
+          "kheer"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-024",
+        "latencyMs" : 28193,
+        "missed" : [
+
+        ],
+        "predicted" : [
+          "4 piece dhokla",
+          "1 serving green chutney"
+        ],
+        "provider" : "appleOnDevice",
+        "truePositives" : 2
+      },
+      {
+        "category" : "indian",
+        "error" : "appleOnDevice:timeout",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-025",
+        "latencyMs" : 32026,
+        "missed" : [
+          "fish curry",
+          "rice"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:timeout",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-026",
+        "latencyMs" : 32295,
+        "missed" : [
+          "roti",
+          "dal"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:timeout",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-027",
+        "latencyMs" : 33009,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "idli",
+          "chutney"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-028",
+        "latencyMs" : 209,
+        "missed" : [
+          "maggi",
+          "chai"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-029",
+        "latencyMs" : 0,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "rajma chawal",
+          "salad"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-030",
+        "latencyMs" : 0,
+        "missed" : [
+          "anda bhurji",
+          "toast"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-031",
+        "latencyMs" : 0,
+        "missed" : [
+          "doodh"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-032",
+        "latencyMs" : 0,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "khichdi"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-033",
+        "latencyMs" : 0,
+        "missed" : [
+          "biscuit",
+          "chai"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-034",
+        "latencyMs" : 0,
+        "missed" : [
+          "banana",
+          "almond"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-035",
+        "latencyMs" : 0,
+        "missed" : [
+          "paneer paratha",
+          "dahi"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 3,
+        "falsePositives" : 0,
+        "id" : "ft-036",
+        "latencyMs" : 0,
+        "missed" : [
+          "scrambled egg",
+          "toast",
+          "black coffee"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-037",
+        "latencyMs" : 0,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "chicken caesar salad"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-038",
+        "latencyMs" : 0,
+        "missed" : [
+          "latte",
+          "blueberry muffin"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-039",
+        "latencyMs" : 0,
+        "missed" : [
+          "pepperoni pizza"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 3,
+        "falsePositives" : 0,
+        "id" : "ft-040",
+        "latencyMs" : 0,
+        "missed" : [
+          "oatmeal",
+          "banana",
+          "peanut butter"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-041",
+        "latencyMs" : 0,
+        "missed" : [
+          "grilled chicken breast",
+          "steamed broccoli"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-042",
+        "latencyMs" : 0,
+        "missed" : [
+          "whey protein",
+          "milk"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-043",
+        "latencyMs" : 0,
+        "missed" : [
+          "coke zero"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-044",
+        "latencyMs" : 0,
+        "missed" : [
+          "mcaloo tikki burger",
+          "fries"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-045",
+        "latencyMs" : 0,
+        "missed" : [
+          "parle-g biscuit",
+          "tea"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-046",
+        "latencyMs" : 0,
+        "missed" : [
+          "amul cheese slice",
+          "sandwich"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-047",
+        "latencyMs" : 0,
+        "missed" : [
+          "caramel frappuccino"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-048",
+        "latencyMs" : 0,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-049",
+        "latencyMs" : 0,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "error" : "appleOnDevice:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-050",
+        "latencyMs" : 0,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "presetCorrect" : false,
+        "truePositives" : 0
+      }
+    ],
+    "status" : "ran",
+    "tier" : "appleOnDevice"
+  },
+  {
+    "dataset" : "food_text_smoke.jsonl",
+    "date" : "2026-10-02T19:42:14Z",
+    "eval" : "food_text",
+    "host" : "tanmays-macbook-air.local",
+    "metrics" : {
+      "cases" : 50,
+      "errors" : 50,
+      "f1" : 0,
+      "f1ByCategory" : {
+        "branded" : 0,
+        "edge" : 1,
+        "hinglish" : 0,
+        "indian" : 0,
+        "western" : 0
+      },
+      "latencyP50Ms" : 0,
+      "latencyP95Ms" : 0,
+      "mealTypeAccuracy" : 0,
+      "nonFoodAccuracy" : 0,
+      "precision" : 1,
+      "presetAccuracy" : 0,
+      "recall" : 0
+    },
+    "promptVersion" : "2026.10.1",
+    "results" : [
+      {
+        "category" : "indian",
+        "error" : "applePCC:server.-1",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 3,
+        "falsePositives" : 0,
+        "id" : "ft-001",
+        "latencyMs" : 3196,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "roti",
+          "dal",
+          "curd"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:server.-1",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-002",
+        "latencyMs" : 65,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "idli",
+          "sambar"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:server.-1",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-003",
+        "latencyMs" : 63,
+        "missed" : [
+          "masala dosa",
+          "filter coffee"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-004",
+        "latencyMs" : 1,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "poha"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 3,
+        "falsePositives" : 0,
+        "id" : "ft-005",
+        "latencyMs" : 1,
+        "missed" : [
+          "aloo paratha",
+          "butter",
+          "lassi"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-006",
+        "latencyMs" : 0,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "rajma chawal"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-007",
+        "latencyMs" : 2,
+        "missed" : [
+          "samosa",
+          "masala chai"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-008",
+        "latencyMs" : 1,
+        "missed" : [
+          "chole",
+          "bhatura"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 3,
+        "falsePositives" : 0,
+        "id" : "ft-009",
+        "latencyMs" : 3,
+        "missed" : [
+          "palak paneer",
+          "jeera rice",
+          "cucumber raita"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-010",
+        "latencyMs" : 3,
+        "missed" : [
+          "chicken tikka"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-011",
+        "latencyMs" : 3,
+        "missed" : [
+          "paneer bhurji"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-012",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "gulab jamun"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-013",
+        "latencyMs" : 0,
+        "missed" : [
+          "khichdi",
+          "papad"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-014",
+        "latencyMs" : 0,
+        "missed" : [
+          "upma",
+          "coconut chutney"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-015",
+        "latencyMs" : 1,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "methi thepla"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-016",
+        "latencyMs" : 2,
+        "missed" : [
+          "chicken biryani"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-017",
+        "latencyMs" : 0,
+        "missed" : [
+          "pav bhaji"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-018",
+        "latencyMs" : 0,
+        "missed" : [
+          "veg pulao"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-019",
+        "latencyMs" : 6,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "egg curry",
+          "roti"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-020",
+        "latencyMs" : 6,
+        "missed" : [
+          "nimbu pani"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-021",
+        "latencyMs" : 9,
+        "missed" : [
+          "medu vada",
+          "sambar"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-022",
+        "latencyMs" : 6,
+        "missed" : [
+          "sprouts salad"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-023",
+        "latencyMs" : 2,
+        "missed" : [
+          "kheer"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-024",
+        "latencyMs" : 5,
+        "missed" : [
+          "dhokla",
+          "green chutney"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "indian",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-025",
+        "latencyMs" : 1,
+        "missed" : [
+          "fish curry",
+          "rice"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-026",
+        "latencyMs" : 3,
+        "missed" : [
+          "roti",
+          "dal"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-027",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "idli",
+          "chutney"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-028",
+        "latencyMs" : 0,
+        "missed" : [
+          "maggi",
+          "chai"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-029",
+        "latencyMs" : 3,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "rajma chawal",
+          "salad"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-030",
+        "latencyMs" : 2,
+        "missed" : [
+          "anda bhurji",
+          "toast"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-031",
+        "latencyMs" : 5,
+        "missed" : [
+          "doodh"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-032",
+        "latencyMs" : 2,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "khichdi"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-033",
+        "latencyMs" : 2,
+        "missed" : [
+          "biscuit",
+          "chai"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-034",
+        "latencyMs" : 8,
+        "missed" : [
+          "banana",
+          "almond"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "hinglish",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-035",
+        "latencyMs" : 6,
+        "missed" : [
+          "paneer paratha",
+          "dahi"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 3,
+        "falsePositives" : 0,
+        "id" : "ft-036",
+        "latencyMs" : 8,
+        "missed" : [
+          "scrambled egg",
+          "toast",
+          "black coffee"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-037",
+        "latencyMs" : 5,
+        "mealTypeCorrect" : false,
+        "missed" : [
+          "chicken caesar salad"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-038",
+        "latencyMs" : 13,
+        "missed" : [
+          "latte",
+          "blueberry muffin"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-039",
+        "latencyMs" : 7,
+        "missed" : [
+          "pepperoni pizza"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 3,
+        "falsePositives" : 0,
+        "id" : "ft-040",
+        "latencyMs" : 1,
+        "missed" : [
+          "oatmeal",
+          "banana",
+          "peanut butter"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-041",
+        "latencyMs" : 3,
+        "missed" : [
+          "grilled chicken breast",
+          "steamed broccoli"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "western",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-042",
+        "latencyMs" : 3,
+        "missed" : [
+          "whey protein",
+          "milk"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-043",
+        "latencyMs" : 3,
+        "missed" : [
+          "coke zero"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-044",
+        "latencyMs" : 1,
+        "missed" : [
+          "mcaloo tikki burger",
+          "fries"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-045",
+        "latencyMs" : 3,
+        "missed" : [
+          "parle-g biscuit",
+          "tea"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 2,
+        "falsePositives" : 0,
+        "id" : "ft-046",
+        "latencyMs" : 5,
+        "missed" : [
+          "amul cheese slice",
+          "sandwich"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "branded",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 1,
+        "falsePositives" : 0,
+        "id" : "ft-047",
+        "latencyMs" : 3,
+        "missed" : [
+          "caramel frappuccino"
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-048",
+        "latencyMs" : 1,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-049",
+        "latencyMs" : 2,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "truePositives" : 0
+      },
+      {
+        "category" : "edge",
+        "error" : "applePCC:circuitOpen",
+        "extra" : [
+
+        ],
+        "falseNegatives" : 0,
+        "falsePositives" : 0,
+        "id" : "ft-050",
+        "latencyMs" : 1,
+        "missed" : [
+
+        ],
+        "predicted" : [
+
+        ],
+        "presetCorrect" : false,
+        "truePositives" : 0
+      }
+    ],
+    "status" : "ran",
+    "tier" : "applePCC"
+  },
+  {
+    "dataset" : "food_text_smoke.jsonl",
+    "date" : "2026-10-02T19:42:18Z",
+    "eval" : "food_text",
+    "host" : "tanmays-macbook-air.local",
+    "promptVersion" : "2026.10.1",
+    "results" : [
+
+    ],
+    "status" : "skipped: consentRequired",
+    "tier" : "geminiBYOK"
+  },
+  {
+    "dataset" : "food_text_smoke.jsonl",
+    "date" : "2026-10-02T19:42:18Z",
+    "eval" : "food_text",
+    "host" : "tanmays-macbook-air.local",
+    "promptVersion" : "2026.10.1",
+    "results" : [
+
+    ],
+    "status" : "skipped: consentRequired",
+    "tier" : "groqBYOK"
+  }
+]

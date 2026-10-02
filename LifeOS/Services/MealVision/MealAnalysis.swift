@@ -10,7 +10,10 @@ struct MealAnalysis: Equatable {
     /// Which engine produced the estimate. Surfaced in the UI so the user knows
     /// whether they're looking at a full-macro AI read or a free on-device guess.
     enum Source: String, Equatable {
-        case groq          // Cloud vision model (full macros, best accuracy)
+        case groq          // Cloud vision model via the user's Groq key (full macros)
+        case gemini        // Cloud vision model via the user's Gemini key (full macros)
+        case appleOnDevice // Apple Intelligence on-device model (iOS 27+, free, private)
+        case appleCloud    // Apple Private Cloud Compute (free, private)
         case onDevice      // Apple Vision + local nutrition table (offline, free)
         case learned       // Served from the user's own past corrections (offline)
     }

@@ -1,0 +1,50 @@
+{"id":"ft-001","category":"indian","text":"two rotis, dal and a bowl of curd for lunch","mealType":"lunch","items":[{"name":"roti","aliases":["chapati","phulka"],"quantity":2},{"name":"dal","aliases":["daal","lentil","lentils"],"quantity":1},{"name":"curd","aliases":["dahi","yogurt","yoghurt"],"quantity":1}]}
+{"id":"ft-002","category":"indian","text":"had 3 idlis with sambar this morning","mealType":"breakfast","items":[{"name":"idli","quantity":3},{"name":"sambar","aliases":["sambhar"],"quantity":1}]}
+{"id":"ft-003","category":"indian","text":"one masala dosa and a cup of filter coffee","items":[{"name":"masala dosa","aliases":["dosa"],"quantity":1},{"name":"filter coffee","aliases":["coffee"],"quantity":1}]}
+{"id":"ft-004","category":"indian","text":"a plate of poha for breakfast","mealType":"breakfast","items":[{"name":"poha","quantity":1}]}
+{"id":"ft-005","category":"indian","text":"2 aloo parathas with butter and a glass of lassi","items":[{"name":"aloo paratha","aliases":["paratha"],"quantity":2},{"name":"butter","quantity":1},{"name":"lassi","quantity":1}]}
+{"id":"ft-006","category":"indian","text":"rajma chawal for dinner","mealType":"dinner","items":[{"name":"rajma chawal","aliases":["rajma","rajma rice","chawal","rice"],"quantity":1}]}
+{"id":"ft-007","category":"indian","text":"one samosa and masala chai","items":[{"name":"samosa","quantity":1},{"name":"masala chai","aliases":["chai","tea"],"quantity":1}]}
+{"id":"ft-008","category":"indian","text":"a bowl of chole with 2 bhature","items":[{"name":"chole","aliases":["chana masala","chickpea curry","chole masala"],"quantity":1},{"name":"bhatura","aliases":["bhature"],"quantity":2}]}
+{"id":"ft-009","category":"indian","text":"palak paneer, jeera rice and a cucumber raita","items":[{"name":"palak paneer","quantity":1},{"name":"jeera rice","aliases":["rice"],"quantity":1},{"name":"cucumber raita","aliases":["raita"],"quantity":1}]}
+{"id":"ft-010","category":"indian","text":"4 pieces of chicken tikka","items":[{"name":"chicken tikka","quantity":4}]}
+{"id":"ft-011","category":"indian","text":"200 g paneer bhurji","items":[{"name":"paneer bhurji","aliases":["paneer"],"quantity":200}]}
+{"id":"ft-012","category":"indian","text":"2 gulab jamuns after dinner","mealType":"dinner","items":[{"name":"gulab jamun","quantity":2}]}
+{"id":"ft-013","category":"indian","text":"a katori of khichdi with papad","items":[{"name":"khichdi","aliases":["khichri"],"quantity":1},{"name":"papad","aliases":["papadum","pappadam"],"quantity":1}]}
+{"id":"ft-014","category":"indian","text":"upma and coconut chutney","items":[{"name":"upma","quantity":1},{"name":"coconut chutney","aliases":["chutney"],"quantity":1}]}
+{"id":"ft-015","category":"indian","text":"3 methi theplas for lunch","mealType":"lunch","items":[{"name":"methi thepla","aliases":["thepla"],"quantity":3}]}
+{"id":"ft-016","category":"indian","text":"a plate of chicken biryani","items":[{"name":"chicken biryani","aliases":["biryani"],"quantity":1}]}
+{"id":"ft-017","category":"indian","text":"pav bhaji with 2 pav","items":[{"name":"pav bhaji","aliases":["bhaji"],"quantity":1},{"name":"pav","aliases":["bread roll","bun"],"quantity":2,"optional":true}]}
+{"id":"ft-018","category":"indian","text":"half a plate of veg pulao","items":[{"name":"veg pulao","aliases":["pulao","vegetable pulao"],"quantity":0.5}]}
+{"id":"ft-019","category":"indian","text":"egg curry and 2 rotis for dinner","mealType":"dinner","items":[{"name":"egg curry","quantity":1},{"name":"roti","aliases":["chapati"],"quantity":2}]}
+{"id":"ft-020","category":"indian","text":"a glass of nimbu pani","items":[{"name":"nimbu pani","aliases":["lemonade","lemon water","nimbu paani"],"quantity":1}]}
+{"id":"ft-021","category":"indian","text":"2 medu vadas with sambar","items":[{"name":"medu vada","aliases":["vada"],"quantity":2},{"name":"sambar","quantity":1}]}
+{"id":"ft-022","category":"indian","text":"a bowl of sprouts salad","items":[{"name":"sprouts salad","aliases":["sprouts","sprout salad"],"quantity":1}]}
+{"id":"ft-023","category":"indian","text":"1 cup of kheer","items":[{"name":"kheer","aliases":["rice pudding"],"quantity":1}]}
+{"id":"ft-024","category":"indian","text":"dhokla 4 pieces and green chutney","items":[{"name":"dhokla","quantity":4},{"name":"green chutney","aliases":["chutney"],"quantity":1}]}
+{"id":"ft-025","category":"indian","text":"fish curry with a cup of rice","items":[{"name":"fish curry","quantity":1},{"name":"rice","aliases":["steamed rice","white rice"],"quantity":1}]}
+{"id":"ft-026","category":"hinglish","text":"do roti aur ek katori dal khayi","items":[{"name":"roti","aliases":["chapati"],"quantity":2},{"name":"dal","aliases":["daal","lentils"],"quantity":1}]}
+{"id":"ft-027","category":"hinglish","text":"maine teen idli aur chutney khaya nashte mein","mealType":"breakfast","items":[{"name":"idli","quantity":3},{"name":"chutney","quantity":1}]}
+{"id":"ft-028","category":"hinglish","text":"ek plate maggi aur chai","items":[{"name":"maggi","aliases":["instant noodles","noodles","maggi noodles"],"quantity":1},{"name":"chai","aliases":["tea","masala chai"],"quantity":1}]}
+{"id":"ft-029","category":"hinglish","text":"lunch mein rajma chawal aur salad","mealType":"lunch","items":[{"name":"rajma chawal","aliases":["rajma","chawal","rice"],"quantity":1},{"name":"salad","quantity":1}]}
+{"id":"ft-030","category":"hinglish","text":"do anda bhurji aur ek toast","items":[{"name":"anda bhurji","aliases":["egg bhurji","scrambled eggs","egg","bhurji"],"quantity":2},{"name":"toast","aliases":["bread"],"quantity":1}]}
+{"id":"ft-031","category":"hinglish","text":"aadha glass doodh peeya","items":[{"name":"doodh","aliases":["milk"],"quantity":0.5}]}
+{"id":"ft-032","category":"hinglish","text":"raat ko khichdi khayi thi","mealType":"dinner","items":[{"name":"khichdi","aliases":["khichri"],"quantity":1}]}
+{"id":"ft-033","category":"hinglish","text":"char biscuit aur ek cup chai","items":[{"name":"biscuit","aliases":["cookie","biscuits"],"quantity":4},{"name":"chai","aliases":["tea"],"quantity":1}]}
+{"id":"ft-034","category":"hinglish","text":"ek banana aur mutthi bhar almonds","items":[{"name":"banana","quantity":1},{"name":"almond","aliases":["almonds","badam"],"quantity":1}]}
+{"id":"ft-035","category":"hinglish","text":"paneer paratha do aur dahi","items":[{"name":"paneer paratha","aliases":["paratha"],"quantity":2},{"name":"dahi","aliases":["curd","yogurt"],"quantity":1}]}
+{"id":"ft-036","category":"western","text":"two scrambled eggs on toast and a black coffee","items":[{"name":"scrambled egg","aliases":["egg","eggs","scrambled eggs"],"quantity":2},{"name":"toast","aliases":["bread"],"quantity":1},{"name":"black coffee","aliases":["coffee"],"quantity":1}]}
+{"id":"ft-037","category":"western","text":"a chicken caesar salad for lunch","mealType":"lunch","items":[{"name":"chicken caesar salad","aliases":["caesar salad","salad"],"quantity":1}]}
+{"id":"ft-038","category":"western","text":"large latte and a blueberry muffin","items":[{"name":"latte","aliases":["large latte","cafe latte"],"quantity":1},{"name":"blueberry muffin","aliases":["muffin"],"quantity":1}]}
+{"id":"ft-039","category":"western","text":"2 slices of pepperoni pizza","items":[{"name":"pepperoni pizza","aliases":["pizza"],"quantity":2}]}
+{"id":"ft-040","category":"western","text":"a bowl of oatmeal with a banana and a spoon of peanut butter","items":[{"name":"oatmeal","aliases":["oats","porridge"],"quantity":1},{"name":"banana","quantity":1},{"name":"peanut butter","quantity":1}]}
+{"id":"ft-041","category":"western","text":"grilled chicken breast with steamed broccoli","items":[{"name":"grilled chicken breast","aliases":["chicken breast","chicken","grilled chicken"],"quantity":1},{"name":"steamed broccoli","aliases":["broccoli"],"quantity":1}]}
+{"id":"ft-042","category":"western","text":"1 scoop of whey protein in 300 ml milk","items":[{"name":"whey protein","aliases":["protein shake","whey","protein powder"],"quantity":1},{"name":"milk","quantity":300}]}
+{"id":"ft-043","category":"branded","text":"a can of Coke Zero","items":[{"name":"coke zero","aliases":["coca-cola zero","coca cola zero","coke","cola"],"quantity":1}]}
+{"id":"ft-044","category":"branded","text":"a McDonald's McAloo Tikki burger and medium fries","items":[{"name":"mcaloo tikki burger","aliases":["mcaloo tikki","aloo tikki burger","burger"],"quantity":1},{"name":"fries","aliases":["french fries","medium fries"],"quantity":1}]}
+{"id":"ft-045","category":"branded","text":"2 Parle-G biscuits with tea","items":[{"name":"parle-g biscuit","aliases":["parle-g","parle g","biscuit","biscuits","parle-g biscuits"],"quantity":2},{"name":"tea","aliases":["chai"],"quantity":1}]}
+{"id":"ft-046","category":"branded","text":"one Amul cheese slice on a sandwich","items":[{"name":"amul cheese slice","aliases":["cheese slice","cheese"],"quantity":1},{"name":"sandwich","quantity":1}]}
+{"id":"ft-047","category":"branded","text":"a Starbucks venti caramel frappuccino","items":[{"name":"caramel frappuccino","aliases":["frappuccino","venti caramel frappuccino"],"quantity":1}]}
+{"id":"ft-048","category":"edge","text":"I went for a 5 km run this morning","items":[]}
+{"id":"ft-049","category":"edge","text":"remind me to call mom tomorrow","items":[]}
+{"id":"ft-050","category":"edge","text":"log my usual breakfast","items":[],"refersToPreset":true}

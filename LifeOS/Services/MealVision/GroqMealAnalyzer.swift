@@ -1,5 +1,11 @@
 import UIKit
 
+// SUPERSEDED (AI Phase 0): `MealScannerEngine` now reaches Groq through the AI
+// Gateway's `GroqBYOKProvider` (LifeOS/AI/Providers), which ports this client's
+// model rotation, JSON mode, retry/backoff and prompts (`PromptRegistry`).
+// Kept unchanged as a rollback path until the gateway photo flow is signed off
+// on a device; delete after the Phase 0 regression run (ticket AI-004).
+
 /// Production Groq vision client for full-plate macro estimation.
 ///
 /// This is a ground-up rebuild of the old in-view networking. The old code

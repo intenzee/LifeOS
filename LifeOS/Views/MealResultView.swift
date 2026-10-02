@@ -476,6 +476,9 @@ struct MealResultView: View {
     private var sourceLabel: String {
         switch analysis.source {
         case .groq: return "AI · full macros"
+        case .gemini: return "AI · Gemini (your key)"
+        case .appleOnDevice: return "Apple Intelligence · on-device"
+        case .appleCloud: return "Apple Intelligence · Private Cloud"
         case .onDevice: return "On-device estimate"
         case .learned: return "Learned from your corrections"
         }
@@ -483,7 +486,9 @@ struct MealResultView: View {
 
     private var sourceIcon: String {
         switch analysis.source {
-        case .groq: return "sparkles"
+        case .groq, .gemini: return "sparkles"
+        case .appleOnDevice: return "apple.intelligence"
+        case .appleCloud: return "lock.icloud"
         case .onDevice: return "iphone"
         case .learned: return "graduationcap.fill"
         }

@@ -1070,6 +1070,13 @@ struct AIMealScanView: View {
                 Text("Get a free key at \(providerSite) for full-plate macros — saved once, securely on this device.")
                     .font(.caption2)
                     .foregroundColor(ThemePalette.accent)
+
+                // Data-use disclosure: adding a key is consent to send meal
+                // photos (never health data) to this provider (AI plan F11 §6).
+                Text("With a key, meal photos you scan are sent to \(providerName) for analysis. Free tiers may use submitted content to improve their service. Health data is never sent.")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -1123,6 +1130,7 @@ struct AIMealScanView: View {
         // it's a one-time entry, and retire the instructions card for good.
         if outcome.analysis.source == .groq, !typedKey.isEmpty {
             AIKeyStore.shared.save(typedKey, provider: providerName)
+            AIServices.shared.recordKeyEntryConsent(for: .groqBYOK)
             AIKeyStore.shared.hasSeenInstructions = true
             hasStoredKey = true
             editingKey = false
@@ -1216,6 +1224,7 @@ struct AIMealScanView: View {
     /// Drops any stored key and reopens the key field for re-entry.
     private func forgetKey() {
         AIKeyStore.shared.delete(provider: providerName)
+        AIServices.shared.revokeCloudConsent(for: .groqBYOK)
         hasStoredKey = false
         editingKey = true
         apiKey = ""

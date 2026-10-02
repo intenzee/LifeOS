@@ -742,6 +742,7 @@ struct SettingsView: View {
     @State private var showLimitPicker = false
 
     @State private var showHealthProfile = false
+    @State private var showAIDiagnostics = false
 
     init() {
         _caloriePercentage = State(initialValue: CalorieSettings.shared.loadPercentage())
@@ -776,6 +777,9 @@ struct SettingsView: View {
                         calorieLimitCard
                         calorieBankCard
                         smokingCard
+                        if AIDiagnosticsView.isEnabled {
+                            aiDiagnosticsCard
+                        }
                     }
                     .padding(.horizontal)
 
@@ -794,6 +798,33 @@ struct SettingsView: View {
         }) {
             ProfileDetailsView()
         }
+        .sheet(isPresented: $showAIDiagnostics) {
+            AIDiagnosticsView()
+        }
+    }
+
+    /// Debug/TestFlight only: AI Gateway diagnostics (AI plan Phase 0).
+    private var aiDiagnosticsCard: some View {
+        Button(action: { showAIDiagnostics = true }) {
+            HStack {
+                Image(systemName: "cpu")
+                    .foregroundColor(palette.primaryAccent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AI diagnostics")
+                        .font(.headline)
+                        .foregroundColor(palette.textPrimary)
+                    Text("Providers, routing, quotas and tier demo")
+                        .font(.caption)
+                        .foregroundColor(palette.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+            }
+            .padding()
+            .glassCard(cornerRadius: 20, elevation: 0.5)
+        }
+        .buttonStyle(.plain)
     }
 
     private var healthProfileCard: some View {

@@ -55,6 +55,7 @@ struct LifeOSApp: App {
         #endif
         dependencies.notificationService.requestPermission()
         dependencies.watchConnectivity.activate()
+        AIServices.shared.start()
     }
 
     var body: some Scene {

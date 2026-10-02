@@ -1,0 +1,39 @@
+# LifeOS AI — unit tests + smoke eval gate (AI plan F11 §2, ticket AI-051).
+# Runs on PRs touching the AI module, its tests, evals or the harness package.
+# CI runners have no Apple Intelligence and no provider keys: model tiers are
+# reported as "skipped"; the deterministic tier is gated (F1 ≥ 0.80).
+name: AI
+
+on:
+  pull_request:
+    paths:
+      - "LifeOS/AI/**"
+      - "LifeOS/Services/MealVision/**"
+      - "Evals/**"
+      - "Tests/**"
+      - "Tools/ai-eval/**"
+      - "Package.swift"
+      - ".github/workflows/ai.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ai-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-eval:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select latest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"
+      - name: Unit tests (with coverage)
+        run: swift test --enable-code-coverage
+      - name: Smoke evals (deterministic gate)
+        run: swift run ai-eval food-text --tiers deterministic,appleOnDevice --out Evals/reports --gate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-eval-reports
+          path: Evals/reports/
