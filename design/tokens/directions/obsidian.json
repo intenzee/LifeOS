@@ -1,0 +1,24 @@
+{
+  "id": "obsidian",
+  "name": "Obsidian & Champagne",
+  "mood": "A private members' club at night. Near-black, warm metallic accents, serif numerals.",
+  "numericDesign": "serif",
+  "displayDesign": "serif",
+  "motionBounceScale": 0.0,
+  "glassUsage": "controls",
+  "orb": { "shell": "smoked", "liquidTop": "#E9D4A8", "liquidBottom": "#9C7B45", "rim": "#F3E3C0" },
+  "color": {
+    "background":       { "dark": "#0B0B0D", "light": "#F5F2EC" },
+    "surface":          { "dark": "#16161A", "light": "#FFFFFF" },
+    "surfaceRaised":    { "dark": "#1F1F24", "light": "#FBF9F5" },
+    "textPrimary":      { "dark": "#F4F1EA", "light": "#16140F" },
+    "textSecondary":    { "dark": "#A7A29A", "light": "#5F5A52" },
+    "textTertiary":     { "dark": "#77726A", "light": "#8A847A" },
+    "separator":        { "dark": "#2C2B30", "light": "#E2DDD3" },
+    "accentPrimary":    { "dark": "#D8C3A5", "light": "#7A5F33" },
+    "accentSecondary":  { "dark": "#B89A6A", "light": "#8C6D3F" },
+    "onAccent":         { "dark": "#0B0B0D", "light": "#FFFFFF" },
+    "heroGlowA":        { "dark": "#3A2F20", "light": "#EFE3CC" },
+    "heroGlowB":        { "dark": "#1A1714", "light": "#F7F1E6" }
+  }
+}

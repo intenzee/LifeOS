@@ -61,15 +61,19 @@ struct LifeOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("UITEST_MEALRESULT") {
-                MealResultHarness()
-            } else {
+            Group {
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("UITEST_MEALRESULT") {
+                    MealResultHarness()
+                } else {
+                    LaunchGate(store: store, dependencies: dependencies)
+                }
+                #else
                 LaunchGate(store: store, dependencies: dependencies)
+                #endif
             }
-            #else
-            LaunchGate(store: store, dependencies: dependencies)
-            #endif
+            // The design direction chosen in Settings → Direction Lab.
+            .modifier(LXDirectionRoot())
         }
     }
 }

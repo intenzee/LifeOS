@@ -1,0 +1,24 @@
+{
+  "id": "porcelain",
+  "name": "Porcelain",
+  "mood": "A luxury editorial magazine in daylight. Warm ivory, ink, one deep emerald.",
+  "numericDesign": "serif",
+  "displayDesign": "serif",
+  "motionBounceScale": 0.5,
+  "glassUsage": "tabBar",
+  "orb": { "shell": "frosted", "liquidTop": "#2E8C70", "liquidBottom": "#0F5C4A", "rim": "#CFE8DD" },
+  "color": {
+    "background":       { "dark": "#12110F", "light": "#F6F3EE" },
+    "surface":          { "dark": "#1C1B18", "light": "#FFFFFF" },
+    "surfaceRaised":    { "dark": "#262420", "light": "#FFFFFF" },
+    "textPrimary":      { "dark": "#F3EFE7", "light": "#15140F" },
+    "textSecondary":    { "dark": "#ABA59B", "light": "#6E6A63" },
+    "textTertiary":     { "dark": "#7A756C", "light": "#8F8A82" },
+    "separator":        { "dark": "#302E2A", "light": "#E4DFD6" },
+    "accentPrimary":    { "dark": "#6FC2A6", "light": "#0F5C4A" },
+    "accentSecondary":  { "dark": "#C9A66B", "light": "#8C6D3F" },
+    "onAccent":         { "dark": "#0B1A15", "light": "#FFFFFF" },
+    "heroGlowA":        { "dark": "#1E2A25", "light": "#E7EFE9" },
+    "heroGlowB":        { "dark": "#171512", "light": "#FBF8F2" }
+  }
+}

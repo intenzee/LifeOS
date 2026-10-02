@@ -1,0 +1,24 @@
+{
+  "id": "aurora",
+  "name": "Aurora Glass",
+  "mood": "Deep space and light. Today's mint and violet, made luminous and rare.",
+  "numericDesign": "rounded",
+  "displayDesign": "rounded",
+  "motionBounceScale": 1.0,
+  "glassUsage": "everywhere",
+  "orb": { "shell": "clear", "liquidTop": "#70EDC6", "liquidBottom": "#8C99FA", "rim": "#C9F7EA" },
+  "color": {
+    "background":       { "dark": "#07090F", "light": "#F2F4F9" },
+    "surface":          { "dark": "#10141E", "light": "#FFFFFF" },
+    "surfaceRaised":    { "dark": "#182030", "light": "#FFFFFF" },
+    "textPrimary":      { "dark": "#EEF2FF", "light": "#0E1220" },
+    "textSecondary":    { "dark": "#9AA3B5", "light": "#535B6E" },
+    "textTertiary":     { "dark": "#687185", "light": "#80889A" },
+    "separator":        { "dark": "#1E2433", "light": "#DCE0EA" },
+    "accentPrimary":    { "dark": "#70EDC6", "light": "#0B7A5E" },
+    "accentSecondary":  { "dark": "#8C99FA", "light": "#4B55C9" },
+    "onAccent":         { "dark": "#04140F", "light": "#FFFFFF" },
+    "heroGlowA":        { "dark": "#0F3A33", "light": "#DDF5EE" },
+    "heroGlowB":        { "dark": "#1C1F4A", "light": "#E3E6FB" }
+  }
+}

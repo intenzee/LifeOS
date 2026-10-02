@@ -780,6 +780,7 @@ struct SettingsView: View {
                         if AIDiagnosticsView.isEnabled {
                             aiDiagnosticsCard
                         }
+                        DirectionLabEntryRow()
                     }
                     .padding(.horizontal)
 
