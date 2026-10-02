@@ -32,7 +32,11 @@ let package = Package(
     products: [.library(name: "LifeOSDesign", targets: ["LifeOSDesign"])],
     targets: [
         .target(name: "LifeOSDesign", swiftSettings: appMatchingSettings),
+        // UI/UX Phase 3 pure logic (budget maths, meal timing, copy, snapshots):
+        // `LifeOS/Experience/Core`, Foundation only, symlinked like the design system.
+        .target(name: "LifeOSExperienceCore", swiftSettings: appMatchingSettings),
         .testTarget(name: "LifeOSDesignTests", dependencies: ["LifeOSDesign"], swiftSettings: appMatchingSettings),
+        .testTarget(name: "LifeOSExperienceTests", dependencies: ["LifeOSExperienceCore"], swiftSettings: appMatchingSettings),
     ],
     swiftLanguageModes: [.v5]
 )
