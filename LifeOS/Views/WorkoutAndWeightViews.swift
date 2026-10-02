@@ -141,7 +141,6 @@ struct GymWeekView: View {
         }
         .onAppear {
             selectedDayIndex = currentDayIndex
-            workoutDatabase.checkWeeklyReset()
         }
     }
 

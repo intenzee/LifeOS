@@ -1,36 +1,8 @@
 import SwiftUI
 import Combine
+import LifeOSData
 
-// MARK: - Daily Summary (snapshot of one day's performance)
-struct DailySummary: Codable {
-    var date: String                // "yyyy-MM-dd"
-    var caloriesConsumed: Double
-    var calorieLimit: Double
-    var waterGlasses: Int
-    var waterTarget: Int
-    var gymIntensity: String        // "High", "Medium", "Low", "Rest"
-    var todosCompleted: Int
-    var todosTotal: Int
-
-    var hitCalorieGoal: Bool {
-        caloriesConsumed > 0 && caloriesConsumed <= calorieLimit
-    }
-    var hitWaterGoal: Bool {
-        waterGlasses >= waterTarget
-    }
-    var hitGymGoal: Bool {
-        gymIntensity == "High" || gymIntensity == "Medium"
-    }
-    var hitTodoGoal: Bool {
-        todosTotal > 0 && todosCompleted >= todosTotal
-    }
-    var isPerfectDay: Bool {
-        hitCalorieGoal && hitWaterGoal && hitGymGoal && hitTodoGoal
-    }
-    var score: Int {
-        [hitCalorieGoal, hitWaterGoal, hitGymGoal, hitTodoGoal].filter { $0 }.count
-    }
-}
+// DailySummary lives in LifeOSCore.
 
 // MARK: - Streak Manager
 class StreakManager: ObservableObject {
@@ -38,11 +10,15 @@ class StreakManager: ObservableObject {
 
     @Published var summaries: [String: DailySummary] = [:]
 
-    private let summariesKey = "dailySummaries"
     private let calendar = Calendar.current
+    private weak var store: LocalStore?
+    private var pendingWrite: Task<Void, Never>?
 
-    private init() {
-        load()
+    private init() {}
+
+    func load(from snapshot: DataSnapshot, store: LocalStore) {
+        self.store = store
+        summaries = Dictionary(snapshot.summaries.map { ($0.date, $0) }, uniquingKeysWith: { _, last in last })
     }
 
     // Call this every time HomeView appears or data changes
@@ -66,9 +42,11 @@ class StreakManager: ObservableObject {
             todosCompleted: todosCompleted,
             todosTotal: todosTotal
         )
+        // HomeView calls this from several .onChange handlers. Identical values
+        // are dropped, and real changes are coalesced into one write (FND-08).
+        guard summaries[key] != summary else { return }
         summaries[key] = summary
-        save()
-        objectWillChange.send()
+        scheduleWrite(summary)
     }
 
     // MARK: - Streak Calculators
@@ -111,27 +89,19 @@ class StreakManager: ObservableObject {
     }
 
     // MARK: - Persistence
-    private func save() {
-        if let encoded = try? JSONEncoder().encode(summaries) {
-            UserDefaults.standard.set(encoded, forKey: summariesKey)
+
+    /// Writes the latest summary 500 ms after the last change in a burst.
+    private func scheduleWrite(_ summary: DailySummary) {
+        pendingWrite?.cancel()
+        pendingWrite = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled, let store = self?.store else { return }
+            let db = store.database
+            store.enqueue { try await db.summaries.save(summary) }
         }
     }
 
-    private func load() {
-        guard let data = UserDefaults.standard.data(forKey: summariesKey),
-              let decoded = try? JSONDecoder().decode([String: DailySummary].self, from: data)
-        else { return }
-        summaries = decoded
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
     func dateKey(for date: Date) -> String {
-        Self.dateFormatter.string(from: date)
+        DayKey.make(for: date).rawValue
     }
 }
-

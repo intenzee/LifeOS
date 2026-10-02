@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import LifeOSConnectivity
 #if canImport(WatchConnectivity)
 import WatchConnectivity
 #endif
@@ -17,8 +18,11 @@ extension Notification.Name {
 /// - Receives *mutation* messages from the watch and applies them to the existing
 ///   managers so the phone UI updates reactively, then re-sends the snapshot.
 ///
-/// The wire format is plain `[String: Any]` dictionaries with agreed keys, mirrored
-/// by the watch target's own connectivity manager — no shared source files.
+/// Wire format (FND-11): every snapshot carries the typed, versioned
+/// `LifeOSConnectivity` envelope **and** the legacy v1 keys, so an older watch
+/// app keeps working. Mutations are accepted in either format. Typed ones name
+/// their day, so a message delivered after midnight lands on the right date.
+/// `FeatureFlag.typedWatchContract` is a kill switch: off means v1 keys only.
 final class WatchConnectivityManager: NSObject, ObservableObject {
     static let shared = WatchConnectivityManager()
 
@@ -60,66 +64,63 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         #endif
     }
 
-    // MARK: - Date helpers
-
-    private static let dateKeyFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f
-    }()
-
-    private static let dayNameFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "EEEE"
-        return f
-    }()
-
-    private var todayDayName: String { Self.dayNameFormatter.string(from: Date()) }
-
     // MARK: - Snapshot (phone -> watch)
 
-    /// Builds the current day's snapshot dictionary.
-    func makeSnapshot() -> [String: Any] {
+    /// Today's typed snapshot. The single source for both wire formats.
+    func makeTypedSnapshot() -> LifeOSConnectivity.WatchSnapshot {
+        let today = DayKey.today()
         let currentWeight = persistence.loadCurrentWeight()
         let todayLog = foodDatabase.dailyLog(for: Date())
-        let burned = workoutDatabase.getCaloriesBurnedForDay(todayDayName, weightKg: currentWeight)
-        let baseLimit = CalorieLimitSettings.shared.loadLimit()
-        let percentage = CalorieSettings.shared.loadPercentage()
-        let adjustedLimit = baseLimit + burned * percentage
+        let workout = workoutDatabase.workout(on: today)
+        let burned = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
+        let adjustedLimit = CalorieLimitSettings.shared.loadLimit() + burned * CalorieSettings.shared.loadPercentage()
 
-        let profile = persistence.loadUserProfile()
-        let waterTarget = profile?.waterGoalGlasses ?? 8
+        return LifeOSConnectivity.WatchSnapshot(
+            day: today,
+            caloriesConsumed: todayLog.totalCalories(),
+            calorieLimit: adjustedLimit,
+            caloriesBurned: burned,
+            waterGlasses: persistence.loadWaterCount(for: Date()),
+            waterTarget: persistence.loadUserProfile()?.waterGoalGlasses ?? 8,
+            perfectStreak: streakManager.perfectDayStreak,
+            currentWeightKg: currentWeight,
+            targetWeightKg: persistence.loadTargetWeight(),
+            steps: Int(latestSteps),
+            todos: persistence.todos(on: Date()).map { .init(id: $0.id, title: $0.title, done: $0.isCompleted) },
+            exercises: workout.exercises
+        )
+    }
 
-        let todos = (persistence.loadWeekTodoList()[todayDayName] ?? []).map { todo -> [String: Any] in
-            ["id": todo.id.uuidString, "title": todo.title, "done": todo.isCompleted]
-        }
-
-        let exercises = workoutDatabase.loadWorkoutForDay(todayDayName).exercises.map { ex -> [String: Any] in
-            [
-                "id": ex.id.uuidString,
-                "bodyPart": ex.bodyPart.rawValue,
-                "name": ex.name ?? "",
-                "setsCompleted": ex.setsCompleted,
-                "maxSets": ex.maxSets
-            ]
-        }
-
-        return [
+    /// The application-context dictionary: legacy v1 keys plus, unless the
+    /// kill switch is off, the typed envelope.
+    func makeSnapshot() -> [String: Any] {
+        let typed = makeTypedSnapshot()
+        var message: [String: Any] = [
             "type": "snapshot",
-            "date": Self.dateKeyFormatter.string(from: Date()),
-            "caloriesConsumed": todayLog.totalCalories(),
-            "calorieLimit": adjustedLimit,
-            "caloriesBurned": burned,
-            "waterCount": persistence.loadWaterCount(for: Date()),
-            "waterTarget": waterTarget,
-            "perfectStreak": streakManager.perfectDayStreak,
-            "currentWeight": currentWeight,
-            "targetWeight": persistence.loadTargetWeight(),
-            "steps": Int(latestSteps),
-            "todos": todos,
-            "exercises": exercises
+            "date": typed.day.rawValue,
+            "caloriesConsumed": typed.caloriesConsumed,
+            "calorieLimit": typed.calorieLimit,
+            "caloriesBurned": typed.caloriesBurned,
+            "waterCount": typed.waterGlasses,
+            "waterTarget": typed.waterTarget,
+            "perfectStreak": typed.perfectStreak,
+            "currentWeight": typed.currentWeightKg,
+            "targetWeight": typed.targetWeightKg,
+            "steps": typed.steps,
+            "todos": typed.todos.map { ["id": $0.id.uuidString, "title": $0.title, "done": $0.done] as [String: Any] },
+            "exercises": typed.exercises.map {
+                ["id": $0.id.uuidString, "bodyPart": $0.bodyPart.rawValue, "name": $0.name ?? "",
+                 "setsCompleted": $0.setsCompleted, "maxSets": $0.maxSets] as [String: Any]
+            }
         ]
+        if FeatureFlags.shared.isEnabled(.typedWatchContract) {
+            do {
+                message.merge(try WatchWire.encode(typed)) { _, typedValue in typedValue }
+            } catch {
+                Log.watch.error("Typed snapshot encode failed: \(String(describing: error), privacy: .public)")
+            }
+        }
+        return message
     }
 
     /// Latest step count, fed in by the app so the watch dashboard can show it
@@ -140,57 +141,75 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     // MARK: - Mutations (watch -> phone)
 
-    /// Applies a mutation dictionary received from the watch. Runs on the main actor.
+    /// Applies a mutation from the watch (typed or legacy v1), then re-sends the snapshot.
     @MainActor
     func applyMutation(_ message: [String: Any]) {
-        guard let action = message["action"] as? String else { return }
-
-        switch action {
-        case "requestSnapshot":
-            break // snapshot is sent below regardless
-
-        case "setWater":
-            if let value = message["value"] as? Int {
-                persistence.saveWaterCount(max(0, value), for: Date())
+        if WatchWire.isTyped(message) {
+            do {
+                apply(try WatchWire.decodeMutation(message))
+            } catch {
+                Log.watch.error("Rejected watch message: \(String(describing: error), privacy: .public)")
             }
-
-        case "setWeight":
-            if let value = message["value"] as? Double, value > 0 {
-                persistence.saveCurrentWeight(value) // also records weight history
-            }
-
-        case "toggleTodo":
-            if let idString = message["id"] as? String, let id = UUID(uuidString: idString) {
-                var week = persistence.loadWeekTodoList()
-                if var todos = week[todayDayName],
-                   let idx = todos.firstIndex(where: { $0.id == id }) {
-                    todos[idx].isCompleted.toggle()
-                    week[todayDayName] = todos
-                    persistence.saveWeekTodoList(week) // posts .weekTodoListDidChange
-                }
-            }
-
-        case "updateExerciseSets":
-            if let idString = message["id"] as? String, let id = UUID(uuidString: idString),
-               let sets = message["setsCompleted"] as? Int {
-                workoutDatabase.setExerciseSetsForDay(todayDayName, exerciseId: id, setsCompleted: sets)
-            }
-
-        case "addExercise":
-            if let bodyPartRaw = message["bodyPart"] as? String,
-               let bodyPart = BodyPart(rawValue: bodyPartRaw) {
-                let name = (message["name"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-                let maxSets = message["maxSets"] as? Int ?? 3
-                let exercise = Exercise(bodyPart: bodyPart, name: name, maxSets: maxSets)
-                workoutDatabase.addExerciseForDay(todayDayName, exercise: exercise)
-            }
-
-        default:
-            break
+        } else {
+            applyLegacyMutation(message)
         }
-
         NotificationCenter.default.post(name: .watchDidMutateData, object: nil)
         sendSnapshot()
+    }
+
+    @MainActor
+    private func apply(_ mutation: WatchMutation) {
+        switch mutation {
+        case .requestSnapshot:
+            break
+        case .setWater(let glasses, let day):
+            persistence.saveWaterCount(max(0, glasses), for: day.startDate())
+        case .setWeight(let kg, let day):
+            guard kg > 0 else { return }
+            if day == .today() {
+                persistence.saveCurrentWeight(kg) // also records history
+            } else {
+                persistence.recordWeightPoint(kg, on: day.startDate())
+            }
+        case .toggleTodo(let id, let day):
+            persistence.toggleTodo(id: id, on: day)
+        case .setExerciseSets(let exerciseID, let sets, let day):
+            workoutDatabase.updateWorkout(on: day) { workout in
+                guard let index = workout.exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+                workout.exercises[index].setsCompleted = min(max(sets, 0), workout.exercises[index].maxSets)
+            }
+        case .addExercise(let bodyPart, let name, let maxSets, let day):
+            workoutDatabase.updateWorkout(on: day) {
+                $0.exercises.append(Exercise(bodyPart: bodyPart, name: name, maxSets: maxSets))
+            }
+        }
+    }
+
+    /// v1 dictionaries from a watch app that predates FND-11. They always mean today.
+    @MainActor
+    private func applyLegacyMutation(_ message: [String: Any]) {
+        guard let action = message["action"] as? String else { return }
+        let today = DayKey.today()
+        switch action {
+        case "setWater":
+            if let value = message["value"] as? Int { apply(.setWater(glasses: value, day: today)) }
+        case "setWeight":
+            if let value = message["value"] as? Double { apply(.setWeight(kg: value, day: today)) }
+        case "toggleTodo":
+            if let id = (message["id"] as? String).flatMap(UUID.init(uuidString:)) { apply(.toggleTodo(id: id, day: today)) }
+        case "updateExerciseSets":
+            if let id = (message["id"] as? String).flatMap(UUID.init(uuidString:)),
+               let sets = message["setsCompleted"] as? Int {
+                apply(.setExerciseSets(exerciseID: id, sets: sets, day: today))
+            }
+        case "addExercise":
+            if let bodyPart = (message["bodyPart"] as? String).flatMap(BodyPart.init(rawValue:)) {
+                let name = (message["name"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+                apply(.addExercise(bodyPart: bodyPart, name: name, maxSets: message["maxSets"] as? Int ?? 3, day: today))
+            }
+        default:
+            break // includes "requestSnapshot"
+        }
     }
 }
 

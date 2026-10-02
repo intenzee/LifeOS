@@ -1,6 +1,13 @@
 import Foundation
 import Combine
+import LifeOSData
 
+/// Food log for the browsed date, plus recent, favourite and custom foods.
+///
+/// Since FND-04 the data lives in LifeOSData (`FoodEntry` records keyed by real
+/// date, plus one `FoodLibrary` document). `LocalStore` preloads it at launch.
+/// Each change saves just the affected record instead of re-encoding the
+/// whole history (C6).
 final class FoodDatabaseManager: ObservableObject {
     static let shared = FoodDatabaseManager()
 
@@ -10,14 +17,25 @@ final class FoodDatabaseManager: ObservableObject {
     @Published var dailyLog: DailyFoodLog = DailyFoodLog()
     @Published var selectedDate: Date = Date()
 
-    private let recentFoodsKey = "recentFoods"
-    private let favoriteFoodsKey = "favoriteFoods"
-    private let customFoodsKey = "customFoods"
-    private let allDailyLogsKey = "allDailyFoodLogs"
-    private var allDailyLogs: [String: DailyFoodLog] = [:]
+    private weak var store: LocalStore?
+    private var allDailyLogs: [DayKey: DailyFoodLog] = [:]
+    /// Every logged entry ID, so re-logging a recent food never reuses an ID
+    /// (the store upserts by ID).
+    private var loggedIDs = Set<UUID>()
 
-    init() {
-        loadData()
+    init() {}
+
+    func load(from snapshot: DataSnapshot, store: LocalStore) {
+        self.store = store
+        var logs: [DayKey: DailyFoodLog] = [:]
+        for entry in snapshot.food {
+            logs[entry.dayKey, default: DailyFoodLog()].addFood(FoodItem(entry))
+        }
+        allDailyLogs = logs
+        loggedIDs = Set(snapshot.food.map(\.id))
+        recentFoods = snapshot.foodLibrary.recent.map { FoodItem($0) }
+        favoriteFoods = snapshot.foodLibrary.favorites.map { FoodItem($0) }
+        customFoods = snapshot.foodLibrary.custom.map { FoodItem($0) }
         loadDailyLogForSelectedDate()
     }
 
@@ -26,33 +44,28 @@ final class FoodDatabaseManager: ObservableObject {
         loadDailyLogForSelectedDate()
     }
 
-    /// Read-only log for an arbitrary date without changing the current selection.
-    /// Used by the Watch snapshot, which must always report *today* regardless of
-    /// which date the phone UI is browsing.
+    /// Read-only log for any date, without changing the selection. The Watch
+    /// snapshot uses it to always report *today*.
     func dailyLog(for date: Date) -> DailyFoodLog {
-        allDailyLogs[dateToString(date)] ?? DailyFoodLog()
+        allDailyLogs[DayKey.make(for: date)] ?? DailyFoodLog()
     }
 
     private func loadDailyLogForSelectedDate() {
-        let dateKey = dateToString(selectedDate)
-        dailyLog = allDailyLogs[dateKey] ?? DailyFoodLog()
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
-    private func dateToString(_ date: Date) -> String {
-        return Self.dateFormatter.string(from: date)
+        dailyLog = allDailyLogs[DayKey.make(for: selectedDate)] ?? DailyFoodLog()
     }
 
     func addFood(_ food: FoodItem) {
-        dailyLog.addFood(food)
+        var food = food
+        if loggedIDs.contains(food.id) {
+            food = FoodItem(name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs,
+                            fat: food.fat, servingSize: food.servingSize, barcode: food.barcode,
+                            mealType: food.mealType, timestamp: food.timestamp)
+        }
+        loggedIDs.insert(food.id)
 
-        let dateKey = dateToString(selectedDate)
-        allDailyLogs[dateKey] = dailyLog
+        let day = DayKey.make(for: selectedDate)
+        dailyLog.addFood(food)
+        allDailyLogs[day] = dailyLog
 
         if let index = recentFoods.firstIndex(where: { $0.name == food.name }) {
             recentFoods.remove(at: index)
@@ -62,7 +75,9 @@ final class FoodDatabaseManager: ObservableObject {
             recentFoods.removeLast()
         }
 
-        saveData()
+        let entry = food.entry(on: day)
+        enqueue { db in try await db.food.save(entry) }
+        saveLibrary()
     }
 
     func addCustomFood(_ food: FoodItem) {
@@ -76,16 +91,14 @@ final class FoodDatabaseManager: ObservableObject {
             customFoods = Array(customFoods.prefix(50))
         }
 
-        saveData()
+        saveLibrary()
     }
 
     func removeFood(_ foodId: UUID) {
+        let day = DayKey.make(for: selectedDate)
         dailyLog.removeFood(foodId)
-
-        let dateKey = dateToString(selectedDate)
-        allDailyLogs[dateKey] = dailyLog
-
-        saveData()
+        allDailyLogs[day] = dailyLog
+        enqueue { db in try await db.food.delete(id: foodId, on: day) }
     }
 
     func toggleFavorite(_ food: FoodItem) {
@@ -94,49 +107,30 @@ final class FoodDatabaseManager: ObservableObject {
         } else {
             favoriteFoods.append(food)
         }
-        saveData()
+        saveLibrary()
     }
 
     func isFavorite(_ food: FoodItem) -> Bool {
         favoriteFoods.contains(where: { $0.name == food.name })
     }
 
-    private func saveData() {
-        if let encoded = try? JSONEncoder().encode(recentFoods) {
-            UserDefaults.standard.set(encoded, forKey: recentFoodsKey)
-        }
-        if let encoded = try? JSONEncoder().encode(favoriteFoods) {
-            UserDefaults.standard.set(encoded, forKey: favoriteFoodsKey)
-        }
-        if let encoded = try? JSONEncoder().encode(customFoods) {
-            UserDefaults.standard.set(encoded, forKey: customFoodsKey)
-        }
-        if let encoded = try? JSONEncoder().encode(allDailyLogs) {
-            UserDefaults.standard.set(encoded, forKey: allDailyLogsKey)
-        }
+    private func saveLibrary() {
+        let library = FoodLibrary(recent: recentFoods.map(\.template), favorites: favoriteFoods.map(\.template),
+                                  custom: customFoods.map(\.template))
+        enqueue { db in try await db.foodLibrary.save(library) }
     }
 
-    private func loadData() {
-        if let data = UserDefaults.standard.data(forKey: recentFoodsKey),
-           let decoded = try? JSONDecoder().decode([FoodItem].self, from: data) {
-            recentFoods = decoded
+    private func enqueue(_ write: @escaping @Sendable (LifeOSDatabase) async throws -> Void) {
+        guard let store else {
+            Log.food.fault("Food change before the store was ready was not saved")
+            return
         }
-        if let data = UserDefaults.standard.data(forKey: favoriteFoodsKey),
-           let decoded = try? JSONDecoder().decode([FoodItem].self, from: data) {
-            favoriteFoods = decoded
-        }
-        if let data = UserDefaults.standard.data(forKey: customFoodsKey),
-           let decoded = try? JSONDecoder().decode([FoodItem].self, from: data) {
-            customFoods = decoded
-        }
-        if let data = UserDefaults.standard.data(forKey: allDailyLogsKey),
-           let decoded = try? JSONDecoder().decode([String: DailyFoodLog].self, from: data) {
-            allDailyLogs = decoded
-        }
+        let db = store.database
+        store.enqueue { try await write(db) }
     }
 
     var allFoods: [FoodItem] {
-        var combined = recentFoods + customFoods + favoriteFoods + Self.commonFoods
+        let combined = recentFoods + customFoods + favoriteFoods + Self.commonFoods
 
         var uniqueFoods: [FoodItem] = []
         var seenNames = Set<String>()

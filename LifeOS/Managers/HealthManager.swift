@@ -5,8 +5,10 @@ import Combine
 final class HealthManager: ObservableObject {
     let healthStore = HKHealthStore()
 
-    @Published var caloriesConsumed: Double = 1450
-    @Published var healthWeight: Double = 72.5
+    /// `nil` until HealthKit answers (or when access is denied). Never a
+    /// placeholder number (FND-06).
+    @Published var caloriesConsumed: Double?
+    @Published var healthWeight: Double?
     @Published var sleepDurationHours: Double = 0.0
     @Published var stepsToday: Double = 0
     @Published var activeEnergyToday: Double = 0
@@ -41,7 +43,7 @@ final class HealthManager: ObservableObject {
 
     func requestAuthorization() {
         guard HKHealthStore.isHealthDataAvailable() else {
-            print("HealthKit not available")
+            Log.health.notice("HealthKit not available on this device")
             return
         }
 
@@ -56,7 +58,7 @@ final class HealthManager: ObservableObject {
         ]
 
         healthStore.requestAuthorization(toShare: typesToWrite, read: typesToRead) { _, error in
-            if let error { print("HealthKit authorization error: \(error.localizedDescription)") }
+            if let error { Log.health.error("HealthKit authorization error: \(error.localizedDescription, privacy: .public)") }
             DispatchQueue.main.async {
                 // Reads are best-effort regardless of the (uninformative) success flag;
                 // `isAuthorized` is derived from real write status.
@@ -120,37 +122,37 @@ final class HealthManager: ObservableObject {
 }
 
 extension HealthManager {
+    /// Deletes today's active-energy samples **written by LifeOS only**. Samples
+    /// from Apple Watch or other apps are never touched (FND-07). HealthKit
+    /// refuses to delete them anyway, which used to abort the whole save.
     func deleteTodaysWorkoutSamples(completion: @escaping (Bool) -> Void) {
         guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else {
             completion(false)
             return
         }
 
-        let now = Date()
-        let startOfDay = Calendar.current.startOfDay(for: now)
-        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
-
-        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+        let today = DayKey.today()
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForSamples(withStart: today.startDate(), end: today.endDate(), options: .strictStartDate),
+            HKQuery.predicateForObjects(from: HKSource.default())
+        ])
 
         let query = HKSampleQuery(sampleType: energyType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
-            if let error = error {
-                print("❌ Error querying samples: \(error.localizedDescription)")
+            if let error {
+                Log.health.error("Querying own energy samples failed: \(error.localizedDescription, privacy: .public)")
                 DispatchQueue.main.async { completion(false) }
                 return
             }
 
-            guard let samples = samples, !samples.isEmpty else {
-                print("ℹ️ No existing workout samples to delete")
+            guard let samples, !samples.isEmpty else {
                 DispatchQueue.main.async { completion(true) }
                 return
             }
 
             self.healthStore.delete(samples) { success, error in
                 DispatchQueue.main.async {
-                    if success {
-                        print("✅ Deleted \(samples.count) old workout samples from Apple Health")
-                    } else {
-                        print("❌ Failed to delete samples: \(error?.localizedDescription ?? "Unknown error")")
+                    if !success {
+                        Log.health.error("Deleting own energy samples failed: \(error?.localizedDescription ?? "unknown", privacy: .public)")
                     }
                     completion(success)
                 }
@@ -160,24 +162,25 @@ extension HealthManager {
         healthStore.execute(query)
     }
 
+    /// Writes the MET *estimate* of workout energy to Apple Health.
+    ///
+    /// Disabled by default (`FeatureFlag.healthKitEstimatedEnergyWrite`): on top of
+    /// Apple Watch data it double-counts Activity rings, and HealthKit's terms
+    /// forbid writing inaccurate data. Doc 02 replaces it with real `HKWorkout` writes.
     func saveWorkoutCalories(_ calories: Double, workoutType: HKWorkoutActivityType = .traditionalStrengthTraining) {
+        guard FeatureFlags.shared.isEnabled(.healthKitEstimatedEnergyWrite) else { return }
         guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return }
 
         deleteTodaysWorkoutSamples { success in
-            guard success else {
-                print("❌ Could not delete old samples, aborting save")
-                return
-            }
+            guard success else { return }
 
             let quantity = HKQuantity(unit: HKUnit.kilocalorie(), doubleValue: calories)
             let now = Date()
             let sample = HKQuantitySample(type: energyType, quantity: quantity, start: now.addingTimeInterval(-3600), end: now)
 
             self.healthStore.save(sample) { success, error in
-                if success {
-                    print("✅ Saved \(Int(calories)) calories to Apple Health")
-                } else {
-                    print("❌ Failed to save calories: \(error?.localizedDescription ?? "Unknown error")")
+                if !success {
+                    Log.health.error("Saving estimated energy failed: \(error?.localizedDescription ?? "unknown", privacy: .public)")
                 }
             }
         }
@@ -185,7 +188,7 @@ extension HealthManager {
 
     func requestFullAuthorization() {
         guard HKHealthStore.isHealthDataAvailable() else {
-            print("HealthKit not available")
+            Log.health.notice("HealthKit not available on this device")
             return
         }
 
@@ -205,7 +208,7 @@ extension HealthManager {
         ]
 
         healthStore.requestAuthorization(toShare: typesToWrite, read: readTypes) { _, error in
-            if let error { print("HealthKit authorization error: \(error.localizedDescription)") }
+            if let error { Log.health.error("HealthKit authorization error: \(error.localizedDescription, privacy: .public)") }
             DispatchQueue.main.async {
                 self.refreshAuthorizationStatus()
                 self.fetchTodayCalories()

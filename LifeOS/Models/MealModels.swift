@@ -5,74 +5,10 @@ enum MiniCardType: Hashable {
     case todo, weight, gym, sleep, water, food
 }
 
-// MARK: - Meal Type
-enum MealType: String, CaseIterable, Codable {
-    case breakfast = "Breakfast"
-    case lunch = "Lunch"
-    case dinner = "Dinner"
-    case snacks = "Snacks"
-}
-
-// MARK: - Body Part
-enum BodyPart: String, CaseIterable, Codable {
-    case chest = "Chest"
-    case back = "Back"
-    case shoulders = "Shoulders"
-    case arms = "Arms"
-    case legs = "Legs"
-    case abs = "Abs"
-    case cardio = "Cardio"
-}
-
-// MARK: - Exercise
-struct Exercise: Identifiable, Codable {
-    let id: UUID
-    var bodyPart: BodyPart
-    /// Optional specific movement (e.g. "Bench Press"). Nil for legacy entries
-    /// created before named exercises; decoded via `decodeIfPresent` so older
-    /// persisted data keeps loading.
-    var name: String?
-    var setsCompleted: Int
-    var maxSets: Int
-
-    init(id: UUID = UUID(), bodyPart: BodyPart, name: String? = nil, setsCompleted: Int = 0, maxSets: Int = 3) {
-        self.id = id
-        self.bodyPart = bodyPart
-        self.name = name
-        self.setsCompleted = setsCompleted
-        self.maxSets = maxSets
-    }
-
-    /// Display label: the specific movement name when set, otherwise the body part.
-    var displayName: String {
-        if let name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return name
-        }
-        return bodyPart.rawValue
-    }
-}
-
-// MARK: - Exercise Catalog
-/// Built-in list of common movements per body part, used by the Watch app's
-/// exercise picker and shared here so the phone can label named exercises too.
-enum ExerciseCatalog {
-    static let movements: [BodyPart: [String]] = [
-        .chest: ["Bench Press", "Incline Press", "Chest Fly", "Push-Up", "Cable Crossover"],
-        .back: ["Deadlift", "Lat Pulldown", "Bent-Over Row", "Pull-Up", "Seated Row"],
-        .shoulders: ["Overhead Press", "Lateral Raise", "Front Raise", "Rear Delt Fly", "Shrug"],
-        .arms: ["Bicep Curl", "Tricep Pushdown", "Hammer Curl", "Skull Crusher", "Preacher Curl"],
-        .legs: ["Squat", "Leg Press", "Lunge", "Leg Curl", "Leg Extension", "Calf Raise"],
-        .abs: ["Crunch", "Plank", "Leg Raise", "Russian Twist", "Cable Crunch"],
-        .cardio: ["Treadmill", "Cycling", "Rowing", "Elliptical", "Jump Rope"]
-    ]
-
-    static func movements(for bodyPart: BodyPart) -> [String] {
-        movements[bodyPart] ?? []
-    }
-}
+// MealType, BodyPart, Exercise and ExerciseCatalog live in LifeOSCore.
 
 // MARK: - Day Workout
-struct DayWorkout: Codable {
+struct DayWorkout: Codable, Equatable {
     var exercises: [Exercise]
     var treadmillDone: Bool
     var treadmillDuration: Double = 20.0
@@ -103,7 +39,7 @@ struct DayWorkout: Codable {
 }
 
 // MARK: - Day Meals
-struct DayMeals: Codable {
+struct DayMeals: Codable, Equatable {
     var breakfast: Bool
     var lunch: Bool
     var dinner: Bool

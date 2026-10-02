@@ -1,4 +1,6 @@
 import Foundation
+import LifeOSCore
+import LifeOSConnectivity
 
 // MARK: - Snapshot received from the phone
 
@@ -70,6 +72,12 @@ struct WatchTodo: Identifiable, Equatable {
     var title: String
     var done: Bool
 
+    init(id: UUID, title: String, done: Bool) {
+        self.id = id
+        self.title = title
+        self.done = done
+    }
+
     init?(dictionary dict: [String: Any]) {
         guard let idString = dict["id"] as? String, let id = UUID(uuidString: idString) else { return nil }
         self.id = id
@@ -107,22 +115,36 @@ struct WatchExercise: Identifiable, Equatable {
     }
 }
 
-// MARK: - Exercise catalog (watch-local copy)
+// MARK: - Typed contract (FND-11)
 
-/// Mirror of the phone's `ExerciseCatalog`; kept independent so the watch target
-/// stays self-contained.
+extension WatchSnapshot {
+    /// From the typed `LifeOSConnectivity` snapshot the phone sends since FND-11.
+    init(_ typed: LifeOSConnectivity.WatchSnapshot) {
+        self.init(date: typed.day.rawValue,
+                  caloriesConsumed: typed.caloriesConsumed,
+                  calorieLimit: typed.calorieLimit,
+                  caloriesBurned: typed.caloriesBurned,
+                  waterCount: typed.waterGlasses,
+                  waterTarget: typed.waterTarget,
+                  perfectStreak: typed.perfectStreak,
+                  currentWeight: typed.currentWeightKg,
+                  targetWeight: typed.targetWeightKg,
+                  steps: typed.steps,
+                  todos: typed.todos.map { WatchTodo(id: $0.id, title: $0.title, done: $0.done) },
+                  exercises: typed.exercises.map {
+                      WatchExercise(id: $0.id, bodyPart: $0.bodyPart.rawValue, name: $0.name ?? "",
+                                    setsCompleted: $0.setsCompleted, maxSets: $0.maxSets)
+                  })
+    }
+}
+
+// MARK: - Exercise catalog
+
+/// String-keyed view of the shared `LifeOSCore.ExerciseCatalog`. It used to be a duplicated copy.
 enum WatchExerciseCatalog {
-    static let bodyParts = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Abs", "Cardio"]
+    static let bodyParts = BodyPart.allCases.map(\.rawValue)
 
-    static let movements: [String: [String]] = [
-        "Chest": ["Bench Press", "Incline Press", "Chest Fly", "Push-Up", "Cable Crossover"],
-        "Back": ["Deadlift", "Lat Pulldown", "Bent-Over Row", "Pull-Up", "Seated Row"],
-        "Shoulders": ["Overhead Press", "Lateral Raise", "Front Raise", "Rear Delt Fly", "Shrug"],
-        "Arms": ["Bicep Curl", "Tricep Pushdown", "Hammer Curl", "Skull Crusher", "Preacher Curl"],
-        "Legs": ["Squat", "Leg Press", "Lunge", "Leg Curl", "Leg Extension", "Calf Raise"],
-        "Abs": ["Crunch", "Plank", "Leg Raise", "Russian Twist", "Cable Crunch"],
-        "Cardio": ["Treadmill", "Cycling", "Rowing", "Elliptical", "Jump Rope"]
-    ]
-
-    static func movements(for bodyPart: String) -> [String] { movements[bodyPart] ?? [] }
+    static func movements(for bodyPart: String) -> [String] {
+        BodyPart(rawValue: bodyPart).map(ExerciseCatalog.movements(for:)) ?? []
+    }
 }

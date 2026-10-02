@@ -47,6 +47,7 @@ struct AppDependencies {
 @main
 struct LifeOSApp: App {
     private let dependencies = AppDependencies()
+    @StateObject private var store = LocalStore.shared
 
     init() {
         #if DEBUG
@@ -64,10 +65,10 @@ struct LifeOSApp: App {
             if ProcessInfo.processInfo.arguments.contains("UITEST_MEALRESULT") {
                 MealResultHarness()
             } else {
-                ContentView(dependencies: dependencies)
+                LaunchGate(store: store, dependencies: dependencies)
             }
             #else
-            ContentView(dependencies: dependencies)
+            LaunchGate(store: store, dependencies: dependencies)
             #endif
         }
     }
