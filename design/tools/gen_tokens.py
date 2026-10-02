@@ -4,9 +4,9 @@
 Reads design/tokens/*.json (the single source of truth) and writes
 LifeOS/DesignSystem/Tokens/LXTokens.generated.swift.
 
-  python3 tools/design-tokens/gen_tokens.py          # regenerate
-  python3 tools/design-tokens/gen_tokens.py --check  # CI: fail if stale or a rule breaks
-  python3 tools/design-tokens/gen_tokens.py --report # print the contrast / colour-blind sheet (Markdown)
+  python3 design/tools/gen_tokens.py          # regenerate
+  python3 design/tools/gen_tokens.py --check  # CI: fail if stale or a rule breaks
+  python3 design/tools/gen_tokens.py --report # print the contrast / colour-blind sheet (Markdown)
 
 Zero dependencies (stdlib only) so it runs on a free Mac with only the Command
 Line Tools. It plays the role Style Dictionary plays in the UI/UX plan
@@ -172,8 +172,8 @@ def emit(core, shared, directions) -> str:
     L: list[str] = []
     w = L.append
     w("// GENERATED FILE — DO NOT EDIT.")
-    w("// Source: design/tokens/*.json · Generator: tools/design-tokens/gen_tokens.py")
-    w("// Regenerate with: python3 tools/design-tokens/gen_tokens.py")
+    w("// Source: design/tokens/*.json · Generator: design/tools/gen_tokens.py")
+    w("// Regenerate with: python3 design/tools/gen_tokens.py")
     w("")
     w("import SwiftUI")
     w("")
@@ -311,7 +311,7 @@ def main(argv: list[str]) -> int:
         print("\n".join(report))
     if "--check" in argv:
         if not OUT.exists() or OUT.read_text() != source:
-            errors.append(f"{OUT.relative_to(ROOT)} is stale — run python3 tools/design-tokens/gen_tokens.py")
+            errors.append(f"{OUT.relative_to(ROOT)} is stale — run python3 design/tools/gen_tokens.py")
         for e in errors:
             print("✗", e, file=sys.stderr)
         if errors:

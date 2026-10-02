@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
-// Source: design/tokens/*.json · Generator: tools/design-tokens/gen_tokens.py
-// Regenerate with: python3 tools/design-tokens/gen_tokens.py
+// Source: design/tokens/*.json · Generator: design/tools/gen_tokens.py
+// Regenerate with: python3 design/tools/gen_tokens.py
 
 import SwiftUI
 

@@ -2,7 +2,7 @@
 """Assemble Phase 1 decision boards from the rendered mockups.
 
   LX_RENDER_DIR=<dir> swift test --filter Render   (in Packages/LifeOSDesign)
-  python3 tools/design-tokens/contact_sheet.py <dir> docs/uiux-plan/phase1/boards
+  python3 design/tools/contact_sheet.py <dir> docs/uiux-plan/phase1/boards
 
 Writes:
   compare-<artefact>.png   one artefact, three directions side by side (primary mode)
