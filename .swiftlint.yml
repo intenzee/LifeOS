@@ -1,0 +1,63 @@
+# SwiftLint config (FND-23). CI runs `swiftlint --strict` on Packages/LifeOSKit.
+# App-target paths are linted but not yet strict: the legacy monolith files
+# exceed these limits until FND-12 splits them.
+
+included:
+  - Packages/LifeOSKit/Sources
+  - LifeOS
+  - LifeOS Watch App
+
+excluded:
+  - .build
+  - build
+  - "**/.build"
+
+disabled_rules:
+  - todo
+  - trailing_comma
+
+opt_in_rules:
+  - force_unwrapping
+  - empty_count
+  - first_where
+  - contains_over_first_not_nil
+  - redundant_nil_coalescing
+
+file_length:
+  warning: 400
+  error: 600
+
+function_body_length:
+  warning: 60
+  error: 100
+
+type_body_length:
+  warning: 300
+  error: 500
+
+line_length:
+  warning: 140
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+identifier_name:
+  excluded: [id, x, y, z, a, b, c, i, kg, ml, tz, db, to, up]
+
+nesting:
+  type_level: 2
+
+custom_rules:
+  no_print:
+    name: "No print"
+    regex: '(?<![\w.])print\('
+    message: "Use Log.<category> (os.Logger) instead of print (FND-20)."
+    severity: error
+    excluded: ".*Tests/.*"
+  no_raw_color_in_app:
+    name: "No raw Color(red:)"
+    regex: 'Color\(\s*red:'
+    message: "Use design-system tokens (Color.lx…) instead of raw RGB. Raw colours are allowed only in LifeOS/DesignSystem/."
+    severity: error
+    included: ".*/LifeOS/.*\\.swift"
+    excluded: ".*/LifeOS/DesignSystem/.*"

@@ -3,8 +3,8 @@
 
 <div align="center">
   
-[![iOS](https://img.shields.io/badge/iOS-17.0+-000.svg?style=flat&logo=apple&logoColor=white)](https://developer.apple.com/ios)
-[![Swift](https://img.shields.io/badge/Swift-5.9+-FA7343?style=flat&logo=swift&logoColor=white)](https://swift.org)
+[![iOS](https://img.shields.io/badge/iOS-17.6+-000.svg?style=flat&logo=apple&logoColor=white)](https://developer.apple.com/ios)
+[![Swift](https://img.shields.io/badge/Swift-6-FA7343?style=flat&logo=swift&logoColor=white)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-Latest-0A84FF?style=flat&logo=apple)](https://developer.apple.com/xcode/swiftui/)
 [![HealthKit](https://img.shields.io/badge/HealthKit-Integrated-34C759?style=flat)](https://developer.apple.com/healthkit/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -55,82 +55,54 @@ A native watchOS app (target **LifeOS Watch App**) that pairs with the phone ove
 
 | Layer | Technology |
 |-------|-----------|
-| **UI Framework** | SwiftUI |
-| **Architecture** | MVVM + Combine |
-| **Data** | SwiftData / CoreData |
-| **Health Data** | HealthKit + WatchKit |
-| **Async** | Swift Concurrency (async/await) |
-| **Minimum iOS** | iOS 17.0 |
-| **IDE** | Xcode 15+ |
+| **UI** | SwiftUI (iOS app + watchOS companion) |
+| **State** | `ObservableObject` managers + view models; moving to `@MainActor`/actors (FND-13) |
+| **Data** | Today: JSON in `UserDefaults`. Next: `LifeOSData` date-keyed file store with Data Protection ([ADR 0001](docs/adr/0001-persistence.md)) |
+| **Health** | HealthKit (dietary energy, weight, sleep, steps, active energy) |
+| **Watch sync** | WatchConnectivity (typed contract in `LifeOSConnectivity`, FND-11) |
+| **AI** | Groq vision via `MealVision`, with Apple Vision fallback and on-device learning from corrections |
+| **Dependencies** | None (no third-party packages) |
+| **Minimum OS** | iOS 17.6 · watchOS 10 |
+| **Toolchain** | Xcode 26 · Swift 6 for packages (app target still in Swift 5 mode) |
 
 ---
 
 ## 🏗️ Architecture
 
-LifeOS follows **MVVM with Combine** for reactive data binding:
+```
+LifeOS/                      iOS app target (Xcode synchronized folder: new files are picked up automatically)
+├── LifeOSApp.swift          @main, AppDependencies (DI container)
+├── ContentView.swift        root tabs
+├── Managers/                HealthManager, Food/Workout databases, persistence, theme
+├── Models/                  MealModels, UserProfile
+├── Services/                calorie maths, notifications, barcode lookup, watch bridge
+│   └── MealVision/          photo meal analysis + learning engine
+├── AI/                      AI team's module (also built by the root Package.swift)
+├── DesignSystem/            design system (UI Engineering)
+└── Views/                   screens and components
+LifeOS Watch App/            watchOS companion (dashboard, water, todos, auto set tracking)
+Packages/LifeOSKit/          shared Swift 6 package: LifeOSCore · LifeOSData · LifeOSConnectivity
+docs/                        engineering roadmap, ADRs, UI/UX plan
+scripts/test-packages.sh     builds and tests the local packages (works with Xcode or just the CLT)
+```
 
-```
-LifeOS/
-├── App/
-│   └── LifeOSApp.swift
-├── Views/
-│   ├── DashboardView.swift
-│   ├── FitnessTab.swift
-│   ├── NutritionTab.swift
-│   └── SettingsView.swift
-├── ViewModels/
-│   ├── DashboardViewModel.swift
-│   ├── FitnessViewModel.swift
-│   └── NutritionViewModel.swift
-├── Models/
-│   ├── User.swift
-│   ├── Workout.swift
-│   ├── MealEntry.swift
-│   └── DailyGoals.swift
-├── Services/
-│   ├── HealthKitManager.swift
-│   ├── DataManager.swift
-│   └── NotificationManager.swift
-└── Utils/
-    ├── Extensions.swift
-    └── Constants.swift
-```
+The engineering plan is in [`docs/engineering-roadmap/`](docs/engineering-roadmap/00-MASTER-PLAN.md). Phase 0 progress is tracked in [`P0-STATUS.md`](docs/engineering-roadmap/P0-STATUS.md).
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Xcode 15.0 or later
-- iOS 17.0+ deployment target
-- Apple Developer Account (for running on device)
+- Xcode 26 or later
+- An Apple Developer account to run on a device (HealthKit, Watch)
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/intenzee/LifeOS.git
-   cd LifeOS
-   ```
-
-2. **Open in Xcode**
-   ```bash
-   open LifeOS.xcodeproj
-   ```
-
-3. **Configure HealthKit Permissions**
-   - Update `Info.plist` with HealthKit entitlements
-   - Required keys:
-   ```xml
-   <key>NSHealthShareUsageDescription</key>
-   <string>LifeOS needs access to your health data for fitness tracking</string>
-   <key>NSHealthUpdateUsageDescription</key>
-   <string>LifeOS needs permission to update your workouts</string>
-   ```
-
-4. **Run the app**
-   - Select target device/simulator
-   - Press `Cmd + R` or click Run
+### Run
+```bash
+git clone https://github.com/intenzee/LifeOS.git
+cd LifeOS
+open LifeOS.xcodeproj
+```
+Select the **LifeOS** scheme (it embeds the Watch app) and press `Cmd + R`. HealthKit usage strings are already in `LifeOS/Info.plist`.
 
 ---
 
@@ -165,12 +137,9 @@ Fetch workouts from HealthKit in real-time with proper permission handling and d
 
 Implement reactive data binding using Combine framework for real-time UI updates when HealthKit data changes.
 
-**3. SwiftData for Persistent Storage**
+**3. Date-keyed local storage**
 
-Store user meals, goals, and tracking data locally with SwiftData model definitions:
-- MealEntry: Date, MealType, CalorieCount, NutritionMacros
-- User: Profile, Goals, Preferences
-- Workout: Duration, Intensity, CaloriesBurned
+Every record (food, workouts, water, weight, tasks) is keyed by calendar date and source, and stored on device in protected, month-sharded files behind repository protocols. See [ADR 0001](docs/adr/0001-persistence.md).
 
 ---
 
@@ -186,26 +155,14 @@ Store user meals, goals, and tracking data locally with SwiftData model definiti
 
 ## 🧪 Testing
 
-Run unit tests:
 ```bash
-Cmd + U
+./scripts/test-packages.sh   # LifeOSKit: DayKey, calculators, streaks, store, migration, watch contract
+swift test                   # AI module harness (root Package.swift)
 ```
 
-Test coverage includes:
-- HealthKit data fetching
-- ViewModel logic
-- Data persistence
-- Notification triggers
+CI (`.github/workflows/ci.yml`) runs SwiftLint, both test suites and an iOS + watchOS build on every pull request. App-target unit and UI test targets arrive with QA-01.
 
----
-
-## 📈 Performance Metrics
-
-- **App Size:** ~45 MB
-- **Launch Time:** <2 seconds (cold start)
-- **Memory Usage:** ~120 MB (baseline)
-- **Battery Impact:** Minimal (HealthKit optimization)
-- **iOS Compatibility:** iOS 17.0 - iOS 18.0
+Performance budgets (cold launch < 1.0 s on iPhone 13 with a year of data, and others) are defined in the [engineering roadmap](docs/engineering-roadmap/10-quality-ci-release.md) and measured in QA-11.
 
 ---
 

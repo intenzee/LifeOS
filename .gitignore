@@ -22,3 +22,11 @@ xcuserdata/
 # CocoaPods / Carthage (if ever added)
 Pods/
 Carthage/Build/
+
+# Local tooling
+.claude/worktrees/
+*.profraw
+coverage.txt
+
+# AI eval CLI output (CI uploads these as artifacts)
+Evals/reports/

@@ -1,0 +1,109 @@
+# LifeOS CI (QA-04). Runs on every PR and on pushes to main.
+# Required checks on `main`: lint, packages, design-system, app-build.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SwiftLint
+        run: command -v swiftlint || brew install swiftlint
+      - name: Packages (strict)
+        run: swiftlint lint --strict --reporter github-actions-logging Packages/LifeOSKit/Sources
+      - name: App targets (report only until FND-12 splits the monolith views)
+        run: swiftlint lint --reporter github-actions-logging LifeOS "LifeOS Watch App" || true
+
+  packages:
+    name: LifeOSKit tests
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build and test (Swift 6, strict concurrency)
+        run: ./scripts/test-packages.sh --enable-code-coverage
+      - name: Coverage report
+        working-directory: Packages/LifeOSKit
+        run: |
+          BIN="$(swift build --show-bin-path)"
+          PROF="$(find .build -name default.profdata | head -1)"
+          OBJECTS=$(find "$BIN" -path "*.xctest/Contents/MacOS/*" -type f | sed 's/^/-object /')
+          xcrun llvm-cov report $OBJECTS -instr-profile "$PROF" -ignore-filename-regex "Tests/|\.build/" | tee coverage.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lifeoskit-coverage
+          path: Packages/LifeOSKit/coverage.txt
+
+  ai-package:
+    name: LifeOSAI tests (AI team)
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Test root SwiftPM harness
+        run: |
+          if [ -f Package.swift ]; then swift test; else echo "No root package"; fi
+
+  design-system:
+    name: LifeOSDesign tests + token check (UI Engineering)
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4 # keeps symlinks: Sources/LifeOSDesign -> LifeOS/DesignSystem
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Generated tokens are fresh and pass contrast/colour-blindness rules
+        run: |
+          if [ -f design/tools/gen_tokens.py ]; then
+            python3 design/tools/gen_tokens.py --check
+          else
+            echo "Token generator not on this branch yet"
+          fi
+      - name: Raw-colour ratchet (fails only if Color(red:) count rises above the committed baseline)
+        run: |
+          if [ -f design/tools/lint_raw_colors.py ]; then
+            python3 design/tools/lint_raw_colors.py
+          else
+            echo "Ratchet not on this branch yet"
+          fi
+      - name: Package tests
+        run: |
+          if [ -f Packages/LifeOSDesign/Package.swift ]; then
+            cd Packages/LifeOSDesign && swift test
+          else
+            echo "LifeOSDesign not on this branch yet"
+          fi
+
+  app-build:
+    name: Build iOS + watchOS
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build LifeOS (embeds the Watch app)
+        run: |
+          xcodebuild -project LifeOS.xcodeproj -scheme LifeOS \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/DerivedData \
+            -quiet CODE_SIGNING_ALLOWED=NO build
