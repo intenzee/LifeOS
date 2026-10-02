@@ -49,13 +49,52 @@ struct LifeOSApp: App {
     private let dependencies = AppDependencies()
 
     init() {
+        #if DEBUG
+        // Keep UI screenshot harness free of system permission prompts.
+        if ProcessInfo.processInfo.arguments.contains("UITEST_MEALRESULT") { return }
+        #endif
         dependencies.notificationService.requestPermission()
         dependencies.watchConnectivity.activate()
     }
 
     var body: some Scene {
         WindowGroup {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("UITEST_MEALRESULT") {
+                MealResultHarness()
+            } else {
+                ContentView(dependencies: dependencies)
+            }
+            #else
             ContentView(dependencies: dependencies)
+            #endif
         }
     }
 }
+
+#if DEBUG
+/// Launch-argument-gated harness so the meal result screen can be rendered in
+/// isolation (with the keyboard raised) for UI verification. No production impact.
+private struct MealResultHarness: View {
+    @State private var presented = true
+    var body: some View {
+        MealResultView(
+            analysis: MealAnalysis(
+                name: "Fried Rice",
+                calories: 520, protein: 14, carbs: 78, fat: 16,
+                servingSize: "1 plate",
+                source: .groq,
+                components: [
+                    .init(name: "Rice", calories: 300, protein: 6, carbs: 65, fat: 2),
+                    .init(name: "Vegetables", calories: 120, protein: 4, carbs: 12, fat: 6)
+                ]
+            ),
+            mealType: .lunch,
+            isPresented: $presented,
+            onRefine: { _ in },
+            onLog: { _ in },
+            autoFocusFeedback: true
+        )
+    }
+}
+#endif

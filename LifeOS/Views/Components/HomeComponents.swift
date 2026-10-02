@@ -4,6 +4,7 @@ struct DailyProgressContainer: View {
     @Environment(\.colorScheme) private var colorScheme
     let order: [MiniCardType]
     let waterCount: Int
+    var waterTarget: Int = 8
     let todayTodosCompleted: Int
     let todayTodosTotal: Int
     let currentWeight: Double
@@ -24,15 +25,17 @@ struct DailyProgressContainer: View {
     var weightRemaining: Double { currentWeight - targetWeight }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Daily Progress").font(.headline).foregroundColor(palette.textPrimary)
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            SectionHeader("Daily Progress")
 
-            VStack(spacing: 12) {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            VStack(spacing: DesignSystem.Spacing.small) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
+                          spacing: DesignSystem.Spacing.small) {
                     ForEach(order, id: \.self) { card in
                         if card == .water {
                             WaterMiniCard(
                                 waterCount: waterCount,
+                                waterTarget: waterTarget,
                                 onWaterChange: onWaterChange
                             )
                         } else {
@@ -44,33 +47,22 @@ struct DailyProgressContainer: View {
                     }
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: DesignSystem.Spacing.small) {
                     miniCard(.weight).onTapGesture { onCardTap(.weight) }
                     miniCard(.sleep).onTapGesture { onCardTap(.sleep) }
                 }
             }
-            .padding(24)
-            .background(RoundedRectangle(cornerRadius: 32).fill(palette.surface))
+            .padding(DesignSystem.Spacing.large)
+            .glassCard(cornerRadius: DesignSystem.Radius.xl)
         }
     }
 
     func miniCard(_ type: MiniCardType) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: icon(for: type))
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(color(for: type))
-
-                Text(title(for: type))
-                    .font(.caption)
-                    .foregroundColor(palette.textSecondary)
-            }
-
-            Text(value(for: type)).font(.headline).foregroundColor(color(for: type)).lineLimit(2).minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 14).fill(palette.elevatedSurface))
+        MetricTile(icon: icon(for: type),
+                   title: title(for: type),
+                   value: value(for: type),
+                   tint: color(for: type),
+                   progress: progress(for: type))
     }
 
     func title(for type: MiniCardType) -> String {
@@ -106,28 +98,50 @@ struct DailyProgressContainer: View {
             return baseWeight
         case .gym: return todayWorkout.intensity(weightKg: currentWeight)
         case .sleep: return "\(String(format: "%.1f", sleepDuration)) hrs"
-        case .water: return "\(waterCount)/8"
+        case .water: return "\(waterCount)/\(waterTarget)"
         case .food: return todayMeals.summary
+        }
+    }
+
+    /// Progress bar value (0…1) for tiles where a target exists; nil to omit the bar.
+    func progress(for type: MiniCardType) -> Double? {
+        switch type {
+        case .todo:
+            return todayTodosTotal > 0 ? Double(todayTodosCompleted) / Double(todayTodosTotal) : 0
+        case .water:
+            return waterTarget > 0 ? Double(waterCount) / Double(waterTarget) : 0
+        case .sleep:
+            return min(sleepDuration / 8.0, 1)
+        case .gym:
+            switch todayWorkout.intensity(weightKg: currentWeight) {
+            case "High": return 1.0
+            case "Medium": return 0.66
+            case "Low": return 0.33
+            default: return 0
+            }
+        case .food:
+            return Double(todayMeals.highProteinCount) / 4.0
+        case .weight:
+            return nil
         }
     }
 
     func color(for type: MiniCardType) -> Color {
         switch type {
-        case .todo: return todayTodosTotal > 0 && todayTodosCompleted == todayTodosTotal ? palette.primaryAccent : .orange
-        case .water: return waterCount >= 8 ? palette.primaryAccent : .orange
-        case .sleep: return sleepDuration >= 7.0 ? palette.primaryAccent : (sleepDuration > 0 ? .orange : palette.textSecondary)
+        case .todo: return todayTodosTotal > 0 && todayTodosCompleted == todayTodosTotal ? palette.success : palette.warning
+        case .water: return waterCount >= waterTarget ? palette.success : palette.warning
+        case .sleep: return sleepDuration >= 7.0 ? palette.success : (sleepDuration > 0 ? palette.warning : palette.textSecondary)
         case .gym:
-            let intensityLevel = todayWorkout.intensity(weightKg: currentWeight)
-            switch intensityLevel {
-            case "High": return palette.primaryAccent
-            case "Medium": return .blue
-            case "Low": return .orange
+            switch todayWorkout.intensity(weightKg: currentWeight) {
+            case "High": return palette.success
+            case "Medium": return palette.info
+            case "Low": return palette.warning
             default: return palette.textSecondary
             }
         case .food:
             let count = todayMeals.highProteinCount
-            return count == 3 ? palette.primaryAccent : (count == 0 ? .orange : .blue)
-        default: return .blue
+            return count >= 3 ? palette.success : (count == 0 ? palette.warning : palette.info)
+        default: return palette.info
         }
     }
 }
@@ -141,6 +155,7 @@ private struct WaterMiniCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let waterCount: Int
+    var waterTarget: Int = 8
     let onWaterChange: (Int) -> Void
 
     @State private var isDragging = false
@@ -149,7 +164,7 @@ private struct WaterMiniCard: View {
 
     private var palette: ThemePalette { ThemePalette(colorScheme: colorScheme) }
     private var displayCount: Int { isDragging ? dragGlasses : waterCount }
-    private var tintColor: Color { displayCount >= 8 ? palette.primaryAccent : .orange }
+    private var tintColor: Color { displayCount >= waterTarget ? palette.success : palette.warning }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -207,18 +222,18 @@ private struct WaterMiniCard: View {
                     .font(.caption)
                     .foregroundColor(palette.textSecondary)
             }
-            Text("\(displayCount)/8")
-                .font(.headline)
+            Text("\(displayCount)/\(waterTarget)")
+                .font(.system(.headline, design: .rounded))
                 .foregroundColor(tintColor)
-                .lineLimit(2)
+                .lineLimit(1)
                 .minimumScaleFactor(0.7)
+
+            LinearProgress(value: waterTarget > 0 ? Double(displayCount) / Double(waterTarget) : 0,
+                           tint: tintColor, track: palette.track, height: 5)
         }
-        .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(isDragging ? palette.surface : palette.elevatedSurface)
-        )
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .padding(DesignSystem.Spacing.medium)
+        .glassCard(cornerRadius: DesignSystem.Radius.md, elevation: isDragging ? 0.9 : 0.4)
         .scaleEffect(isDragging ? 1.04 : 1.0)
     }
 
@@ -230,7 +245,7 @@ private struct WaterMiniCard: View {
         .foregroundColor(.black)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(Capsule().fill(palette.primaryAccent))
+        .background(Capsule().fill(palette.success))
     }
 }
 
@@ -242,7 +257,14 @@ struct CaloriesRing: View {
     let burned: Double
     let water: Int // using water for the third stat
 
-    var progress: Double { min(consumed / limit, 1.0) }
+    /// Guards against divide-by-zero / non-finite values when no goal is set yet.
+    var progress: Double {
+        guard limit > 0 else { return 0 }
+        let p = consumed / limit
+        return p.isFinite ? min(max(p, 0), 1) : 0
+    }
+    /// Over-budget shows a warning tint; otherwise the accent.
+    private var ringColor: Color { consumed > limit && limit > 0 ? palette.warning : palette.primaryAccent }
     var remaining: Int { max(0, Int(limit) - Int(consumed)) }
 
     private var palette: ThemePalette {
@@ -250,38 +272,26 @@ struct CaloriesRing: View {
     }
 
     var body: some View {
-        VStack(spacing: 32) {
-            // Ring
-            ZStack {
-                Circle()
-                    .stroke(palette.elevatedSurface, lineWidth: 22)
-                
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        palette.primaryAccent,
-                        style: StrokeStyle(lineWidth: 22, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .shadow(color: palette.primaryAccent.opacity(0.4), radius: 10, x: 0, y: 0)
-
+        VStack(spacing: DesignSystem.Spacing.xLarge) {
+            RingGauge(progress: progress, lineWidth: 22, color: ringColor, track: palette.track) {
                 VStack(spacing: 4) {
                     Text("CALORIES REMAINING")
                         .font(.system(size: 10, weight: .semibold, design: .rounded))
                         .kerning(1.5)
                         .foregroundColor(palette.textSecondary)
-                    
+
                     Text("\(remaining)")
                         .font(.system(size: 46, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
+                        .foregroundColor(palette.textPrimary)
+                        .contentTransition(.numericText())
+
                     Text("kcal")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(palette.primaryAccent)
+                        .foregroundColor(ringColor)
                 }
             }
             .frame(width: 250, height: 250)
-            
+
             // Sub-metrics (Eaten, Burned, Water)
             HStack(spacing: 0) {
                 metricColumn(title: "EATEN", value: "\(Int(consumed))")
@@ -303,7 +313,7 @@ struct CaloriesRing: View {
                 .foregroundColor(palette.textSecondary)
             Text(value)
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(palette.textPrimary)
         }
     }
 }

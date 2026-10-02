@@ -189,13 +189,25 @@ struct MealDetailView: View {
 
 struct FoodSearchView: View {
     @Binding var isPresented: Bool
-    let selectedMeal: MealType
     let onFoodSelected: (FoodItem) -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Editable within the view. Seeded from the caller's smart default (time of
+    /// day) but the user can switch meals here without leaving the screen.
+    @State private var selectedMeal: MealType
 
     @State private var searchText = ""
     @State private var showingCustomFood = false
     @State private var showPortionSelector = false
     @State private var scannedFood: FoodItem? = nil
+
+    init(isPresented: Binding<Bool>, selectedMeal: MealType, onFoodSelected: @escaping (FoodItem) -> Void) {
+        _isPresented = isPresented
+        _selectedMeal = State(initialValue: selectedMeal)
+        self.onFoodSelected = onFoodSelected
+    }
+
+    private var palette: ThemePalette { ThemePalette(colorScheme: colorScheme) }
 
     var filteredFoods: [FoodItem] {
         let foods = FoodDatabaseManager.shared.allFoods
@@ -218,18 +230,24 @@ struct FoodSearchView: View {
                 }
 
             VStack(spacing: 0) {
-                HStack {
-                    Text("Add to \(selectedMeal.rawValue)")
-                        .font(.headline)
-                        .foregroundColor(.white)
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("Add Meal")
+                            .font(.system(.headline, design: .rounded).weight(.bold))
+                            .foregroundColor(.white)
 
-                    Spacer()
+                        Spacer()
 
-                    Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.gray)
-                            .font(.title2)
+                        Button(action: { isPresented = false }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.gray)
+                                .frame(width: 32, height: 32)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
                     }
+
+                    mealTypeSelector
                 }
                 .padding()
                 .background(Color(red: 0.12, green: 0.12, blue: 0.14))
@@ -312,6 +330,35 @@ struct FoodSearchView: View {
                         isPresented = false
                     }
                 )
+            }
+        }
+    }
+
+    /// Pill selector for the meal type, preselected by the caller's time-based default.
+    private var mealTypeSelector: some View {
+        HStack(spacing: 8) {
+            ForEach(MealType.allCases, id: \.self) { meal in
+                let isSelected = meal == selectedMeal
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                        selectedMeal = meal
+                    }
+                } label: {
+                    Text(meal.rawValue)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(isSelected ? .black : .white.opacity(0.7))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(
+                            ZStack {
+                                if isSelected {
+                                    Capsule().fill(ThemePalette.accent)
+                                } else {
+                                    Capsule().fill(.ultraThinMaterial)
+                                }
+                            }
+                        )
+                }
             }
         }
     }
@@ -721,98 +768,106 @@ class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOutputObj
     }
 }
 
+/// AI Meal Scanner.
+///
+/// Rebuilt on top of `MealScannerEngine`: the view owns only presentation and
+/// user intent, while all recognition, networking, model-fallback, retry and
+/// graceful degradation live in the engine. The old design hardcoded a single
+/// Groq model that has since been decommissioned and dead-ended on any failure;
+/// this one always produces a loggable result — full macros from Groq when a
+/// free key is present, or an on-device estimate otherwise — so a scan can never
+/// simply "not work".
 struct AIMealScanView: View {
     @Binding var isPresented: Bool
     let selectedMeal: MealType
+    /// Retained for source-compatibility with existing call sites. The scanner
+    /// now uses its own `MealScannerEngine` for all networking.
     let apiClient: any APIClient
     let onFoodDetected: (FoodItem) -> Void
 
     @State private var selectedImage: UIImage?
     @State private var showImagePicker = false
+    @State private var imageSource: UIImagePickerController.SourceType = .camera
     @State private var isAnalyzing = false
-    @State private var detectedFood: FoodItem?
+    /// The current analysis to show/edit/log (updated by AI text refinements),
+    /// the untouched first estimate (used as the learning baseline), and the
+    /// photo fingerprint so a correction can be filed against this exact image.
+    @State private var lastAnalysis: MealAnalysis?
+    @State private var originalAnalysis: MealAnalysis?
+    @State private var lastSignature: ImageSignature?
+    @State private var lastFeedbackNote: String?
+    /// Bumped whenever `lastAnalysis` is replaced so the result view re-seeds.
+    @State private var analysisVersion = 0
+    @State private var isRefining = false
+    @State private var degradedNote: String?
     @State private var showConfirmation = false
     @State private var apiKey = ""
-    @State private var selectedAI: AIProvider = .chatgpt
     @State private var errorMessage: String? = nil
+    /// A saved key exists for the provider (entered once, kept in Keychain).
+    @State private var hasStoredKey = false
+    /// Force-show the key field even when a key is saved (user tapped "Change").
+    @State private var editingKey = false
+    /// One-time, persistent "how to get a free key" card.
+    @State private var showInstructions = false
+    @State private var showLearnedCorrections = false
+    @FocusState private var keyFieldFocused: Bool
 
-    enum AIProvider: String, CaseIterable {
-        case chatgpt = "ChatGPT"
-        case perplexity = "Perplexity"
-    }
-
-    private enum AIMealScanError: Error {
-        case missingAPIKey
-        case imageEncodingFailed
-        case emptyResponse
-        case invalidJSON
-    }
-
-    private struct ChatCompletionResponse: Decodable {
-        struct Choice: Decodable {
-            let message: Message
-        }
-
-        struct Message: Decodable {
-            let content: String
-        }
-
-        let choices: [Choice]
-    }
-
-    private struct MealScanPayload: Decodable {
-        let name: String?
-        let calories: Double?
-        let protein: Double?
-        let carbs: Double?
-        let fat: Double?
-        let servingSize: String?
-    }
+    private let providerName = "Groq"
+    private let engine = MealScannerEngine()
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.8)
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .environment(\.colorScheme, .dark)
                 .ignoresSafeArea()
+                .overlay(Color.black.opacity(0.35).ignoresSafeArea())
 
-            VStack(spacing: 24) {
-                HStack {
-                    Text("AI Meal Scanner")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+            ScrollView {
+              VStack(spacing: 20) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [ThemePalette.accent, ThemePalette.accentSecondary],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 42, height: 42)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.black.opacity(0.8))
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI Meal Scanner")
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .foregroundColor(.white)
+                        Text("Full macros with Groq · free · always logs")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
 
                     Spacer()
 
+                    Button(action: { showLearnedCorrections = true }) {
+                        Image(systemName: "graduationcap.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(ThemePalette.accent)
+                            .frame(width: 34, height: 34)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+
                     Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark.circle.fill")
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.gray)
-                            .font(.title2)
+                            .frame(width: 34, height: 34)
+                            .background(.ultraThinMaterial, in: Circle())
                     }
                 }
 
-                Picker("AI Provider", selection: $selectedAI) {
-                    ForEach(AIProvider.allCases, id: \.self) { provider in
-                        Text(provider.rawValue).tag(provider)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("\(selectedAI.rawValue) API Key")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-
-                    SecureField("Enter your API key", text: $apiKey)
-                        .padding()
-                        .background(Color(red: 0.15, green: 0.15, blue: 0.17))
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                if showInstructions {
+                    instructionsCard
                 }
 
-                Text("Get your API key from \(selectedAI == .chatgpt ? "platform.openai.com" : "perplexity.ai")")
-                    .font(.caption)
-                    .foregroundColor(ThemePalette.accent)
+                keySection
 
                 if let image = selectedImage {
                     Image(uiImage: image)
@@ -840,54 +895,90 @@ struct AIMealScanView: View {
                 }
 
                 HStack(spacing: 12) {
-                    Button(action: { showImagePicker = true }) {
-                        Label("Select Photo", systemImage: "photo")
+                    Button {
+                        imageSource = .camera
+                        showImagePicker = true
+                    } label: {
+                        Label("Take Photo", systemImage: "camera.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(ThemePalette.accent.opacity(0.9))
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                    }
+
+                    Button {
+                        imageSource = .photoLibrary
+                        showImagePicker = true
+                    } label: {
+                        Label("Choose Photo", systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color(red: 0.2, green: 0.2, blue: 0.22))
                             .foregroundColor(.white)
                             .cornerRadius(12)
                     }
-
-                    Button(action: { analyzeImage() }) {
-                        if isAnalyzing {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Label("Analyze", systemImage: "sparkles")
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(selectedImage != nil && !apiKey.isEmpty ? ThemePalette.accent : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .disabled(selectedImage == nil || apiKey.isEmpty || isAnalyzing)
                 }
 
-                Spacer()
-            }
-            .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 0.1, green: 0.1, blue: 0.12))
-            )
-            .padding(.horizontal, 20)
-            .padding(.vertical, 60)
-
-            if showConfirmation, let food = detectedFood {
-                FoodConfirmationView(
-                    food: food,
-                    isPresented: $showConfirmation,
-                    onConfirm: {
-                        onFoodDetected(food)
-                        isPresented = false
+                Button(action: { analyzeImage() }) {
+                    if isAnalyzing {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Label("Analyze", systemImage: "sparkles")
                     }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(canAnalyze ? ThemePalette.accent : Color.gray)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .disabled(!canAnalyze || isAnalyzing)
+
+                if !hasStoredKey && apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("No key? Analyze still works with a free on-device estimate.")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+              }
+              .padding(22)
+              .glassCard(cornerRadius: 28, elevation: 1.1)
+              .padding(.horizontal, 18)
+              .padding(.vertical, 50)
+            }
+
+            if showConfirmation, let analysis = lastAnalysis {
+                MealResultView(
+                    analysis: analysis,
+                    mealType: selectedMeal,
+                    degradedNote: degradedNote,
+                    isRefining: isRefining,
+                    canRefineWithAI: hasAIKey,
+                    isPresented: $showConfirmation,
+                    onRefine: { feedback in refine(with: feedback) },
+                    onLog: { food in logResult(food) }
                 )
+                .id(analysisVersion)
             }
         }
         .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage)
+            ImagePicker(image: $selectedImage, sourceType: imageSource)
+        }
+        .fullScreenCover(isPresented: $showLearnedCorrections) {
+            LearnedCorrectionsView(isPresented: $showLearnedCorrections)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { keyFieldFocused = false }
+                    .fontWeight(.semibold)
+            }
+        }
+        .onAppear {
+            showInstructions = !AIKeyStore.shared.hasSeenInstructions
+            loadStoredKey()
         }
         .alert("Meal Scan Failed", isPresented: Binding(
             get: { errorMessage != nil },
@@ -899,267 +990,238 @@ struct AIMealScanView: View {
         }
     }
 
+    // MARK: - Derived UI state
+
+    /// An image is all that's required — with a key we use Groq, without one we
+    /// fall back to a free on-device estimate, so Analyze is never blocked by a
+    /// missing key.
+    private var canAnalyze: Bool {
+        selectedImage != nil
+    }
+
+    private var providerSite: String { "console.groq.com/keys" }
+
+    // MARK: - Key & instructions UI
+
+    /// One-time, persistent card explaining how to get a free Groq key. Dismissed
+    /// state is remembered in `AIKeyStore`, so it never nags after the first view.
+    private var instructionsCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Set up free AI scanning (once)", systemImage: "info.circle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(ThemePalette.accent)
+                Spacer()
+                Button {
+                    AIKeyStore.shared.hasSeenInstructions = true
+                    withAnimation { showInstructions = false }
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                }
+            }
+            Text("""
+            1. Go to console.groq.com and sign in (Google/GitHub works).
+            2. Open "API Keys" → "Create API Key".
+            3. Copy the key (starts with "gsk_") and paste it below.
+            4. It's free, and you only do this once — we save it securely on this device.
+            """)
+            .font(.caption2)
+            .foregroundColor(.gray)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(ThemePalette.accent.opacity(0.12))
+        )
+    }
+
+    @ViewBuilder
+    private var keySection: some View {
+        if hasStoredKey && !editingKey {
+            HStack {
+                Image(systemName: "checkmark.seal.fill").foregroundColor(.green)
+                Text("\(providerName) key saved")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.white)
+                Spacer()
+                Button("Change") { editingKey = true }
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(ThemePalette.accent)
+            }
+            .padding()
+            .background(Color(red: 0.15, green: 0.15, blue: 0.17))
+            .cornerRadius(10)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("\(providerName) API Key (optional)")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+
+                SecureField("Paste your key (gsk_…)", text: $apiKey)
+                    .focused($keyFieldFocused)
+                    .submitLabel(.done)
+                    .onSubmit { keyFieldFocused = false }
+                    .padding()
+                    .background(Color(red: 0.15, green: 0.15, blue: 0.17))
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+
+                Text("Get a free key at \(providerSite) for full-plate macros — saved once, securely on this device.")
+                    .font(.caption2)
+                    .foregroundColor(ThemePalette.accent)
+            }
+        }
+    }
+
+    private func loadStoredKey() {
+        if let saved = AIKeyStore.shared.load(provider: providerName) {
+            apiKey = saved
+            hasStoredKey = true
+            editingKey = false
+        } else {
+            apiKey = ""
+            hasStoredKey = false
+            editingKey = true
+        }
+    }
+
+    // MARK: - Analysis
+
     private func analyzeImage() {
         guard let image = selectedImage else { return }
         isAnalyzing = true
         errorMessage = nil
+        degradedNote = nil
+
+        let typedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
 
         Task {
             do {
-                let food = try await scanMeal(image: image)
+                let outcome = try await engine.scan(image: image, groqKey: typedKey)
                 await MainActor.run {
-                    detectedFood = food
-                    showConfirmation = true
+                    applyOutcome(outcome, typedKey: typedKey)
                     isAnalyzing = false
+                }
+            } catch let error as MealScanError {
+                await MainActor.run {
+                    isAnalyzing = false
+                    errorMessage = error.userMessage
+                    if error == .authFailed { forgetKey() }
                 }
             } catch {
                 await MainActor.run {
                     isAnalyzing = false
-                    errorMessage = message(for: error)
+                    errorMessage = "Something went wrong. Please check your connection and try again."
                 }
             }
         }
     }
 
-    private func scanMeal(image: UIImage) async throws -> FoodItem {
-        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedKey.isEmpty else {
-            throw AIMealScanError.missingAPIKey
+    private func applyOutcome(_ outcome: MealScanOutcome, typedKey: String) {
+        // If Groq actually produced the result, the key is valid — persist it so
+        // it's a one-time entry, and retire the instructions card for good.
+        if outcome.analysis.source == .groq, !typedKey.isEmpty {
+            AIKeyStore.shared.save(typedKey, provider: providerName)
+            AIKeyStore.shared.hasSeenInstructions = true
+            hasStoredKey = true
+            editingKey = false
+            showInstructions = false
         }
 
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            throw AIMealScanError.imageEncodingFailed
+        lastAnalysis = outcome.analysis
+        originalAnalysis = outcome.analysis   // learning baseline for this scan
+        lastSignature = outcome.signature
+        lastFeedbackNote = nil
+        analysisVersion += 1
+        degradedNote = nil
+
+        if let degraded = outcome.degradedFrom {
+            degradedNote = degraded.userMessage
+            // A rejected key shouldn't stay saved — prompt a fresh entry.
+            if degraded == .authFailed { forgetKey() }
         }
 
-        let base64Image = imageData.base64EncodedString()
-        let prompt = """
-        Analyze this food image and return ONLY a JSON object with this exact format (no markdown, no explanation):
-        {
-          "name": "Food name",
-          "calories": 250,
-          "protein": 20,
-          "carbs": 30,
-          "fat": 10,
-          "servingSize": "1 cup"
-        }
-        """
-
-        let content = try await requestChatCompletion(prompt: prompt, base64Image: base64Image)
-        let payload = try parseFoodPayload(from: content)
-
-        return FoodItem(
-            name: payload.name ?? "Unknown Food",
-            calories: payload.calories ?? 0,
-            protein: payload.protein ?? 0,
-            carbs: payload.carbs ?? 0,
-            fat: payload.fat ?? 0,
-            servingSize: payload.servingSize ?? "1 serving",
-            mealType: selectedMeal
-        )
+        showConfirmation = true
     }
 
-    private func requestChatCompletion(prompt: String, base64Image: String) async throws -> String {
-        switch selectedAI {
-        case .chatgpt:
-            let url = URL(string: "https://api.openai.com/v1/chat/completions")!
-            let body = try makeOpenAIRequestBody(prompt: prompt, base64Image: base64Image)
-            let request = APIRequest<ChatCompletionResponse>(
-                url: url,
-                method: .post,
-                headers: [
-                    "Authorization": "Bearer \(apiKey)",
-                    "Content-Type": "application/json"
-                ],
-                body: body
-            )
-
-            let response = try await apiClient.send(request)
-            guard let content = response.choices.first?.message.content else {
-                throw AIMealScanError.emptyResponse
-            }
-            return content
-
-        case .perplexity:
-            let url = URL(string: "https://api.perplexity.ai/chat/completions")!
-            let body = try makePerplexityRequestBody(prompt: prompt)
-            let request = APIRequest<ChatCompletionResponse>(
-                url: url,
-                method: .post,
-                headers: [
-                    "Authorization": "Bearer \(apiKey)",
-                    "Content-Type": "application/json"
-                ],
-                body: body
-            )
-
-            let response = try await apiClient.send(request)
-            guard let content = response.choices.first?.message.content else {
-                throw AIMealScanError.emptyResponse
-            }
-            return content
-        }
+    /// A Groq key is available (typed or stored) — required for AI text refine.
+    private var hasAIKey: Bool {
+        hasStoredKey || !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func makeOpenAIRequestBody(prompt: String, base64Image: String) throws -> Data {
-        let payload: [String: Any] = [
-            "model": "gpt-4o",
-            "messages": [
-                [
-                    "role": "user",
-                    "content": [
-                        ["type": "text", "text": prompt],
-                        ["type": "image_url", "image_url": ["url": "data:image/jpeg;base64,\(base64Image)"]]
-                    ]
-                ]
-            ],
-            "max_tokens": 300
-        ]
+    /// Re-analyses the same photo with the user's natural-language correction,
+    /// then swaps in the corrected estimate (the result view re-seeds via `.id`).
+    private func refine(with feedback: String) {
+        guard let image = selectedImage,
+              let previous = lastAnalysis else { return }
+        let note = feedback.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !note.isEmpty else { return }
 
-        return try JSONSerialization.data(withJSONObject: payload)
-    }
-
-    private func makePerplexityRequestBody(prompt: String) throws -> Data {
-        let payload: [String: Any] = [
-            "model": "llama-3.1-sonar-large-128k-online",
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
-        ]
-
-        return try JSONSerialization.data(withJSONObject: payload)
-    }
-
-    private func parseFoodPayload(from response: String) throws -> MealScanPayload {
-        let cleaned = extractJSONPayload(from: response)
-        guard let data = cleaned.data(using: .utf8) else {
-            throw AIMealScanError.invalidJSON
-        }
-
-        if let payload = try? JSONDecoder().decode(MealScanPayload.self, from: data) {
-            return payload
-        }
-
-        if let payloads = try? JSONDecoder().decode([MealScanPayload].self, from: data),
-           let first = payloads.first {
-            return first
-        }
-
-        throw AIMealScanError.invalidJSON
-    }
-
-    private func extractJSONPayload(from text: String) -> String {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.hasPrefix("```") {
-            let lines = trimmed.split(separator: "\n", omittingEmptySubsequences: false)
-            var contentLines = lines
-            if let first = contentLines.first, first.hasPrefix("```") {
-                contentLines.removeFirst()
-            }
-            if let last = contentLines.last, last.hasPrefix("```") {
-                contentLines.removeLast()
-            }
-            return contentLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        if let start = trimmed.firstIndex(of: "["), let end = trimmed.lastIndex(of: "]") {
-            return String(trimmed[start...end])
-        }
-
-        if let start = trimmed.firstIndex(of: "{"), let end = trimmed.lastIndex(of: "}") {
-            return String(trimmed[start...end])
-        }
-
-        return trimmed
-    }
-
-    private func message(for error: Error) -> String {
-        if let error = error as? AIMealScanError {
-            switch error {
-            case .missingAPIKey:
-                return "Please enter a valid API key."
-            case .imageEncodingFailed:
-                return "Could not process the selected image."
-            case .emptyResponse:
-                return "The AI service returned an empty response."
-            case .invalidJSON:
-                return "The AI response could not be parsed."
+        isRefining = true
+        Task {
+            do {
+                let outcome = try await engine.refine(image: image,
+                                                      previous: previous,
+                                                      feedback: note,
+                                                      groqKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+                await MainActor.run {
+                    lastAnalysis = outcome.analysis
+                    if outcome.signature != nil { lastSignature = outcome.signature }
+                    lastFeedbackNote = note
+                    analysisVersion += 1
+                    isRefining = false
+                }
+            } catch let error as MealScanError {
+                await MainActor.run {
+                    isRefining = false
+                    errorMessage = error.userMessage
+                    if error == .authFailed { forgetKey() }
+                }
+            } catch {
+                await MainActor.run {
+                    isRefining = false
+                    errorMessage = "Couldn't apply that correction. Please try again."
+                }
             }
         }
+    }
 
-        return "Something went wrong. Please try again."
+    /// Logs the final food and, when it differs from the first estimate (a manual
+    /// edit, a portion change, or an AI text refinement), records it as a learned
+    /// correction so future scans of this dish improve.
+    private func logResult(_ food: FoodItem) {
+        if let baseline = originalAnalysis, let signature = lastSignature {
+            let changed = foodDiffers(food, from: baseline) || (lastFeedbackNote?.isEmpty == false)
+            if changed {
+                MealLearningEngine.shared.record(signature: signature,
+                                                 original: baseline,
+                                                 corrected: food,
+                                                 note: lastFeedbackNote)
+            }
+        }
+        onFoodDetected(food)
+        isPresented = false
+    }
+
+    private func foodDiffers(_ food: FoodItem, from analysis: MealAnalysis) -> Bool {
+        food.name.caseInsensitiveCompare(analysis.name) != .orderedSame
+            || abs(food.calories - analysis.calories) >= 1
+            || abs(food.protein - analysis.protein) >= 1
+            || abs(food.carbs - analysis.carbs) >= 1
+            || abs(food.fat - analysis.fat) >= 1
+            || food.servingSize != analysis.servingSize
+    }
+
+    /// Drops any stored key and reopens the key field for re-entry.
+    private func forgetKey() {
+        AIKeyStore.shared.delete(provider: providerName)
+        hasStoredKey = false
+        editingKey = true
+        apiKey = ""
     }
 }
 
-struct FoodConfirmationView: View {
-    let food: FoodItem
-    @Binding var isPresented: Bool
-    let onConfirm: () -> Void
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.9)
-                .ignoresSafeArea()
-
-            VStack(spacing: 20) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.green)
-
-                Text("Food Detected!")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    infoRow("Name", food.name)
-                    infoRow("Calories", "\(Int(food.calories)) kcal")
-                    infoRow("Protein", "\(Int(food.protein))g")
-                    infoRow("Carbs", "\(Int(food.carbs))g")
-                    infoRow("Fat", "\(Int(food.fat))g")
-                    infoRow("Serving", food.servingSize)
-                }
-                .padding()
-                .background(Color(red: 0.15, green: 0.15, blue: 0.17))
-                .cornerRadius(12)
-
-                HStack(spacing: 12) {
-                    Button("Cancel") {
-                        isPresented = false
-                    }
-                    .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(red: 0.2, green: 0.2, blue: 0.22))
-                    .cornerRadius(10)
-
-                    Button("Add to Log") {
-                        onConfirm()
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
-                    .cornerRadius(10)
-                }
-            }
-            .padding(30)
-            .background(Color(red: 0.1, green: 0.1, blue: 0.12))
-            .cornerRadius(20)
-            .padding(.horizontal, 40)
-        }
-    }
-
-    func infoRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-                .foregroundColor(.gray)
-            Spacer()
-            Text(value)
-                .foregroundColor(.white)
-                .fontWeight(.semibold)
-        }
-    }
-}
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?

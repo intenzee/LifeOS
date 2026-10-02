@@ -641,11 +641,7 @@ struct GymWeekView: View {
                 }
             }
             .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(palette.surface)
-                    .shadow(color: .black.opacity(0.4), radius: 30, y: 10)
-            )
+            .glassCard(cornerRadius: 28, elevation: 1.2)
             .padding(.horizontal, 24)
         }
     }
@@ -737,11 +733,7 @@ struct GymWeekView: View {
                 }
             }
             .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(palette.surface)
-                    .shadow(color: .black.opacity(0.4), radius: 30, y: 10)
-            )
+            .glassCard(cornerRadius: 28, elevation: 1.2)
             .padding(.horizontal, 24)
         }
     }
@@ -820,11 +812,7 @@ struct WeightPickerView: View {
                 saveButton
             }
             .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(palette.surface)
-                    .shadow(color: .black.opacity(0.4), radius: 30, y: 10)
-            )
+            .glassCard(cornerRadius: 28, elevation: 1.2)
             .padding(.horizontal, 24)
         }
     }

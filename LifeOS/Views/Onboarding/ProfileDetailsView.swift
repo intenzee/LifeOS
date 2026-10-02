@@ -279,7 +279,7 @@ struct ProfileDetailsView: View {
         PersistenceManager.shared.saveCurrentWeight(profile.currentWeightKg)
         PersistenceManager.shared.saveTargetWeight(profile.targetWeightKg)
         SmokingSettings.shared.saveSmokingEnabled(profile.smokes)
-        CalorieLimitSettings.shared.saveLimit(CalorieGoalCalculator.dailyCalorieGoal(profile: profile))
+        CalorieLimitSettings.shared.saveAutoLimit(CalorieGoalCalculator.dailyCalorieGoal(profile: profile))
         dismiss()
     }
 }

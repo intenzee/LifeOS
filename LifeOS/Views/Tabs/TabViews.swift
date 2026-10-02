@@ -760,8 +760,7 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            palette.screenBackground
-                .ignoresSafeArea()
+            AuroraBackground(colorScheme: colorScheme)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -826,10 +825,7 @@ struct SettingsView: View {
                 )
             }
             .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(palette.surface)
-            )
+            .glassCard(cornerRadius: 20, elevation: 0.5)
         }
         .buttonStyle(.plain)
     }
@@ -861,10 +857,7 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(palette.surface)
-        )
+        .glassCard(cornerRadius: 20, elevation: 0.5)
     }
 
     struct ProfileView: View {
@@ -902,7 +895,7 @@ struct SettingsView: View {
             }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Current Target")
+                        Text(CalorieLimitSettings.shared.isManual ? "Current Target · Custom" : "Current Target · Auto (from profile)")
                             .font(.caption)
                             .foregroundColor(palette.textSecondary)
 
@@ -925,10 +918,7 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(palette.surface)
-        )
+        .glassCard(cornerRadius: 20, elevation: 0.5)
     }
 
     private var calorieBankCard: some View {
@@ -964,10 +954,7 @@ struct SettingsView: View {
                 .foregroundColor(palette.textSecondary)
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(palette.surface)
-        )
+        .glassCard(cornerRadius: 20, elevation: 0.5)
     }
 
     private var smokingCard: some View {
@@ -1000,10 +987,7 @@ struct SettingsView: View {
             .tint(palette.primaryAccent)
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(palette.surface)
-        )
+        .glassCard(cornerRadius: 20, elevation: 0.5)
     }
 
     private var calorieLimitPicker: some View {
@@ -1018,6 +1002,8 @@ struct SettingsView: View {
                 Text("Set Daily Calorie Target")
                     .font(.headline)
                     .foregroundColor(palette.textPrimary)
+
+                recommendedTargetButton
 
                 VStack(spacing: 12) {
                     limitOptionButton(1500, "Weight Loss (Low)")
@@ -1050,10 +1036,11 @@ struct SettingsView: View {
                 }
 
                 Button(action: {
-                    CalorieLimitSettings.shared.saveLimit(dailyCalorieLimit)
+                    // Typing a value is a manual override — stop auto-tracking the profile.
+                    CalorieLimitSettings.shared.saveManualLimit(dailyCalorieLimit)
                     showLimitPicker = false
                 }) {
-                    Text("Save")
+                    Text("Save Custom Target")
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -1063,11 +1050,51 @@ struct SettingsView: View {
                 }
             }
             .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(palette.screenBackground)
-            )
+            .glassCard(cornerRadius: 24, elevation: 1.2)
             .padding(.horizontal, 32)
+        }
+    }
+
+    /// Profile-derived recommended target (Mifflin-St Jeor). Picking it re-enables
+    /// auto-tracking so future weight changes keep the target scientifically correct.
+    @ViewBuilder
+    private var recommendedTargetButton: some View {
+        if let profile = PersistenceManager.shared.loadUserProfile() {
+            let recommended = CalorieGoalCalculator.dailyCalorieGoal(profile: profile)
+            Button(action: {
+                dailyCalorieLimit = recommended
+                CalorieLimitSettings.shared.saveAutoLimit(recommended)
+                showLimitPicker = false
+            }) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(palette.primaryAccent)
+                        Text("Recommended \(Int(recommended)) cal")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(palette.textPrimary)
+                        Spacer()
+                        if !CalorieLimitSettings.shared.isManual {
+                            Text("Active")
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(palette.primaryAccent)
+                        }
+                    }
+                    Text(CalorieGoalCalculator.explanation(profile: profile))
+                        .font(.caption2)
+                        .foregroundColor(palette.textSecondary)
+                        .multilineTextAlignment(.leading)
+                    Text("Auto-updates when your weight or profile changes.")
+                        .font(.caption2)
+                        .foregroundColor(palette.textSecondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(palette.primaryAccent.opacity(0.15))
+                )
+            }
         }
     }
 
