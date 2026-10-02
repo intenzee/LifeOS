@@ -781,6 +781,7 @@ struct SettingsView: View {
                             aiDiagnosticsCard
                         }
                         DirectionLabEntryRow()
+                        ExperienceLayoutToggleRow()
                     }
                     .padding(.horizontal)
 

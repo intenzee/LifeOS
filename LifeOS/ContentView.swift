@@ -14,6 +14,8 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @AppStorage("appTheme") private var appThemeRaw = AppTheme.system.rawValue
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    /// UI/UX Phase 3 five-tab experience; the classic tabs stay one switch away (You / Settings).
+    @AppStorage("lx.newExperience") private var newExperience = true
     @State private var scrollOffset: CGFloat = 0
 
     init(dependencies: AppDependencies) {
@@ -74,7 +76,11 @@ struct ContentView: View {
         let palette = ThemePalette(colorScheme: colorScheme)
 
         ZStack {
-            mainContent(palette: palette)
+            if newExperience {
+                ExperienceRootView(dependencies: dependencies)
+            } else {
+                mainContent(palette: palette)
+            }
 
             if !hasCompletedOnboarding {
                 OnboardingView(onComplete: completeOnboarding)

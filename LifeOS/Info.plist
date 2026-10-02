@@ -10,5 +10,9 @@
 	<string>LifeOS reads your health data to display fitness and wellness insights.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>LifeOS writes health data to keep your records up to date.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LifeOS listens when you tap Say so you can log a meal by speaking, like "two rotis and dal".</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>LifeOS turns what you say into text to log meals. It runs on your iPhone when the iPhone supports it.</string>
 </dict>
 </plist>
