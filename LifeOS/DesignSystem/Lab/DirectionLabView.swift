@@ -27,13 +27,23 @@ struct DirectionLabView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: LX.Space.s600) {
                     Picker("Direction", selection: $preview) {
-                        ForEach(LXDirection.allCases) { Text($0.displayName).tag($0) }
+                        // Short names: the full ones truncate in a 3-way segmented control.
+                        ForEach(LXDirection.allCases) { Text($0.displayName.components(separatedBy: " ").first ?? $0.displayName).tag($0) }
                     }
                     .pickerStyle(.segmented)
 
                     Text(preview.mood).lxFont(.callout).foregroundStyle(.lx(.textSecondary))
 
                     OrbPlayground()
+
+                    NavigationLink {
+                        ComponentGalleryView().lxDirection(preview)
+                    } label: {
+                        LXListRow(title: "Component gallery", subtitle: "Every design-system component, light, dark and XXL text",
+                                  systemImage: "square.grid.2x2", showsChevron: true)
+                            .lxCard(padding: LX.Space.s300)
+                    }
+                    .buttonStyle(.plain)
 
                     LXSectionHeader(title: "Mockups")
                     ScrollView(.horizontal, showsIndicators: false) {

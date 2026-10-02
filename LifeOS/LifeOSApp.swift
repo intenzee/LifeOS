@@ -63,6 +63,9 @@ struct LifeOSApp: App {
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("UITEST_MEALRESULT") {
                     MealResultHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("LX_DIRECTION_LAB") {
+                    // On-device design verification (Phase 1 spike, Phase 2 gallery).
+                    DirectionLabView()
                 } else {
                     ContentView(dependencies: dependencies)
                 }
