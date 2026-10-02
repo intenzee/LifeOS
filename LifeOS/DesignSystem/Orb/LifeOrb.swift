@@ -86,6 +86,9 @@ struct LifeOrb: View {
             Canvas(rendersAsynchronously: false) { ctx, canvasSize in
                 LifeOrbRenderer(state: state, theme: theme, time: t, solidShell: reduceTransparency).draw(in: &ctx, size: canvasSize)
             }
+            // The canvas overflows the layout frame so the rim-glow halo fades out
+            // completely instead of being clipped into a visible square.
+            .frame(width: size * LifeOrbRenderer.canvasScale, height: size * LifeOrbRenderer.canvasScale)
             .scaleEffect(breath)
         }
         .frame(width: size, height: size)
@@ -106,8 +109,12 @@ struct LifeOrbRenderer {
     let time: Double
     var solidShell = false
 
+    /// Canvas size ÷ layout size. Leaves room for the glow (≈0.22 d beyond the glass).
+    static let canvasScale: CGFloat = 1.4
+
+    /// `size` is the canvas size; the orb occupies the central 1/canvasScale of it.
     func draw(in ctx: inout GraphicsContext, size: CGSize) {
-        let d = min(size.width, size.height)
+        let d = min(size.width, size.height) / Self.canvasScale
         let pad = d * 0.08 // room for the rim glow
         let rect = CGRect(x: (size.width - d) / 2 + pad, y: (size.height - d) / 2 + pad, width: d - pad * 2, height: d - pad * 2)
         let sphere = Path(ellipseIn: rect)

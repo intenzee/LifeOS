@@ -38,8 +38,27 @@ private struct LXFontModifier: ViewModifier {
         _size = ScaledMetric(wrappedValue: style.spec.size, relativeTo: style.spec.relativeTo)
     }
 
+    #if os(macOS)
+    // macOS has no Dynamic Type, so @ScaledMetric stays at the base size there. The test
+    // harness runs on macOS, so scale from the environment's size with Apple's body-style
+    // ratios to make accessibility snapshots real. iOS uses the system scaling above.
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var effectiveSize: CGFloat { style.spec.size * Self.bodyRatio(typeSize) }
+
+    static func bodyRatio(_ size: DynamicTypeSize) -> CGFloat {
+        let points: [DynamicTypeSize: CGFloat] = [
+            .xSmall: 14, .small: 15, .medium: 16, .large: 17, .xLarge: 19, .xxLarge: 21, .xxxLarge: 23,
+            .accessibility1: 28, .accessibility2: 33, .accessibility3: 40, .accessibility4: 47, .accessibility5: 53,
+        ]
+        return (points[size] ?? 17) / 17
+    }
+    #else
+    private var effectiveSize: CGFloat { size }
+    #endif
+
     func body(content: Content) -> some View {
         let spec = style.spec
+        let size = effectiveSize
         let design: Font.Design = numeric ? direction.numericDesign : (spec.isDisplay ? direction.displayDesign : .default)
         // Never below 11 pt (Phase 2 §4 rule).
         let font = Font.system(size: max(size, 11), weight: weight ?? spec.weight, design: design)
@@ -47,6 +66,26 @@ private struct LXFontModifier: ViewModifier {
         return content
             .font(numeric ? font.monospacedDigit() : font)
             .lineSpacing(extraLeading)
+            // A number is never broken across lines; it shrinks a little instead.
+            .lineLimit(numeric ? 1 : nil)
+            .minimumScaleFactor(numeric ? 0.6 : 1)
+    }
+}
+
+/// HStack at normal sizes, leading-aligned VStack at accessibility text sizes
+/// (engineering roadmap 08 §3.8: "layouts switch to vertical stacks").
+struct LXAdaptiveStack<Content: View>: View {
+    var spacing: CGFloat = LX.Space.s300
+    var alignment: VerticalAlignment = .center
+    @ViewBuilder var content: Content
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: spacing) { content }
+        } else {
+            HStack(alignment: alignment, spacing: spacing) { content }
+        }
     }
 }
 

@@ -31,6 +31,7 @@ private struct LXButtonBody: View {
             .overlay { if isLoading { ProgressView().tint(foreground) } }
             .foregroundStyle(foreground)
             .padding(.horizontal, LX.Space.s500)
+            .padding(.vertical, LX.Space.s200)
             .frame(minHeight: LX.Space.minTouchTarget + 6)
             .background { background(shape) }
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
@@ -113,6 +114,8 @@ struct LXChip: View {
                 Text(trailing).lxFont(.subhead, numeric: true).foregroundStyle(.lx(.textSecondary))
             }
         }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false) // chips never break mid-word
         .foregroundStyle(foreground)
         .padding(.horizontal, LX.Space.s300)
         .padding(.vertical, LX.Space.s200)
@@ -231,7 +234,7 @@ struct LXMacroBar: View {
     let macros: [Macro]
 
     var body: some View {
-        HStack(spacing: LX.Space.s400) {
+        LXAdaptiveStack(spacing: LX.Space.s400, alignment: .top) {
             ForEach(macros) { m in
                 VStack(alignment: .leading, spacing: LX.Space.s100 + 2) {
                     HStack(spacing: 4) {

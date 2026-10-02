@@ -1,0 +1,20 @@
+{
+  "LifeOS Watch App/Views/WatchTheme.swift": 4,
+  "LifeOS Watch App/Views/WatchWorkoutView.swift": 2,
+  "LifeOS/ContentView.swift": 2,
+  "LifeOS/Managers/AppTheme.swift": 20,
+  "LifeOS/Managers/DesignSystemKit.swift": 9,
+  "LifeOS/StreaksView.swift": 15,
+  "LifeOS/Views/Components/HomeComponents.swift": 1,
+  "LifeOS/Views/Components/QuickActionsMenu.swift": 10,
+  "LifeOS/Views/FoodFlowViews.swift": 110,
+  "LifeOS/Views/HomeView.swift": 8,
+  "LifeOS/Views/LearnedCorrectionsView.swift": 15,
+  "LifeOS/Views/MealResultView.swift": 28,
+  "LifeOS/Views/Onboarding/OnboardingView.swift": 2,
+  "LifeOS/Views/Onboarding/ProfileDetailsView.swift": 2,
+  "LifeOS/Views/Tabs/TabViews.swift": 51,
+  "LifeOS/Views/Tools/FitnessTools.swift": 43,
+  "LifeOS/Views/WeekAndDateViews.swift": 22,
+  "LifeOS/Views/WorkoutAndWeightViews.swift": 13
+}
