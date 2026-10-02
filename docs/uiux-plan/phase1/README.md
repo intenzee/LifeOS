@@ -19,8 +19,8 @@ These are the working files for `../01_Phase1_Discovery_and_Direction.md`. The t
 1. **On the iPhone:** Settings → **Direction Lab**. Switch directions, play with the orb (tap, sliders), view each mockup, then tap **Use … everywhere**. Live with each direction for a day.
 2. **Regenerate tokens** after editing `design/tokens/*.json`:
    ```
-   python3 tools/design-tokens/gen_tokens.py
-   python3 tools/design-tokens/gen_tokens.py --check   # CI: stale output or broken contrast/CVD rule fails
+   python3 design/tools/gen_tokens.py
+   python3 design/tools/gen_tokens.py --check   # CI: stale output or broken contrast/CVD rule fails
    ```
 3. **Run the design-system tests** (Command Line Tools only, no Xcode needed):
    ```
@@ -29,7 +29,7 @@ These are the working files for `../01_Phase1_Discovery_and_Direction.md`. The t
 4. **Re-render the boards:**
    ```
    cd Packages/LifeOSDesign && LX_RENDER_DIR=/tmp/lx swift test --filter RenderMockups
-   python3 tools/design-tokens/contact_sheet.py /tmp/lx docs/uiux-plan/phase1/boards
+   python3 design/tools/contact_sheet.py /tmp/lx docs/uiux-plan/phase1/boards
    ```
 
 ## Code produced in this phase
@@ -39,7 +39,7 @@ These are the foundations Phase 2 builds on:
 | Path | What |
 |---|---|
 | `design/tokens/` | Token source of truth: `core.json`, `color.shared.json`, `directions/*.json` |
-| `tools/design-tokens/gen_tokens.py` | Generator plus contrast and colour-blindness rule checker (stdlib only) |
+| `design/tools/gen_tokens.py` | Generator plus contrast and colour-blindness rule checker (stdlib only) |
 | `LifeOS/DesignSystem/Tokens/LXTokens.generated.swift` | Generated tokens |
 | `LifeOS/DesignSystem/Foundations/` | `LXTheme` (environment, `.lx(_:)` ShapeStyle), typography (`lxFont`), motion (`LXMotion`, `lxAnimation`, `lxNumberRoll`), haptics (`lxHaptic`), surfaces (`lxCard`, `lxGlass`, `LXScreenBackground`) |
 | `LifeOS/DesignSystem/Components/` | Button styles, icon button, chip, section header, metric tile, progress bar, macro bar, source badge, confidence dot, budget chip, 5-tab bar with Capture button |
