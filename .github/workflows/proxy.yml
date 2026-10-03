@@ -1,0 +1,61 @@
+# LifeOS AI proxy (doc 07, BE-01). Tests on every PR touching the backend;
+# deploys `dev` from main and `production` from a `proxy-v*` tag.
+# Needs repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# Worker secrets (GROQ_API_KEY, JWT_SECRET, …) are set once with `wrangler secret put`.
+name: AI proxy
+
+on:
+  pull_request:
+    paths: ["backend/ai-proxy/**", ".github/workflows/proxy.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/ai-proxy/**"]
+    tags: ["proxy-v*"]
+
+concurrency:
+  group: proxy-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: backend/ai-proxy
+
+env:
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/ai-proxy/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Bundle (dry run)
+        run: npx wrangler deploy --dry-run --env dev --outdir dist
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ startsWith(github.ref, 'refs/tags/proxy-v') && 'proxy-production' || 'proxy-dev' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/ai-proxy/package-lock.json
+      - run: npm ci
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --env ${{ startsWith(github.ref, 'refs/tags/proxy-v') && 'production' || 'dev' }}
