@@ -77,6 +77,21 @@ private enum Fx {
         #expect(f.card == .forgotten([item]))
     }
 
+    /// Health information is never saved by the `.remembered` path (which the
+    /// session saves at once); it asks first with `.confirmMemory` (AI F06 §3).
+    @Test func sensitiveMemoryAsksFirst() {
+        for sentence in ["Remember that I have PCOS", "remember I'm pregnant", "remember I am breastfeeding"] {
+            let r = AssistantBrain.reply(to: sentence, Fx.snapshot())
+            guard case let .confirmMemory(item) = r.card else { Issue.record("expected confirmMemory for \(sentence)"); continue }
+            #expect(item.source == .youSaid)
+            #expect(r.text.hasSuffix("Remember it?"))
+        }
+        #expect(MemoryPhrases.isSensitive("You're pregnant"))
+        #expect(!MemoryPhrases.isSensitive("You're vegetarian"))
+        let veg = AssistantBrain.reply(to: "Remember that I'm vegetarian", Fx.snapshot())
+        if case .remembered = veg.card {} else { Issue.record("non-sensitive facts still save at once") }
+    }
+
     @Test func planRespectsMemoryAndCap() {
         let veg = MemoryItem(id: "v", text: "You're vegetarian", category: .foodHabits, source: .youSaid, createdAt: Fx.now)
         let r = AssistantBrain.reply(to: "Plan dinner under 800 kcal", Fx.snapshot(memories: [veg]))

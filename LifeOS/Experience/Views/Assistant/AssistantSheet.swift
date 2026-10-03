@@ -219,6 +219,43 @@ struct AssistantSheet: View {
                 }
                 .lxCard(padding: LX.Space.s400)
             }
+        case .confirmMemory(let item):
+            if m.settled {
+                LXChip(title: "Remembered", systemImage: "brain", kind: .status(.statusOnTrack))
+            } else {
+                VStack(alignment: .leading, spacing: LX.Space.s300) {
+                    Text("• \(item.text)").lxFont(.subhead).foregroundStyle(.lx(.textPrimary))
+                    Text("Kept on this iPhone and never sent to Gemini or Groq.").lxFont(.caption).foregroundStyle(.lx(.textSecondary))
+                    HStack {
+                        Button("Not now") { session.settle(m.id) }.buttonStyle(.lx(.secondary))
+                        Button("Remember") { session.confirmMemory(m.id) }.buttonStyle(.lx(.primary))
+                    }
+                }
+                .lxCard(padding: LX.Space.s400)
+            }
+        case let .pendingAction(summary, _):
+            if !m.settled {
+                VStack(alignment: .leading, spacing: LX.Space.s300) {
+                    Text(summary).lxFont(.subhead).foregroundStyle(.lx(.textPrimary))
+                    HStack {
+                        Button("Not now") { session.settle(m.id) }.buttonStyle(.lx(.secondary))
+                        Button("Log it") { session.confirmAction(m.id) }.buttonStyle(.lx(.primary))
+                    }
+                }
+                .lxCard(padding: LX.Space.s400)
+            }
+        case let .done(summary, _):
+            HStack(spacing: LX.Space.s200) {
+                LXChip(title: m.undone ? "Undone" : summary, systemImage: m.undone ? "arrow.uturn.backward" : "checkmark",
+                       kind: .status(m.undone ? .textTertiary : .statusOnTrack))
+                if !m.undone {
+                    Button("Undo") { session.undoAction(m.id) }.buttonStyle(.plain)
+                        .lxFont(.subhead, weight: .semibold).foregroundStyle(.lx(.accentPrimary))
+                }
+                Spacer()
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(m.undone ? "Undone" : summary)
         }
     }
 
