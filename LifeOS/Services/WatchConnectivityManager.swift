@@ -96,7 +96,25 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         snapshot.activeKcal = health.activeKcal(on: today)
         snapshot.workoutsToday = health.todaySessions.map(LifeOSConnectivity.WatchSnapshot.Workout.init)
         snapshot.earnedKcal = health.todayBreakdown?.credit
+        // UI/UX Phase 5: protein bar and Quick log. Preset ids are the ids
+        // `ExperienceStore.logPreset(id:)` resolves, ranked like the phone's chips.
+        snapshot.proteinG = todayLog.totalProtein()
+        snapshot.proteinTargetG = CalorieGoalCalculator.macroTargets(forCalories: snapshot.calorieLimit).protein
+        snapshot.presets = watchPresets()
         return snapshot
+    }
+
+    private func watchPresets() -> [LifeOSConnectivity.WatchSnapshot.Preset] {
+        let pool = foodDatabase.favoriteFoods + foodDatabase.recentFoods + foodDatabase.customFoods
+        let byID = Dictionary(pool.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
+        let candidates = pool.map { f in
+            ExperiencePresetCandidate(id: f.id.uuidString, nutrient: f.nutrient, slot: ExperienceMealSlot(f.mealType),
+                                      isFavorite: foodDatabase.isFavorite(f), lastUsed: f.timestamp)
+        }
+        return ExperiencePresetCandidate.ranked(candidates, for: .slot(for: Date()), limit: 4).compactMap { c in
+            guard let f = byID[c.id] else { return nil }
+            return .init(id: c.id, name: f.name, kcal: f.calories, proteinG: f.protein)
+        }
     }
 
     /// The application-context dictionary: legacy v1 keys plus, unless the
@@ -193,9 +211,16 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         case .workoutEnded:
             // The watch saved an HKWorkout: pull it in now (WCH-05).
             HealthSync.shared.syncInBackground(.watchWorkoutEnded)
-        case .logPreset:
-            // Wired by UI/UX Phase 5 to the same preset path Siri uses.
-            Log.watch.notice("logPreset from watch is not handled in this build")
+        case .logPreset(let id, let day):
+            // Same path as Siri's "Log a usual meal": logs into the current slot, today only.
+            guard day == .today() else { return }
+            Task { @MainActor in
+                let store = await IntentRuntime.store()
+                if store.logPreset(id: id) == nil {
+                    Log.watch.notice("logPreset from watch: unknown preset")
+                }
+                self.sendSnapshot()
+            }
         }
     }
 

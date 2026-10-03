@@ -1,9 +1,12 @@
 import SwiftUI
+import WatchKit
 
 /// Watch Today (UI/UX Phase 5 §2): the orb glyph with remaining kcal in large
 /// numerals, the activity line and the water bar, all sent from the iPhone.
 struct WatchDashboardView: View {
     @ObservedObject var session: WatchSessionManager
+    /// The preset just sent to the phone, ticked until the next snapshot lands.
+    @State private var sentPresetID: String?
 
     private var snapshot: WatchSnapshot { session.snapshot }
     private var remaining: Double { snapshot.calorieLimit - snapshot.caloriesConsumed }
@@ -17,8 +20,13 @@ struct WatchDashboardView: View {
                 } else {
                     hero
                     activityLine
+                    if let protein = snapshot.proteinG, let target = snapshot.proteinTargetG, target > 0 {
+                        bar(label: "Protein", value: "\(Int(protein.rounded())) of \(Int(target.rounded())) g",
+                            progress: protein / target, color: WatchTheme.protein, systemImage: "fork.knife")
+                    }
                     bar(label: "Water", value: "\(snapshot.waterCount) of \(snapshot.waterTarget)",
                         progress: snapshot.waterProgress, color: WatchTheme.water, systemImage: "drop.fill")
+                    quickLog
                     chips
                     hint
                 }
@@ -64,8 +72,16 @@ struct WatchDashboardView: View {
                                    : "Remaining calories, \(Int(remaining)). Eaten \(Int(snapshot.caloriesConsumed)) of \(Int(snapshot.calorieLimit)).")
     }
 
+    /// "+N earned" when the phone sends the budget credit (same number as the
+    /// phone's budget explainer); otherwise the raw training energy.
     @ViewBuilder private var activityLine: some View {
-        if snapshot.caloriesBurned >= 1 {
+        if let earned = snapshot.earnedKcal, earned >= 1 {
+            Label("+\(Int(earned.rounded())) earned today", systemImage: "flame.fill")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(WatchTheme.activity)
+                .labelStyle(.titleAndIcon)
+                .accessibilityLabel("\(Int(earned.rounded())) calories earned from activity today")
+        } else if snapshot.caloriesBurned >= 1 {
             Label("\(Int(snapshot.caloriesBurned.rounded())) kcal from training", systemImage: "flame.fill")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(WatchTheme.activity)
@@ -93,6 +109,43 @@ struct WatchDashboardView: View {
         .background(WatchTheme.card, in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(value)")
+    }
+
+    /// Quick log (§2): the phone's top usual meals for now. One tap logs it on
+    /// the iPhone; the tick stays until the refreshed snapshot arrives.
+    @ViewBuilder private var quickLog: some View {
+        if !snapshot.presets.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Quick log")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(WatchTheme.secondary)
+                ForEach(snapshot.presets) { preset in
+                    Button {
+                        sentPresetID = preset.id
+                        session.logPreset(preset.id)
+                        WKInterfaceDevice.current().play(.success)
+                    } label: {
+                        HStack(spacing: 6) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(preset.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                                Text("\(Int(preset.kcal.rounded())) kcal · \(Int(preset.proteinG.rounded())) g protein")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(WatchTheme.secondary)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: sentPresetID == preset.id ? "checkmark.circle.fill" : "plus.circle.fill")
+                                .foregroundStyle(sentPresetID == preset.id ? WatchTheme.onTrack : WatchTheme.accent)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .padding(8)
+                    .background(WatchTheme.card, in: RoundedRectangle(cornerRadius: 12))
+                    .disabled(sentPresetID == preset.id)
+                    .accessibilityLabel("Log \(preset.name), \(Int(preset.kcal.rounded())) calories")
+                }
+            }
+            .onChange(of: snapshot.caloriesConsumed) { _, _ in sentPresetID = nil }
+        }
     }
 
     private var chips: some View {
