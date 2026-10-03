@@ -19,6 +19,7 @@ public struct LifeOSDatabase: Sendable {
     public let energySettings: any EnergySettingsRepository
     public let healthSync: any HealthSyncStateRepository
     public let healthWrites: any HealthWriteStateRepository
+    public let mealCorrections: any MealCorrectionRepository
     public let changes: ChangeBus
     public let backend: any StorageBackend
 
@@ -39,6 +40,7 @@ public struct LifeOSDatabase: Sendable {
         let energySettings: DocumentStore<EnergySettings>
         let healthSync: DocumentStore<HealthSyncState>
         let healthWrites: DocumentStore<HealthWriteState>
+        let mealCorrections: DocumentStore<CorrectionLibrary>
     }
 
     public init(backend: any StorageBackend) {
@@ -58,7 +60,8 @@ public struct LifeOSDatabase: Sendable {
             energySettings: DocumentStore(name: EnergySettings.documentName, backend: backend, bus: bus),
             // Bookkeeping only: no change events.
             healthSync: DocumentStore(name: "healthSync", backend: backend),
-            healthWrites: DocumentStore(name: "healthWrites", backend: backend)
+            healthWrites: DocumentStore(name: "healthWrites", backend: backend),
+            mealCorrections: DocumentStore(name: CorrectionLibrary.documentName, backend: backend, bus: bus)
         )
         self.stores = stores
         self.backend = backend
@@ -77,6 +80,7 @@ public struct LifeOSDatabase: Sendable {
         self.energySettings = StoreEnergySettingsRepository(store: stores.energySettings)
         self.healthSync = StoreHealthSyncStateRepository(store: stores.healthSync)
         self.healthWrites = StoreHealthWriteStateRepository(store: stores.healthWrites)
+        self.mealCorrections = StoreMealCorrectionRepository(store: stores.mealCorrections)
     }
 
     /// The on-device store in Application Support.

@@ -130,3 +130,11 @@ struct StoreFoodLibraryRepository: FoodLibraryRepository {
     func load() async throws -> FoodLibrary { try await store.load() ?? FoodLibrary() }
     func save(_ library: FoodLibrary) async throws { try await store.save(library) }
 }
+
+struct StoreMealCorrectionRepository: MealCorrectionRepository {
+    let store: DocumentStore<CorrectionLibrary>
+
+    func load() async throws -> CorrectionLibrary { try await store.load() ?? CorrectionLibrary() }
+    func save(_ library: CorrectionLibrary) async throws { try await store.save(library) }
+    func exists() async throws -> Bool { try await store.load() != nil }
+}

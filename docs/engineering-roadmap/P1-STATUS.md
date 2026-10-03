@@ -27,7 +27,7 @@ Apple Health ──► HealthIngestionService (LifeOSHealth, actor)
 ## Verify
 
 ```bash
-./scripts/test-packages.sh            # 144 tests
+./scripts/test-packages.sh            # 167 tests
 ./scripts/check-single-budget.sh
 ```
 
@@ -62,7 +62,7 @@ Apple Health ──► HealthIngestionService (LifeOSHealth, actor)
 | WCH-12 Watch HealthKit + `HKWorkoutSession` | 🟡 | `StrengthWorkoutSession`: strength session + live builder (HR, kcal, timer), crash recovery, saves an `HKWorkout`, then sends `workoutEnded` so the phone syncs now. Watch entitlement + `WKBackgroundModes: workout-processing` (watch `Info.plist`). The team profile signs it: verified build, installed on the Watch. **Open:** run one session on the wrist. |
 | WCH-13 `AutoSetTracker` in the session | 🟡 | The session keeps the app running wrist-down, so the existing tracker keeps counting. Manual "Log Set" kept. **Open:** the 60-min battery measurement (target ≤ 12%). |
 | WCH-14 Sets attached and merged | 🟡 | Every new set becomes an `HKWorkoutEvent` marker (exercise, set number) and still goes to the phone as `setExerciseSets`. The phone merges the log into the Watch workout (WCH-06). Using the markers as the merge window is a follow-up. |
-| WCH-15 Complications / Smart Stack | ⏳ | Needs a watchOS widget extension and an App Group. Paused to share the App Group with UI/UX Phase 5's widget target. |
+| WCH-15 Complications / Smart Stack | 🟡 | New watchOS widget extension **LifeOS Watch Widgets** (`com.tanmay.LifeOS.watchkitapp.widgets`), embedded in the Watch app. Widgets (every number comes from the phone's snapshot): **Calories left**: circular orb gauge, curved corner gauge, inline "640 kcal left", and a rectangular card "640 left · 96 g protein" with a bar, which is also the Smart Stack Today card and shows "Next: Poha" in the slot the phone ranked it for. **Start workout**: Smart Stack card, relevance 1 inside the user's usual training window until they train. The window is learned on the phone from 28 days of `WorkoutSession` starts (IQR ± 30 min, ≥ 4 sessions, walks excluded; `TrainingWindow` in LifeOSCore) and sent as an optional `WatchSnapshot.trainingWindow`. **Water** and **Streak**. How it updates: The watch app's `ComplicationBridge` writes a `ComplicationSnapshot` (LifeOSConnectivity) to the watch's own App Group `group.com.tanmay.LifeOS` and reloads timelines only on visible changes. Timelines run 24 h ahead, with entries at midnight (yesterday's numbers reset), at the training-window edges and at meal-slot changes. Tapping opens Today, or the workout page via `lifeos://watch/workout`. Tinted mode: only gauges and numbers are accentable. 11 tests. Device build signed. **Open:** add the complications to a face and check them on the wrist. |
 | WCH-16 Typed snapshot v2 | ✅ | Optional `budgetMode`, `activeKcal`, `earnedKcal`, `workoutsToday` (plus UI/UX's `proteinG`, `proteinTargetG`, `presets`, and `logPreset`). No schema bump: an older watch decodes it unchanged. New mutation `workoutEnded(day:)`. |
 
 ### Calorie engine v1
@@ -76,6 +76,8 @@ Apple Health ──► HealthIngestionService (LifeOSHealth, actor)
 | CAL-06 Macro targets v1 | ✅ (engine) | `MacroConfig`: protein g/kg by goal, diet-type split of the rest, fibre. **Defaults are placeholders pending nutrition sign-off** (doc 03 §7 Q2). Not yet shown in the UI. |
 | CAL-07 Breakdown contract | ✅ | `HealthSync.todayBreakdown`. |
 | CAL-08 Streaks use per-day budgets | 🟡 | Today's summary records `HealthSync.budget(on: today)`. Moving summaries fully onto `SummaryService` waits for FND-08/FND-12. |
+| CAL-10 Trend weight (early, a P3 ticket) | ✅ (engine) | `TrendWeight.series` in LifeOSCore: EWMA α 0.1, gap-compounded, the latest reading of a day wins, earlier readings warm the trend up. Not shown in the UI yet. |
+| CAL-11 Adaptive TDEE (early, a P3 ticket) | ✅ (engine) | `AdaptiveTDEE.estimate`: 21–28-day window; needs ≥ 14 well-logged days (≥ 60% of budget), ≥ 80% coverage and ≥ 8 weigh-ins over ≥ 14 days; plausible 1,000–6,000 kcal; blended with the formula by data quality (≤ 80%). Persona tests: accurate logger, under-logger, water noise, sparse weigh-ins. 12 tests. Not wired into the budget: that needs a product decision (doc 03 §7). |
 
 ## Decisions taken
 

@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import HealthKit
+import LifeOSCore
 import LifeOSData
 import LifeOSHealth
 
@@ -35,6 +36,8 @@ final class HealthSync: ObservableObject {
     @Published private(set) var energyByDay: [DayKey: EnergyDay] = [:]
     @Published private(set) var todayBreakdown: BudgetBreakdown?
     @Published private(set) var todaySessions: [WorkoutSession] = []
+    /// When the user usually trains (WCH-15), for the Watch's "Start workout" card.
+    @Published private(set) var trainingWindow: TrainingWindow?
     @Published private(set) var settings = EnergySettings()
     @Published private(set) var status: HealthStatus = .notDetermined
     @Published private(set) var lastSync: Date?
@@ -93,8 +96,8 @@ final class HealthSync: ObservableObject {
             if ingestionEnabled, client.isAvailable {
                 let ingestion = HealthIngestionService(client: client, database: database)
                 self.ingestion = ingestion
-                await client.startObserving { [weak self] _ in
-                    await self?.sync(.observer)
+                await client.startObserving { _ in
+                    await HealthSync.shared.sync(.observer)
                 }
             }
             await refreshStatus()
@@ -187,7 +190,8 @@ final class HealthSync: ObservableObject {
         guard next != settings else { return }
         settings = next
         let database = self.database
-        LocalStore.shared.enqueue { try await database.energySettings.save(next) }
+        let saved = next
+        LocalStore.shared.enqueue { try await database.energySettings.save(saved) }
     }
 
     // MARK: Write-back (WCH-08)
@@ -252,10 +256,26 @@ final class HealthSync: ObservableObject {
             energyByDay[today] = try await database.energy.day(today)
             todaySessions = try await database.workoutSessions.sessions(on: today)
             todayBreakdown = try await budgets?.breakdown(on: today)
+            try await refreshTrainingWindow(today: today)
         } catch {
             Log.health.error("Today reload failed: \(String(describing: error), privacy: .private)")
         }
     }
+
+    /// Relearned once a day and whenever today's workouts change (WCH-15).
+    private func refreshTrainingWindow(today: DayKey) async throws {
+        let key = TrainingWindowKey(day: today, sessions: todaySessions.map(\.id))
+        guard key != trainingWindowKey else { return }
+        trainingWindowKey = key
+        let recent = try await database.workoutSessions.sessions(from: today.adding(days: -27), through: today)
+        trainingWindow = TrainingWindow.learn(from: recent)
+    }
+
+    private struct TrainingWindowKey: Equatable {
+        let day: DayKey
+        let sessions: [UUID]
+    }
+    private var trainingWindowKey: TrainingWindowKey?
 
     private func refreshAllowanceIfNeeded() async {
         let today = DayKey.today()

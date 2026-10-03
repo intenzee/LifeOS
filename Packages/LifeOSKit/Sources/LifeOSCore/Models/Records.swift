@@ -33,10 +33,27 @@ public struct FoodEntry: DayRecord, Equatable, Hashable {
     /// AI confidence, 0…1. `nil` for non-AI entries.
     public var confidence: Double?
 
+    // v2 (FOOD-01). Optional and additive: older shards decode them as `nil`.
+    public var fiberG: Double?
+    public var sugarG: Double?
+    public var sodiumMg: Double?
+    /// The `FoodPreset` this entry was logged from.
+    public var presetID: UUID?
+    /// The meal photo this entry came from, if it was kept.
+    public var photoAssetID: String?
+    /// Where the numbers came from (contract C1), e.g. "db:lifeos-curated-v1:roti",
+    /// "user:custom:<id>", "llm-estimate", "label". Lets evals and "why this
+    /// number" trace an entry back to its source.
+    public var nutritionSourceRef: String?
+    /// Resolved weight of the serving as logged.
+    public var grams: Double?
+
     public init(id: UUID = UUID(), dayKey: DayKey, loggedAt: Date, meal: MealType, name: String,
                 servingDescription: String = "1 serving", calories: Double, proteinG: Double = 0,
                 carbsG: Double = 0, fatG: Double = 0, barcode: String? = nil,
-                source: EntrySource, confidence: Double? = nil) {
+                source: EntrySource, confidence: Double? = nil,
+                fiberG: Double? = nil, sugarG: Double? = nil, sodiumMg: Double? = nil, presetID: UUID? = nil,
+                photoAssetID: String? = nil, nutritionSourceRef: String? = nil, grams: Double? = nil) {
         self.id = id
         self.dayKey = dayKey
         self.loggedAt = loggedAt
@@ -50,6 +67,13 @@ public struct FoodEntry: DayRecord, Equatable, Hashable {
         self.barcode = barcode
         self.source = source
         self.confidence = confidence
+        self.fiberG = fiberG
+        self.sugarG = sugarG
+        self.sodiumMg = sodiumMg
+        self.presetID = presetID
+        self.photoAssetID = photoAssetID
+        self.nutritionSourceRef = nutritionSourceRef
+        self.grams = grams
     }
 }
 

@@ -29,6 +29,8 @@ struct WatchSnapshot: Equatable {
     var proteinG: Double?
     var proteinTargetG: Double?
     var presets: [LifeOSConnectivity.WatchSnapshot.Preset] = []
+    /// WCH-15: when the user usually trains, for the "Start workout" Smart Stack card.
+    var trainingWindow: TrainingWindow?
 
     static let empty = WatchSnapshot(
         date: "", caloriesConsumed: 0, calorieLimit: 0, caloriesBurned: 0,
@@ -151,6 +153,7 @@ extension WatchSnapshot {
         proteinG = typed.proteinG
         proteinTargetG = typed.proteinTargetG
         presets = typed.presets ?? []
+        trainingWindow = typed.trainingWindow
     }
 }
 

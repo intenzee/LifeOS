@@ -16,6 +16,7 @@ struct LifeOSWatch_Watch_AppApp: App {
 final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     func applicationDidFinishLaunching() {
         WatchSessionManager.shared.activate()
+        Task { @MainActor in ComplicationBridge.shared.start() }
     }
 
     func applicationDidBecomeActive() {

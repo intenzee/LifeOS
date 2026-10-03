@@ -63,6 +63,14 @@ public protocol FoodLibraryRepository: Sendable {
     func save(_ library: FoodLibrary) async throws
 }
 
+/// The meal scanner's learned corrections (FOOD-14).
+public protocol MealCorrectionRepository: Sendable {
+    func load() async throws -> CorrectionLibrary
+    func save(_ library: CorrectionLibrary) async throws
+    /// `false` until the first save, so the legacy file is migrated exactly once.
+    func exists() async throws -> Bool
+}
+
 // MARK: - Workout mutations
 //
 // Date-keyed replacements for WorkoutDatabaseManager's weekday-name methods
