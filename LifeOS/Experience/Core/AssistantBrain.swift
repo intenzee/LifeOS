@@ -19,6 +19,12 @@ nonisolated struct AssistantReply: Equatable, Sendable {
         case rule(AutomationRule)
         case remembered(MemoryItem)
         case forgotten([MemoryItem])
+        /// Health information: saved only if the person taps "Remember" (AI F06 §3).
+        case confirmMemory(MemoryItem)
+        /// A write the assistant did at once (water, weight, todo, preset), with Undo.
+        case done(summary: String, undoID: String)
+        /// A write a cloud model proposed: nothing happens until "Log it" is tapped.
+        case pendingAction(summary: String, actionID: String)
     }
 
     nonisolated struct ChartPoint: Equatable, Sendable, Identifiable {
@@ -49,6 +55,9 @@ nonisolated enum AssistantBrain {
         if let remembered = MemoryPhrases.rememberedText(from: text) {
             let item = MemoryItem(id: "said.\(UUID().uuidString)", text: remembered, category: MemoryPhrases.category(for: remembered),
                                   source: .youSaid, createdAt: s.now)
+            if MemoryPhrases.isSensitive(remembered) {
+                return AssistantReply(text: "That's health information, so I'll only keep it if you say so. Remember it?", card: .confirmMemory(item))
+            }
             return AssistantReply(text: "Got it.", card: .remembered(item))
         }
         if t.hasPrefix(" forget ") {

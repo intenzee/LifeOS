@@ -290,6 +290,53 @@ final class ExperienceStore: ObservableObject {
         afterWrite()
     }
 
+    /// Adds a todo on `due`'s day (or today), with the same reminder scheduling as
+    /// the classic Todo tab. The todo list is per week, so only days in the
+    /// current week can be written; returns nil otherwise.
+    @discardableResult
+    func addTodo(title: String, due: Date? = nil) -> UUID? {
+        let key = DayKey.make(for: due ?? Date())
+        guard let name = WeekDays.currentWeek().first(where: { $0.day == key })?.name else { return nil }
+        var week = PersistenceManager.shared.loadWeekTodoList()
+        let item = TodoItem(title: title, reminderDate: due.flatMap { $0 > Date() ? $0 : nil })
+        week[name, default: []].append(item)
+        PersistenceManager.shared.saveWeekTodoList(week)
+        if let date = item.reminderDate { NotificationService.shared.scheduleReminder(for: item, at: date) }
+        reload()
+        afterWrite()
+        return item.id
+    }
+
+    /// Removes a todo from this week (Undo for `addTodo`).
+    func removeTodo(_ id: UUID) {
+        var week = PersistenceManager.shared.loadWeekTodoList()
+        for name in week.keys { week[name]?.removeAll { $0.id == id } }
+        PersistenceManager.shared.saveWeekTodoList(week)
+        NotificationService.shared.cancelReminder(for: id)
+        reload()
+        afterWrite()
+    }
+
+    /// Moves a todo's reminder to `date` (nil clears it), rescheduling the notification.
+    func rescheduleTodo(_ id: UUID, to date: Date?) {
+        var week = PersistenceManager.shared.loadWeekTodoList()
+        guard let name = week.first(where: { $0.value.contains { $0.id == id } })?.key,
+              let index = week[name]?.firstIndex(where: { $0.id == id }) else { return }
+        week[name]?[index].reminderDate = date
+        PersistenceManager.shared.saveWeekTodoList(week)
+        NotificationService.shared.cancelReminder(for: id)
+        if let date, date > Date(), let item = week[name]?[index], !item.isCompleted {
+            NotificationService.shared.scheduleReminder(for: item, at: date)
+        }
+        reload()
+        afterWrite()
+    }
+
+    /// The reminder time of a todo this week, if any.
+    func todoReminder(_ id: UUID) -> Date? {
+        PersistenceManager.shared.loadWeekTodoList().values.flatMap { $0 }.first { $0.id == id }?.reminderDate
+    }
+
     /// Eat-back share for activity, as the calorie engine uses it (0…1, steps of 10%).
     var eatBackShare: Double { EngineBudget.eatBack }
 

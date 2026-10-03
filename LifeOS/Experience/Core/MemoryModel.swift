@@ -96,6 +96,16 @@ nonisolated enum MemoryPhrases {
         return .aboutYou
     }
 
+    /// Health conditions, medicines, pregnancy: never saved without a "Remember" tap.
+    static func isSensitive(_ text: String) -> Bool {
+        let t = " " + text.lowercased() + " "
+        let words = ["diabet", "pcos", "pcod", "thyroid", "blood pressure", "hypertension", "cholesterol", "pregnan", "breastfeed",
+                     "medication", "medicine", "metformin", "insulin", "ozempic", "semaglutide", "mounjaro", "depress", "anxiety",
+                     "celiac", "coeliac", " ibs ", "kidney", "heart disease", "asthma", "cancer", "fatty liver", "anaemi", "anemi",
+                     "eating disorder", "anorex", "bulimi", "binge", "allerg"]
+        return words.contains { t.contains($0) }
+    }
+
     /// Food words a memory forbids ("vegetarian" rules out chicken etc.) — used to keep suggestions in lane.
     static func excludedFoods(_ memories: [MemoryItem]) -> Set<String> {
         let all = memories.map { $0.text.lowercased() }.joined(separator: " ")

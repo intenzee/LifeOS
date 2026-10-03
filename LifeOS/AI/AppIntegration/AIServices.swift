@@ -40,6 +40,7 @@ final class AIServices {
     /// Call on launch / foreground: refresh remote config (cached 1 h).
     func start() {
         Task { await gateway.refreshConfig() }
+        AIAssistantBridge.shared.startObservingWorkouts()
     }
 
     // MARK: - Consent
@@ -73,9 +74,15 @@ extension AIServices {
     /// Text/voice/preset logging. The user's custom, favourite and recent foods
     /// are read fresh each time so their own numbers win over the catalog.
     var foodLogger: SmartFoodLogger {
-        SmartFoodLogger(gateway: gateway, presets: presets, userFoods: {
-            await MainActor.run { Self.userFoods() }
+        var logger = SmartFoodLogger(gateway: gateway, presets: presets, userFoods: {
+            await MainActor.run { Self.userFoods() + AIMemoryBridge.shared.dishFoods }
         })
+        // Phase 2: learned meal windows (F02/F05) and the user's own portion sizes (F04).
+        logger.mealWindows = {
+            await MainActor.run { MealWindows.learn(Self.recentMeals(days: 28).map { ($0.meal, $0.date) }) }
+        }
+        logger.portionHints = { await MainActor.run { AIMemoryBridge.shared.portionHints } }
+        return logger
     }
 
     @MainActor

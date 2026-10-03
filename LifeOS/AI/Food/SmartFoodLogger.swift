@@ -40,6 +40,10 @@ nonisolated struct SmartFoodLogger: Sendable {
     let presets: any PresetRepository
     var userFoods: @Sendable () async -> [UserFood] = { [] }
     var calendar: Calendar = .current
+    /// When this user eats each meal (F05/F02 learned windows; FOOD-16).
+    var mealWindows: @Sendable () async -> MealWindows = { .empty }
+    /// "My katori is 120 ml" and similar memories (F04 hints).
+    var portionHints: @Sendable () async -> PortionHints = { .none }
 
     // MARK: Interpret
 
@@ -52,7 +56,7 @@ nonisolated struct SmartFoodLogger: Sendable {
             return .saveDraftAsPreset(name: name)
         }
 
-        let resolver = NutritionResolver(userFoods: await userFoods())
+        let resolver = NutritionResolver(userFoods: await userFoods(), portionHints: await portionHints())
 
         if let definition = Self.defineIntent(trimmed) {
             let draft = await parseDraft(definition.items, now: now, resolver: resolver)
@@ -93,7 +97,7 @@ nonisolated struct SmartFoodLogger: Sendable {
 
     /// Applies a spoken/typed correction to an open draft ("no curd, 3 rotis").
     func refine(_ draft: MealDraft, with text: String) async -> MealDraft {
-        let resolver = NutritionResolver(userFoods: await userFoods())
+        let resolver = NutritionResolver(userFoods: await userFoods(), portionHints: await portionHints())
         var operations = MealModificationParser.parse(text, current: draft.items)
         if operations.isEmpty {
             // Unrecognised correction: treat it as more food.
@@ -161,7 +165,8 @@ nonisolated struct SmartFoodLogger: Sendable {
         var items = resolver.resolve(parsed)
         items = await estimateUnresolved(items)
         let inferred = parsed.mealType == .unknown
-        return MealDraft(items: items, meal: inferred ? Self.inferMeal(at: now, calendar: calendar) : parsed.mealType,
+        let meal = inferred ? await mealSlot(at: now) : parsed.mealType
+        return MealDraft(items: items, meal: meal,
                          mealWasInferred: inferred, parsedBy: provider, preset: nil, sourceText: text)
     }
 
@@ -220,6 +225,11 @@ nonisolated struct SmartFoodLogger: Sendable {
     static func aliases(for raw: String, name: String) -> [String] {
         let lower = raw.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         return lower == name.lowercased() ? [] : [lower]
+    }
+
+    /// Learned windows first; fixed clock hours when the user has no history yet.
+    func mealSlot(at date: Date) async -> ParsedMeal.MealSlot {
+        (await mealWindows()).slot(at: date, calendar: calendar) ?? Self.inferMeal(at: date, calendar: calendar)
     }
 
     static func inferMeal(at date: Date, calendar: Calendar = .current) -> ParsedMeal.MealSlot {

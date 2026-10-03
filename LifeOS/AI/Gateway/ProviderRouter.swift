@@ -40,7 +40,9 @@ nonisolated struct RoutingTable: Sendable, Equatable {
         .nutritionLabelRead: [.init(.appleOnDevice), .init(.deterministic)],
         .memoryExtract: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled)],
         .memoryConsolidate: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled)],
-        .assistantChat: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled), .init(.geminiBYOK)],
+        .assistantChat: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled), .init(.geminiBYOK), .init(.groqBYOK)],
+        // Tool planning (F07): same tiers as chat; health consent still gates T3.
+        .assistantPlan: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled), .init(.geminiBYOK), .init(.groqBYOK)],
         .briefingCompose: [.init(.appleOnDevice), .init(.deterministic)],
         .nudgeCompose: [.init(.appleOnDevice), .init(.deterministic)],
         .budgetExplain: [.init(.appleOnDevice), .init(.deterministic)],

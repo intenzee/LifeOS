@@ -11,7 +11,7 @@ import Foundation
 nonisolated enum AITask: String, Sendable, Codable, CaseIterable {
     case foodTextParse, mealPhotoAnalyze, mealPhotoRefine, nutritionLabelRead
     case memoryExtract, memoryConsolidate
-    case assistantChat, briefingCompose, weeklyReview, budgetExplain
+    case assistantChat, assistantPlan, briefingCompose, weeklyReview, budgetExplain
     case nudgeCompose, presetSuggestName
     case nutritionEstimate
 }
@@ -137,6 +137,17 @@ nonisolated struct ContextPacket: Sendable, Hashable, Codable {
         var title: String
         var body: String
         var privacy: PrivacyClass
+        /// What a third-party cloud may see instead of `body` (F05 §6): rounded
+        /// numbers, no age/sex, no todo titles, only food-preference memories.
+        /// nil = `body` is already safe; "" = drop the section for third parties.
+        var restrictedBody: String?
+
+        init(title: String, body: String, privacy: PrivacyClass, restrictedBody: String? = nil) {
+            self.title = title
+            self.body = body
+            self.privacy = privacy
+            self.restrictedBody = restrictedBody
+        }
     }
 
     var sections: [Section]
@@ -151,6 +162,17 @@ nonisolated struct ContextPacket: Sendable, Hashable, Codable {
     /// Drops sections above `ceiling` (used when routing to a less trusted tier).
     func filtered(maxPrivacy ceiling: PrivacyClass) -> ContextPacket {
         ContextPacket(sections: sections.filter { $0.privacy <= ceiling })
+    }
+
+    /// The packet as a third-party cloud may see it: sections above `ceiling`
+    /// dropped, and every section's restricted version used where it has one.
+    func forThirdParty(maxPrivacy ceiling: PrivacyClass) -> ContextPacket {
+        ContextPacket(sections: sections.compactMap { section in
+            guard section.privacy <= ceiling else { return nil }
+            guard let restricted = section.restrictedBody else { return section }
+            guard !restricted.isEmpty else { return nil }
+            return Section(title: section.title, body: restricted, privacy: section.privacy)
+        })
     }
 
     func rendered() -> String {

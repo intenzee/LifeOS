@@ -133,6 +133,7 @@ final class IntelligenceStore: ObservableObject {
         said.removeAll { $0.text.caseInsensitiveCompare(item.text) == .orderedSame }
         said.insert(item, at: 0)
         saveMemories()
+        AIMemoryBridge.shared.didRemember(item)
     }
 
     func forget(_ ids: [String]) {
@@ -149,6 +150,7 @@ final class IntelligenceStore: ObservableObject {
         }
         saveMemories()
         objectWillChange.send()
+        AIMemoryBridge.shared.didForget(ids)
     }
 
     func edit(_ id: String, text: String) {
@@ -156,10 +158,15 @@ final class IntelligenceStore: ObservableObject {
         guard !clean.isEmpty else { return }
         if let i = said.firstIndex(where: { $0.id == id }) {
             said[i].text = clean
+            AIMemoryBridge.shared.didForget([id])
+            AIMemoryBridge.shared.didRemember(said[i])
         } else if let m = memories.first(where: { $0.id == id }) {
             // Editing an inferred memory turns it into something the user said.
             forgottenInferred.insert(id)
-            said.insert(MemoryItem(id: "said.\(UUID().uuidString)", text: clean, category: m.category, source: .youSaid, createdAt: Date()), at: 0)
+            let item = MemoryItem(id: "said.\(UUID().uuidString)", text: clean, category: m.category, source: .youSaid, createdAt: Date())
+            said.insert(item, at: 0)
+            AIMemoryBridge.shared.didForget([id])
+            AIMemoryBridge.shared.didRemember(item)
         }
         saveMemories()
     }
@@ -188,6 +195,7 @@ final class IntelligenceStore: ObservableObject {
         usage = [:]
         MealLearningEngine.shared.reset()
         saveMemories()
+        AIMemoryBridge.shared.wipe()
     }
 
     // MARK: - Refresh (after every change in the app)

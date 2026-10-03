@@ -49,7 +49,7 @@ nonisolated extension AITask {
         switch self {
         case .presetSuggestName, .nutritionLabelRead: .public
         case .foodTextParse, .mealPhotoAnalyze, .mealPhotoRefine, .nutritionEstimate: .personal
-        case .memoryExtract, .memoryConsolidate, .assistantChat, .briefingCompose,
+        case .memoryExtract, .memoryConsolidate, .assistantChat, .assistantPlan, .briefingCompose,
              .weeklyReview, .budgetExplain, .nudgeCompose: .health
         }
     }
@@ -239,7 +239,7 @@ actor AIGateway: AIGatewaying {
             var call = baseCall
             call.apiKeyOverride = request.credentialOverrides[id]
             if id.isThirdPartyCloud {
-                call.context = request.context?.filtered(maxPrivacy: ceiling)
+                call.context = request.context?.forThirdParty(maxPrivacy: ceiling)
                 call.prompt.user = PrivacyGate.redact(call.prompt.user)
             }
 
@@ -382,7 +382,7 @@ actor AIGateway: AIGatewaying {
                                     context: request.context, schema: AIText.schema, outputIsPlainText: true,
                                     generation: request.generation)
             if id.isThirdPartyCloud {
-                call.context = request.context?.filtered(maxPrivacy: ceiling)
+                call.context = request.context?.forThirdParty(maxPrivacy: ceiling)
                 call.prompt.user = PrivacyGate.redact(call.prompt.user)
             }
 
