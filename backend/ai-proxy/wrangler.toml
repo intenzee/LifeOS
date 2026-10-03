@@ -1,0 +1,67 @@
+# LifeOS AI proxy (doc 07). Deploy: `npm run deploy:dev` / `npm run deploy:prod`.
+# Secrets per environment (never in this file):
+#   wrangler secret put JWT_SECRET --env <env>        # ≥ 32 random bytes
+#   wrangler secret put GROQ_API_KEY --env <env>
+#   wrangler secret put METRICS_SALT --env <env>
+#   wrangler secret put DEBUG_TOKEN --env dev          # dev only: simulator/CI tokens
+#   wrangler secret put DEVICECHECK_TEAM_ID / DEVICECHECK_KEY_ID / DEVICECHECK_PRIVATE_KEY  (optional fallback)
+#   wrangler secret put USDA_API_KEY                   # optional: USDA search
+name = "lifeos-ai-proxy"
+main = "src/worker.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+ENVIRONMENT = "development"
+APP_IDS = "DN9P7V5R2B.com.tanmay.LifeOS"
+
+[[durable_objects.bindings]]
+name = "INSTALLS"
+class_name = "InstallState"
+
+[[durable_objects.bindings]]
+name = "BREAKERS"
+class_name = "ProviderBreaker"
+
+# SQLite-backed Durable Objects are available on the Workers free plan.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["InstallState", "ProviderBreaker"]
+
+[[kv_namespaces]]
+binding = "CONFIG"
+id = "REPLACE_WITH_DEV_KV_ID"   # wrangler kv namespace create CONFIG
+
+[[analytics_engine_datasets]]
+binding = "METRICS"
+dataset = "lifeos_proxy_dev"
+
+# Keep our own JSON lines (metrics.ts); drop Cloudflare's per-request invocation
+# logs, which record URLs such as /v1/food/search?q=<food>.
+[observability]
+enabled = true
+
+[observability.logs]
+invocation_logs = false
+
+[env.dev]
+name = "lifeos-ai-proxy-dev"
+vars = { ENVIRONMENT = "development", APP_IDS = "DN9P7V5R2B.com.tanmay.LifeOS" }
+durable_objects.bindings = [
+  { name = "INSTALLS", class_name = "InstallState" },
+  { name = "BREAKERS", class_name = "ProviderBreaker" },
+]
+kv_namespaces = [{ binding = "CONFIG", id = "REPLACE_WITH_DEV_KV_ID" }]
+analytics_engine_datasets = [{ binding = "METRICS", dataset = "lifeos_proxy_dev" }]
+
+[env.production]
+name = "lifeos-ai-proxy"
+vars = { ENVIRONMENT = "production", APP_IDS = "DN9P7V5R2B.com.tanmay.LifeOS" }
+workers_dev = false
+# routes = [{ pattern = "api.lifeos.app", custom_domain = true }]   # doc 07 §8 Q1: domain not decided
+durable_objects.bindings = [
+  { name = "INSTALLS", class_name = "InstallState" },
+  { name = "BREAKERS", class_name = "ProviderBreaker" },
+]
+kv_namespaces = [{ binding = "CONFIG", id = "REPLACE_WITH_PROD_KV_ID" }]
+analytics_engine_datasets = [{ binding = "METRICS", dataset = "lifeos_proxy" }]
