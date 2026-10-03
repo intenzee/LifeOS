@@ -14,6 +14,11 @@ public struct LifeOSDatabase: Sendable {
     public let summaries: any SummaryRepository
     public let profile: any ProfileRepository
     public let foodLibrary: any FoodLibraryRepository
+    public let workoutSessions: any WorkoutSessionRepository
+    public let energy: any EnergyRepository
+    public let energySettings: any EnergySettingsRepository
+    public let healthSync: any HealthSyncStateRepository
+    public let healthWrites: any HealthWriteStateRepository
     public let changes: ChangeBus
     public let backend: any StorageBackend
 
@@ -29,6 +34,11 @@ public struct LifeOSDatabase: Sendable {
         let summaries: RecordStore<DailySummary>
         let profile: DocumentStore<UserProfile>
         let foodLibrary: DocumentStore<FoodLibrary>
+        let workoutSessions: RecordStore<WorkoutSession>
+        let energy: RecordStore<EnergyDay>
+        let energySettings: DocumentStore<EnergySettings>
+        let healthSync: DocumentStore<HealthSyncState>
+        let healthWrites: DocumentStore<HealthWriteState>
     }
 
     public init(backend: any StorageBackend) {
@@ -42,7 +52,13 @@ public struct LifeOSDatabase: Sendable {
             proteinChecklist: RecordStore(backend: backend, bus: bus),
             summaries: RecordStore(backend: backend, bus: bus),
             profile: DocumentStore(name: "profile", backend: backend, bus: bus),
-            foodLibrary: DocumentStore(name: "foodLibrary", backend: backend, bus: bus)
+            foodLibrary: DocumentStore(name: "foodLibrary", backend: backend, bus: bus),
+            workoutSessions: RecordStore(backend: backend, bus: bus),
+            energy: RecordStore(backend: backend, bus: bus),
+            energySettings: DocumentStore(name: EnergySettings.documentName, backend: backend, bus: bus),
+            // Bookkeeping only: no change events.
+            healthSync: DocumentStore(name: "healthSync", backend: backend),
+            healthWrites: DocumentStore(name: "healthWrites", backend: backend)
         )
         self.stores = stores
         self.backend = backend
@@ -56,6 +72,11 @@ public struct LifeOSDatabase: Sendable {
         self.summaries = StoreSummaryRepository(store: stores.summaries)
         self.profile = StoreProfileRepository(store: stores.profile)
         self.foodLibrary = StoreFoodLibraryRepository(store: stores.foodLibrary)
+        self.workoutSessions = StoreWorkoutSessionRepository(store: stores.workoutSessions)
+        self.energy = StoreEnergyRepository(store: stores.energy)
+        self.energySettings = StoreEnergySettingsRepository(store: stores.energySettings)
+        self.healthSync = StoreHealthSyncStateRepository(store: stores.healthSync)
+        self.healthWrites = StoreHealthWriteStateRepository(store: stores.healthWrites)
     }
 
     /// The on-device store in Application Support.
@@ -82,6 +103,9 @@ public struct DataSnapshot: Sendable {
     public var summaries: [DailySummary]
     public var profile: UserProfile?
     public var foodLibrary: FoodLibrary
+    public var workoutSessions: [WorkoutSession]
+    public var energy: [EnergyDay]
+    public var energySettings: EnergySettings
 }
 
 public extension LifeOSDatabase {
@@ -95,9 +119,13 @@ public extension LifeOSDatabase {
         async let summaries = stores.summaries.allRecords()
         async let profile = stores.profile.load()
         async let library = stores.foodLibrary.load()
+        async let sessions = stores.workoutSessions.allRecords()
+        async let energy = stores.energy.allRecords()
+        async let settings = stores.energySettings.load()
         return try await DataSnapshot(food: food, workouts: workouts, water: water, weight: weight, tasks: tasks,
                                       proteinChecklist: protein, summaries: summaries, profile: profile,
-                                      foodLibrary: library ?? FoodLibrary())
+                                      foodLibrary: library ?? FoodLibrary(), workoutSessions: sessions,
+                                      energy: energy, energySettings: settings ?? EnergySettings())
     }
 }
 

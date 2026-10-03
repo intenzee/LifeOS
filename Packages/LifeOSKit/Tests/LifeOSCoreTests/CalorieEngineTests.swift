@@ -49,6 +49,19 @@ struct CalorieEngineTests {
         #expect(abs(b.lines.reduce(0) { $0 + $1.kcal } - b.budget) < 1e-9)
     }
 
+    /// P1-D1: exercise credit is added on top of the floor, so workouts still
+    /// raise the budget when an aggressive goal puts the baseline under it.
+    @Test func creditStacksOnTopOfTheFloor() {
+        let cutting = UserProfile(age: 22, heightCm: 167, currentWeightKg: 69.5, targetWeightKg: 58.5, sex: .male)
+        let rest = run(.measured, active: 77, profile: cutting)
+        #expect(rest.budget == 1500)
+        let workout = run(.measured, active: 876, profile: cutting)
+        #expect(workout.credit == (876 - 326.75) * 0.5)
+        #expect(workout.budget == 1500 + workout.credit)
+        #expect(workout.lines.map(\.kind) == [.bmr, .everydayActivity, .goal, .floorTopUp, .exerciseCredit])
+        #expect(abs(workout.lines.reduce(0) { $0 + $1.kcal } - workout.budget) < 1e-9)
+    }
+
     @Test func fixedUsesActivityFactorTDEEOrManual() {
         let auto = run(.fixed, estimated: 500)
         #expect(auto.budget == 2090)
@@ -70,7 +83,7 @@ struct CalorieEngineTests {
         for active in [0.0, 450, 1600] {
             let b = run(mode, active: active, estimated: active)
             #expect(abs(b.lines.reduce(0) { $0 + $1.kcal } - b.budget) <= 0.5)
-            #expect(b.formulaVersion == 1)
+            #expect(b.formulaVersion == 2)
         }
     }
 }

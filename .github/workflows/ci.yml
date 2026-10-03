@@ -24,6 +24,8 @@ jobs:
         run: swiftlint lint --strict --reporter github-actions-logging Packages/LifeOSKit/Sources
       - name: App targets (report only until FND-12 splits the monolith views)
         run: swiftlint lint --reporter github-actions-logging LifeOS "LifeOS Watch App" || true
+      - name: One calorie budget (CAL-03)
+        run: ./scripts/check-single-budget.sh
 
   packages:
     name: LifeOSKit tests

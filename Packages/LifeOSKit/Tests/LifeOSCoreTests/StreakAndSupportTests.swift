@@ -74,22 +74,22 @@ struct StreakCalculatorTests {
 struct SupportTests {
     @Test func featureFlagResolutionOrder() {
         let flags = FeatureFlags()
-        #expect(!flags.isEnabled(.healthKitIngestion))
-        flags.applyRemote(["healthkit_ingestion": true, "unknown_future_flag": true])
-        #expect(flags.isEnabled(.healthKitIngestion))
-        flags.setLocalOverride(.healthKitIngestion, false)
-        #expect(!flags.isEnabled(.healthKitIngestion))
-        flags.setLocalOverride(.healthKitIngestion, nil)
-        #expect(flags.isEnabled(.healthKitIngestion))
+        #expect(!flags.isEnabled(.healthKitWorkoutWrite))
+        flags.applyRemote(["healthkit_workout_write": true, "unknown_future_flag": true])
+        #expect(flags.isEnabled(.healthKitWorkoutWrite))
+        flags.setLocalOverride(.healthKitWorkoutWrite, false)
+        #expect(!flags.isEnabled(.healthKitWorkoutWrite))
+        flags.setLocalOverride(.healthKitWorkoutWrite, nil)
+        #expect(flags.isEnabled(.healthKitWorkoutWrite))
     }
 
     @Test func typedWatchContractIsOnByDefault() {
         #expect(FeatureFlags().isEnabled(.typedWatchContract))
     }
 
-    @Test func estimatedEnergyWriteIsOffByDefault() {
-        // FND-07: writing MET estimates to Apple Health double-counts Activity rings.
-        #expect(!FeatureFlags().isEnabled(.healthKitEstimatedEnergyWrite))
+    @Test func healthDefaults() {
+        #expect(FeatureFlags().isEnabled(.healthKitIngestion))     // P1: on, kill switch
+        #expect(!FeatureFlags().isEnabled(.healthKitWorkoutWrite)) // WCH-07 optional write
     }
 
     @Test func appErrorCarriesUserMessage() {

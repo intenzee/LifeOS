@@ -47,7 +47,8 @@ public struct EnergyInputs: Sendable, Equatable {
 /// Every number behind the day's budget (CAL-07). It drives the "Why this number?"
 /// waterfall (UI-14). `lines` add up to `budget` (within rounding).
 public struct BudgetBreakdown: Sendable, Equatable {
-    public static let formulaVersion = 1
+    /// v2: floor before exercise credit (P1-D1, 3 Oct 2026).
+    public static let formulaVersion = 2
 
     public var mode: BudgetMode
     public var bmr: Double
@@ -140,16 +141,18 @@ public enum CalorieEngine {
             }
         }
 
-        if credit > 0 { lines.append(.init(.exerciseCredit, credit)) }
-
-        // .classic and a manual target keep today's behaviour: no floor beyond the
-        // one already inside the auto target.
+        // The floor applies to the baseline, *then* exercise credit is added
+        // (P1-D1, formula v2). Floor-after-credit swallowed the credit whenever an
+        // aggressive goal put the baseline under the floor, so workouts never moved
+        // the budget. .classic and a manual target keep their own behaviour.
         let appliesFloor = !(input.mode == .classic || (input.mode == .fixed && input.manualTarget != nil))
-        let budget = appliesFloor ? max(floor, baseline + credit) : baseline + credit
+        let flooredBaseline = appliesFloor ? max(floor, baseline) : baseline
+        let budget = flooredBaseline + credit
 
         // A remainder comes from the floor, or from rounding inside the auto target.
-        let remainder = budget - lines.reduce(0) { $0 + $1.kcal }
+        let remainder = flooredBaseline - lines.reduce(0) { $0 + $1.kcal }
         if remainder > 0.5 { lines.append(.init(.floorTopUp, remainder)) }
+        if credit > 0 { lines.append(.init(.exerciseCredit, credit)) }
 
         return BudgetBreakdown(mode: input.mode, bmr: bmr, activityMultiplier: multiplier, goalAdjustment: goal,
                                baseline: baseline, allowance: allowance, rawActive: rawActive, eatBack: eatBack,

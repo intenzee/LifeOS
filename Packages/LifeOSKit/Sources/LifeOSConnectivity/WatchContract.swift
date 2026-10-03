@@ -48,6 +48,61 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
     public var todos: [Todo]
     public var exercises: [Exercise]
 
+    // WCH-16. Optional and additive, so a v2 reader without them still decodes
+    // the snapshot (no schema bump). `calorieLimit` is `EnergyDay.budgetKcal`.
+    /// How the budget was derived (`BudgetMode` raw name), for the watch's "why".
+    public var budgetMode: String?
+    /// Apple Health active energy today, all sources merged.
+    public var activeKcal: Double?
+    public var workoutsToday: [Workout]?
+    /// Exercise energy added to today's budget (`BudgetBreakdown.credit`), so the
+    /// watch shows the same "+190 earned" as the phone.
+    public var earnedKcal: Double?
+
+    // UI/UX Phase 5 (Watch Today / Quick log). Optional, additive.
+    public var proteinG: Double?
+    public var proteinTargetG: Double?
+    /// Top presets for this time of day (at most 4).
+    public var presets: [Preset]?
+
+    public struct Preset: Codable, Sendable, Equatable, Identifiable {
+        public let id: String
+        public var name: String
+        public var kcal: Double
+        public var proteinG: Double
+
+        public init(id: String, name: String, kcal: Double, proteinG: Double) {
+            self.id = id
+            self.name = name
+            self.kcal = kcal
+            self.proteinG = proteinG
+        }
+    }
+
+    public struct Workout: Codable, Sendable, Equatable, Identifiable {
+        public let id: UUID
+        public var kind: ActivityKind
+        public var start: Date
+        public var minutes: Int
+        public var kcal: Double?
+        public var sourceBadge: String
+
+        public init(id: UUID, kind: ActivityKind, start: Date, minutes: Int, kcal: Double?, sourceBadge: String) {
+            self.id = id
+            self.kind = kind
+            self.start = start
+            self.minutes = minutes
+            self.kcal = kcal
+            self.sourceBadge = sourceBadge
+        }
+
+        public init(_ session: WorkoutSession) {
+            self.init(id: session.id, kind: session.kind, start: session.start,
+                      minutes: Int((session.duration / 60).rounded()), kcal: session.activeEnergyKcal,
+                      sourceBadge: session.sourceBadge)
+        }
+    }
+
     public struct Todo: Codable, Sendable, Equatable, Identifiable {
         public let id: UUID
         public var title: String
@@ -102,6 +157,10 @@ public enum WatchMutation: Codable, Sendable, Equatable {
     case toggleTodo(id: UUID, day: DayKey)
     case setExerciseSets(exerciseID: UUID, sets: Int, day: DayKey)
     case addExercise(bodyPart: BodyPart, name: String?, maxSets: Int, day: DayKey)
+    /// The watch saved an `HKWorkout` (WCH-12). The phone syncs Health now (WCH-05).
+    case workoutEnded(day: DayKey)
+    /// Log a preset from `WatchSnapshot.presets` (UI/UX Phase 5 Quick log).
+    case logPreset(id: String, day: DayKey)
 }
 
 // MARK: - Wire encoding

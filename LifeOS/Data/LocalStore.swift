@@ -57,7 +57,22 @@ final class LocalStore: ObservableObject {
         writes.yield(write)
     }
 
+    /// Safe to call from several places at once (the launch screen and a
+    /// HealthKit background launch): later callers wait for the first run.
     func bootstrap() async {
+        if let bootstrapping {
+            await bootstrapping.value
+            return
+        }
+        let run = Task { await performBootstrap() }
+        bootstrapping = run
+        await run.value
+        bootstrapping = nil
+    }
+
+    private var bootstrapping: Task<Void, Never>?
+
+    private func performBootstrap() async {
         guard phase != .ready else { return }
         phase = .loading
         let database = self.database
@@ -81,6 +96,7 @@ final class LocalStore: ObservableObject {
         FoodDatabaseManager.shared.load(from: snapshot, store: self)
         WorkoutDatabaseManager.shared.load(from: snapshot, store: self)
         StreakManager.shared.load(from: snapshot, store: self)
+        HealthSync.shared.load(from: snapshot)
     }
 }
 

@@ -21,6 +21,15 @@ struct WatchSnapshot: Equatable {
     var todos: [WatchTodo]
     var exercises: [WatchExercise]
 
+    // Typed-only fields (WCH-16 and UI/UX Phase 5). `nil` from a v1 phone.
+    var budgetMode: String?
+    var activeKcal: Double?
+    var earnedKcal: Double?
+    var workoutsToday: [LifeOSConnectivity.WatchSnapshot.Workout] = []
+    var proteinG: Double?
+    var proteinTargetG: Double?
+    var presets: [LifeOSConnectivity.WatchSnapshot.Preset] = []
+
     static let empty = WatchSnapshot(
         date: "", caloriesConsumed: 0, calorieLimit: 0, caloriesBurned: 0,
         waterCount: 0, waterTarget: 8, perfectStreak: 0, currentWeight: 0, targetWeight: 0,
@@ -135,6 +144,13 @@ extension WatchSnapshot {
                       WatchExercise(id: $0.id, bodyPart: $0.bodyPart.rawValue, name: $0.name ?? "",
                                     setsCompleted: $0.setsCompleted, maxSets: $0.maxSets)
                   })
+        budgetMode = typed.budgetMode
+        activeKcal = typed.activeKcal
+        earnedKcal = typed.earnedKcal
+        workoutsToday = typed.workoutsToday ?? []
+        proteinG = typed.proteinG
+        proteinTargetG = typed.proteinTargetG
+        presets = typed.presets ?? []
     }
 }
 

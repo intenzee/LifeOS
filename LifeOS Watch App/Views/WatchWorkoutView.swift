@@ -8,6 +8,8 @@ struct WatchWorkoutView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section { WorkoutSessionControls() }
+
                 Section {
                     ForEach(exercises) { exercise in
                         NavigationLink {

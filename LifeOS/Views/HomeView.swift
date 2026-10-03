@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import LifeOSHealth
 
 struct HomeViewState {
     var waterCount: Int
@@ -117,12 +118,10 @@ final class HomeViewModel: ObservableObject {
         workoutDatabase.dailyWorkout
     }
 
+    /// The browsed day's budget from the calorie engine (CAL-03). The same
+    /// number the Watch, streaks and the Experience screens show.
     var adjustedCalorieLimit: Double {
-        let baseLimit = CalorieLimitSettings.shared.loadLimit()
-        let caloriesBurned = workoutDatabase.getTotalCaloriesBurned(weight: state.currentWeight)
-        let percentage = CalorieSettings.shared.loadPercentage()
-        let adjustment = caloriesBurned * percentage
-        return baseLimit + adjustment
+        HealthSync.shared.budget(on: DayKey.make(for: foodDatabase.selectedDate))
     }
 
     var displayDate: String {
@@ -170,7 +169,6 @@ final class HomeViewModel: ObservableObject {
         healthManager.requestFullAuthorization()
         workoutDatabase.selectDate(foodDatabase.selectedDate)
         refreshTodoState()
-        syncWorkoutToAppleHealth()
         syncStreaks()
     }
 
@@ -233,23 +231,6 @@ final class HomeViewModel: ObservableObject {
             todosCompleted: todayTodosCompleted,
             todosTotal: todayTodosTotal
         )
-    }
-
-    func syncWorkoutToAppleHealth() {
-        guard Calendar.current.isDateInToday(foodDatabase.selectedDate) else {
-            return
-        }
-
-        let totalBurned = workoutDatabase.getTotalCaloriesBurned(weight: state.currentWeight)
-
-        if healthManager.isAuthorized && totalBurned > 0 {
-            healthManager.saveWorkoutCalories(totalBurned)
-        }
-
-        let percentage = CalorieSettings.shared.loadPercentage()
-        let caloriesToBank = totalBurned * percentage
-
-        Log.health.debug("Burned \(Int(totalBurned), privacy: .private) kcal, banked \(Int(caloriesToBank), privacy: .private) (\(Int(percentage * 100))%)")
     }
 
     func handleCardTap(_ type: MiniCardType) {
@@ -322,6 +303,7 @@ struct HomeView: View {
     @ObservedObject private var streakManager: StreakManager
     @ObservedObject private var foodDatabase: FoodDatabaseManager
     @ObservedObject private var workoutDatabase: WorkoutDatabaseManager
+    @ObservedObject private var healthSync = HealthSync.shared
     @StateObject private var viewModel: HomeViewModel
     private let apiClient: any APIClient
     @Environment(\.colorScheme) private var colorScheme
@@ -351,7 +333,7 @@ struct HomeView: View {
                     CaloriesRing(
                         consumed: foodDatabase.dailyLog.totalCalories(),
                         limit: viewModel.adjustedCalorieLimit,
-                        burned: workoutDatabase.getTotalCaloriesBurned(weight: viewModel.state.currentWeight),
+                        burned: healthSync.exerciseKcal(on: DayKey.make(for: foodDatabase.selectedDate)),
                         water: viewModel.state.waterCount
                     )
                     .padding(.top, 10)
@@ -361,6 +343,7 @@ struct HomeView: View {
                     }
                     
                     streaksCard
+                    HealthWorkoutsCard(health: healthSync)
                     focusListCard
                     recentFuelCard
                     
@@ -386,6 +369,8 @@ struct HomeView: View {
                 .background(ScrollOffsetReader(coordinateSpace: scrollSpaceName))
             }
             .coordinateSpace(name: scrollSpaceName)
+            .refreshable { await healthSync.sync(.pullToRefresh) }
+            .workoutSyncedToast()
             
             overlays
             
@@ -517,7 +502,8 @@ struct HomeView: View {
         .onChange(of: viewModel.todayTodosTotal) { _, _ in
             viewModel.syncStreaks()
         }
-        .onChange(of: workoutDatabase.getTotalCaloriesBurned(weight: viewModel.state.currentWeight)) { _, _ in
+        .onChange(of: healthSync.budget(on: .today())) { _, _ in
+            // Watch energy, a merged workout or a logged set moved today's budget.
             viewModel.syncStreaks()
         }
         .onChange(of: healthManager.stepsToday) { _, newSteps in
@@ -824,7 +810,6 @@ struct HomeView: View {
                 healthManager: healthManager,
                 isPresented: viewModel.binding(\.showGymWeekView),
                 onDismiss: {
-                    viewModel.syncWorkoutToAppleHealth()
                     viewModel.syncStreaks()
                 },
                 currentWeight: viewModel.state.currentWeight

@@ -1,0 +1,50 @@
+import SwiftUI
+
+/// Start/stop for the Health strength workout, with live heart rate and energy
+/// (WCH-12). Shown at the top of the Workout tab.
+struct WorkoutSessionControls: View {
+    @ObservedObject var workout: StrengthWorkoutSession = .shared
+
+    var body: some View {
+        switch workout.state {
+        case .idle, .failed:
+            VStack(alignment: .leading, spacing: 4) {
+                Button {
+                    Task { await workout.start() }
+                } label: {
+                    Label("Start Strength Workout", systemImage: "figure.strengthtraining.traditional")
+                }
+                .tint(WatchTheme.accent)
+                if case .failed(let message) = workout.state {
+                    Text(message).font(.system(size: 10)).foregroundStyle(.red)
+                } else {
+                    Text("Keeps counting with your wrist down and saves to Apple Health.")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+            }
+        case .starting, .ending:
+            ProgressView()
+        case .running:
+            VStack(alignment: .leading, spacing: 6) {
+                if let start = workout.startDate {
+                    Text(timerInterval: start...Date.distantFuture, countsDown: false)
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                }
+                HStack(spacing: 12) {
+                    Label(workout.heartRate.map { "\(Int($0))" } ?? "--", systemImage: "heart.fill")
+                        .foregroundStyle(.red)
+                    Label("\(Int(workout.activeKcal))", systemImage: "flame.fill")
+                        .foregroundStyle(WatchTheme.burn)
+                    Text("\(workout.setsRecorded) sets").foregroundStyle(.secondary)
+                }
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                Button(role: .destructive) {
+                    Task { await workout.end() }
+                } label: {
+                    Label("End Workout", systemImage: "stop.fill")
+                }
+            }
+        }
+    }
+}

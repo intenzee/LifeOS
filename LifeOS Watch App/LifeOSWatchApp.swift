@@ -21,4 +21,9 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     func applicationDidBecomeActive() {
         WatchSessionManager.shared.requestSnapshot()
     }
+
+    /// watchOS relaunches the app to resume a workout after a crash (WCH-12).
+    func handleActiveWorkoutRecovery() {
+        Task { @MainActor in await StrengthWorkoutSession.shared.recover() }
+    }
 }

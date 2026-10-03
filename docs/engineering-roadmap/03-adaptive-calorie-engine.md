@@ -48,7 +48,8 @@ Where:
   - Personalised after 14 days: median `activeKcal` across days with no workout session, clamped to `[BMR×0.1, BMR×0.35]`.
 - `eatBack` = existing `CalorieSettings` percentage (default 0.5). It's user-adjustable 0–100% in 10% steps.
 - `cap` = 1,000 kcal/day by default (protects against over-estimated Watch energy and runaway eating-back).
-- Final: `budget = max(floor, baseline + credit)`, where `floor` = 1,200 (female) / 1,500 (male/other), the same as the existing `CalorieGoalCalculator`.
+- Final: `budget = max(floor, baseline) + credit`, where `floor` = 1,200 (female) / 1,500 (male/other), the same as the existing `CalorieGoalCalculator`.
+  - *Changed 3 Oct 2026 (P1-D1, formula v2):* the floor used to apply after the credit (`max(floor, baseline + credit)`). With an aggressive goal the baseline sits under the floor, so the floor swallowed every workout and the budget never moved. The floor now protects the baseline, and exercise is added on top.
 
 ### 3.2 Pseudocode (in `LifeOSCore`, pure and fully unit-tested)
 
