@@ -38,6 +38,7 @@ actor AIResponseCache {
         case .foodTextParse: 30 * 86_400
         case .nutritionLabelRead: 30 * 86_400
         case .presetSuggestName: 7 * 86_400
+        case .nutritionEstimate: 30 * 86_400
         default: nil
         }
     }

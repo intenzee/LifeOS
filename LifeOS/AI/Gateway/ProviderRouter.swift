@@ -34,6 +34,9 @@ nonisolated struct RoutingTable: Sendable, Equatable {
                            .init(.applePCC, requires: .photoAppleVision),
                            .init(.geminiBYOK, requires: .photoAppleVision),
                            .init(.groqBYOK)],
+        // No deterministic tier: without a model the item simply stays "check this".
+        .nutritionEstimate: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled),
+                             .init(.geminiBYOK), .init(.groqBYOK)],
         .nutritionLabelRead: [.init(.appleOnDevice), .init(.deterministic)],
         .memoryExtract: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled)],
         .memoryConsolidate: [.init(.appleOnDevice), .init(.applePCC, requires: .pccEnabled)],

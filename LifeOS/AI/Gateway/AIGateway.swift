@@ -7,6 +7,7 @@ nonisolated protocol AIGatewaying: Sendable {
     func stream(_ request: AIRequest<AIText>) -> AsyncThrowingStream<AIStreamEvent, Error>
     func availability(for task: AITask) async -> AITaskAvailability
     func prewarm(for task: AITask) async
+    func currentConfig() async -> AIRemoteConfig
 }
 
 nonisolated enum AIStreamEvent: Sendable {
@@ -28,7 +29,8 @@ nonisolated extension AITask {
     /// burger"), so benign tasks may retry elsewhere. Safety-relevant tasks never do.
     nonisolated var allowsGuardrailFallback: Bool {
         switch self {
-        case .foodTextParse, .mealPhotoAnalyze, .mealPhotoRefine, .nutritionLabelRead, .presetSuggestName:
+        case .foodTextParse, .mealPhotoAnalyze, .mealPhotoRefine, .nutritionLabelRead, .presetSuggestName,
+             .nutritionEstimate:
             true
         default:
             false
@@ -46,7 +48,7 @@ nonisolated extension AITask {
     nonisolated var defaultPrivacy: PrivacyClass {
         switch self {
         case .presetSuggestName, .nutritionLabelRead: .public
-        case .foodTextParse, .mealPhotoAnalyze, .mealPhotoRefine: .personal
+        case .foodTextParse, .mealPhotoAnalyze, .mealPhotoRefine, .nutritionEstimate: .personal
         case .memoryExtract, .memoryConsolidate, .assistantChat, .briefingCompose,
              .weeklyReview, .budgetExplain, .nudgeCompose: .health
         }

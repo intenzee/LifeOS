@@ -26,6 +26,8 @@ nonisolated struct AIRemoteConfig: Codable, Sendable, Equatable {
         var photoAppleVision: Bool
         var assistant: Bool
         var autoLogPresets: Bool
+        /// F04: per-item grams resolved against the nutrition catalog. Off → schema v1 (Phase 0 behaviour).
+        var photoSchemaV2: Bool
 
         func isOn(_ flag: AIFeatureFlag) -> Bool {
             switch flag {
@@ -33,16 +35,19 @@ nonisolated struct AIRemoteConfig: Codable, Sendable, Equatable {
             case .photoAppleVision: photoAppleVision
             case .assistant: assistant
             case .autoLogPresets: autoLogPresets
+            case .photoSchemaV2: photoSchemaV2
             }
         }
 
-        static let `default` = Flags(pccEnabled: true, photoAppleVision: false, assistant: false, autoLogPresets: false)
+        static let `default` = Flags(pccEnabled: true, photoAppleVision: false, assistant: false, autoLogPresets: false,
+                                     photoSchemaV2: true)
 
-        init(pccEnabled: Bool, photoAppleVision: Bool, assistant: Bool, autoLogPresets: Bool) {
+        init(pccEnabled: Bool, photoAppleVision: Bool, assistant: Bool, autoLogPresets: Bool, photoSchemaV2: Bool = true) {
             self.pccEnabled = pccEnabled
             self.photoAppleVision = photoAppleVision
             self.assistant = assistant
             self.autoLogPresets = autoLogPresets
+            self.photoSchemaV2 = photoSchemaV2
         }
 
         init(from decoder: Decoder) throws {
@@ -52,6 +57,7 @@ nonisolated struct AIRemoteConfig: Codable, Sendable, Equatable {
             photoAppleVision = try c.decodeIfPresent(Bool.self, forKey: .photoAppleVision) ?? d.photoAppleVision
             assistant = try c.decodeIfPresent(Bool.self, forKey: .assistant) ?? d.assistant
             autoLogPresets = try c.decodeIfPresent(Bool.self, forKey: .autoLogPresets) ?? d.autoLogPresets
+            photoSchemaV2 = try c.decodeIfPresent(Bool.self, forKey: .photoSchemaV2) ?? d.photoSchemaV2
         }
     }
 
@@ -122,7 +128,7 @@ nonisolated struct AIRemoteConfig: Codable, Sendable, Equatable {
 
 /// Remote-config feature flags the routing table can depend on.
 nonisolated enum AIFeatureFlag: String, Sendable, CaseIterable {
-    case pccEnabled, photoAppleVision, assistant, autoLogPresets
+    case pccEnabled, photoAppleVision, assistant, autoLogPresets, photoSchemaV2
 }
 
 /// Loads, caches and refreshes the AI remote config.

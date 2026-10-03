@@ -13,6 +13,7 @@ nonisolated enum AITask: String, Sendable, Codable, CaseIterable {
     case memoryExtract, memoryConsolidate
     case assistantChat, briefingCompose, weeklyReview, budgetExplain
     case nudgeCompose, presetSuggestName
+    case nutritionEstimate
 }
 
 /// Data-sensitivity class carried by every request (F11 §6).
