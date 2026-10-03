@@ -1,5 +1,7 @@
 # Phase 1 — Smart Food Logging (Weeks 4–9) → Beta 1
 
+> **Status (3 Oct 2026):** implemented for non-Apple-Intelligence devices (iPhone 15) — see [`../phase-1/PHASE-1-REPORT.md`](../phase-1/PHASE-1-REPORT.md).
+
 **Goal:** make logging food effortless: say it, snap it, or tap a preset — free, mostly on-device, with honest confidence and instant undo.
 
 ## Scope
