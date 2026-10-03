@@ -1,11 +1,15 @@
+import Combine
 import SwiftUI
 
 /// UI/UX Phase 3 shell: five labelled tabs with the raised Capture button
-/// (master plan §5). Shown when `lx.newExperience` is on; the classic UI stays
-/// one switch away in You → "Classic layout".
+/// (master plan §5), plus the Phase 4 intelligence surfaces (assistant, memory,
+/// insights, automations). Shown when `lx.newExperience` is on; the classic UI
+/// stays one switch away in You → "New layout".
 struct ExperienceRootView: View {
     let dependencies: AppDependencies
     @StateObject private var store: ExperienceStore
+    @ObservedObject private var intelligence = IntelligenceStore.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var tab: LXTab = .today
     @State private var showCapture = false
@@ -16,6 +20,19 @@ struct ExperienceRootView: View {
     @State private var toast: LXToastModel?
     @State private var undoIDs: [UUID] = []
     @State private var loggedTick = 0
+
+    // Phase 4
+    @State private var assistant: AssistantLaunch?
+    @State private var showMemory = false
+    @State private var automationsFocus: AutomationsLaunch?
+    @State private var showPrivacy = false
+    @State private var weeklyReview: ReviewLaunch?
+    @State private var ruleDraft: AutomationRule?
+    @State private var banner: IntelligenceStore.EventBanner?
+
+    struct AssistantLaunch: Identifiable { let id = UUID(); var context: String?; var listening: Bool }
+    struct AutomationsLaunch: Identifiable { let id = UUID(); var focus: String? }
+    struct ReviewLaunch: Identifiable { let id = UUID(); var review: WeeklyReview }
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -32,21 +49,29 @@ struct ExperienceRootView: View {
                     TodayScreen(store: store, loggedTick: loggedTick,
                                 onCapture: { openCapture() },
                                 onBudget: { showBudget = true },
-                                onNextUp: handleNextUp)
+                                onNextUp: handleNextUp,
+                                onAsk: { openAssistant(context: "Looking at: Today, \(store.day.formatted(.dateTime.day().month(.abbreviated)))") },
+                                brief: morningBrief,
+                                recap: eveningRecap,
+                                onWeeklyReview: weeklyReviewAvailable ? { openWeeklyReview() } : nil)
                 case .nutrition:
                     NutritionScreen(store: store, onCapture: { slot in openCapture(slot: slot) },
                                     onLogPreset: { id in logPreset(id) })
                 case .training:
                     TrainingScreen(store: store, onBudget: { showBudget = true })
                 case .you:
-                    YouScreen(store: store)
+                    YouScreen(store: store,
+                              onMemory: { showMemory = true },
+                              onAutomations: { automationsFocus = AutomationsLaunch(focus: nil) },
+                              onPrivacy: { showPrivacy = true },
+                              onWeeklyReview: currentReview() != nil ? { openWeeklyReview() } : nil)
                 }
             }
             .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 76) } // last row clears the tab bar (audit A4)
 
             LXTabBar(selection: $tab,
                      onCapture: { openCapture() },
-                     onAssistant: { openCapture(typing: true) })
+                     onAssistant: { openAssistant(context: nil, listening: true) })
                 .padding(.bottom, 4)
 
             LegacyCaptureHost(route: $legacyRoute, slot: store.currentSlot, apiClient: dependencies.apiClient,
@@ -54,28 +79,72 @@ struct ExperienceRootView: View {
                                                               kcal: food.calories, protein: food.protein) },
                               onSaveCustom: { dependencies.foodDatabase.addCustomFood($0) })
         }
+        .overlay(alignment: .top) { eventBanner }
         .sheet(isPresented: $showCapture) {
             CaptureSheet(store: store, startTyping: captureStartsTyping, initialSlot: captureSlot,
                          onLogged: { ids, kcal, protein in showCapture = false; logged(ids, kcal: kcal, protein: protein) },
                          onRoute: { route in
                              showCapture = false
                              // Let the sheet finish dismissing before the full-screen flow appears.
-                             Task { @MainActor in
-                                 try? await Task.sleep(for: .milliseconds(350))
-                                 legacyRoute = route
-                             }
+                             afterDismiss { legacyRoute = route }
+                         },
+                         onAsk: {
+                             showCapture = false
+                             afterDismiss { openAssistant(context: nil) }
                          })
                 .lxSheetStyle()
         }
         .sheet(isPresented: $showBudget) {
             BudgetExplainerSheet(store: store).lxSheetStyle(detents: [.large])
         }
+        .sheet(item: $assistant) { launch in
+            AssistantSheet(store: store, contextChip: launch.context, startListening: launch.listening,
+                           onLogged: { ids, kcal, protein in logged(ids, kcal: kcal, protein: protein) },
+                           onEditInCapture: { _ in
+                               assistant = nil
+                               afterDismiss { openCapture(typing: true) }
+                           },
+                           onEditRule: { rule in
+                               assistant = nil
+                               afterDismiss { ruleDraft = rule }
+                           })
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showMemory) { MemoryScreen() }
+        .sheet(item: $automationsFocus) { launch in AutomationsScreen(focusRuleID: launch.focus) }
+        .sheet(item: $ruleDraft) { rule in AutomationBuilder(draft: rule) }
+        .sheet(isPresented: $showPrivacy) {
+            AIPrivacyScreen(onOpenMemory: { afterDismiss { showMemory = true } })
+        }
+        .fullScreenCover(item: $weeklyReview) { launch in WeeklyReviewView(review: launch.review) }
         .lxToast($toast) {
             store.remove(undoIDs)
             undoIDs = []
         }
         .lxHaptic(.logged, trigger: loggedTick)
-        .onAppear { store.onAppear() }
+        .onAppear {
+            store.onAppear()
+            intelligence.attach(store)
+            intelligence.refresh()
+            if let route = intelligence.pendingRoute { handle(route) }
+        }
+        // Re-infer memories, fire "when I log…" rules and re-plan notifications after changes.
+        .onReceive(store.objectWillChange.debounce(for: .milliseconds(700), scheduler: RunLoop.main)) { _ in
+            intelligence.refresh()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { store.reload(); intelligence.refresh() }
+        }
+        .onChange(of: intelligence.pendingRoute) { _, route in if let route { handle(route) } }
+        .onChange(of: intelligence.eventBanner) { _, b in
+            guard let b else { return }
+            banner = b
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(6))
+                if banner?.id == b.id { banner = nil }
+            }
+        }
         .onChange(of: store.health.stepsToday) { _, steps in
             dependencies.watchConnectivity.latestSteps = steps
         }
@@ -83,6 +152,70 @@ struct ExperienceRootView: View {
             if new == .capture { tab = .today; openCapture() }
         }
     }
+
+    // MARK: Phase 4 surfaces
+
+    @ViewBuilder private var eventBanner: some View {
+        if let b = banner {
+            LXInlineBanner(kind: .info, message: b.text, actionTitle: "Why?",
+                           action: { banner = nil; automationsFocus = AutomationsLaunch(focus: b.ruleID) },
+                           onDismiss: { banner = nil })
+                .padding(.horizontal, LX.Space.s400)
+                .padding(.top, LX.Space.s200)
+                .transition(.move(edge: .top).combined(with: .opacity))
+        }
+    }
+
+    private var morningBrief: String? {
+        guard Calendar.current.component(.hour, from: Date()) < 12, let snap = intelligence.latest else { return nil }
+        return Briefs.morning(snap)
+    }
+
+    private var eveningRecap: String? {
+        guard Calendar.current.component(.hour, from: Date()) >= 19, let snap = intelligence.latest, let today = snap.today, today.hasFood else { return nil }
+        let perfect = store.todayScore == 4
+        return Briefs.eveningRecap(today, perfectDay: perfect)
+    }
+
+    /// The review card shows on Sundays and Mondays; You → Weekly review always works when there's enough data.
+    private var weeklyReviewAvailable: Bool {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        return (weekday == 1 || weekday == 2) && currentReview() != nil
+    }
+
+    private func currentReview() -> WeeklyReview? {
+        intelligence.latest.flatMap(WeeklyReview.make)
+    }
+
+    private func openWeeklyReview() {
+        if let r = currentReview() { weeklyReview = ReviewLaunch(review: r) }
+    }
+
+    private func openAssistant(context: String?, listening: Bool = false) {
+        showCapture = false
+        assistant = AssistantLaunch(context: context, listening: listening)
+    }
+
+    private func handle(_ route: IntelligenceStore.Route) {
+        intelligence.pendingRoute = nil
+        switch route {
+        case .weeklyReview: openWeeklyReview()
+        case .recap, .today: tab = .today
+        case .automation(let id): automationsFocus = AutomationsLaunch(focus: id)
+        case .logPreset(let id):
+            tab = .today
+            logPreset(id)
+        }
+    }
+
+    private func afterDismiss(_ action: @escaping @MainActor () -> Void) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            action()
+        }
+    }
+
+    // MARK: Phase 3
 
     private func openCapture(typing: Bool = false, slot: ExperienceMealSlot? = nil) {
         captureStartsTyping = typing

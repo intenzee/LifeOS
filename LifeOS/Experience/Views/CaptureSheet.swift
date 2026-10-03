@@ -9,6 +9,8 @@ struct CaptureSheet: View {
     var initialSlot: ExperienceMealSlot? = nil
     var onLogged: (_ ids: [UUID], _ kcal: Double, _ protein: Double) -> Void
     var onRoute: (LegacyCaptureRoute) -> Void
+    /// Phase 4: "Ask" switches to the assistant.
+    var onAsk: (() -> Void)? = nil
 
     private enum Stage: Equatable {
         case input
@@ -195,7 +197,7 @@ struct CaptureSheet: View {
         }
     }
 
-    private var modeRow: some View {
+    @ViewBuilder private var modeRow: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: LX.Space.s200), count: 5), spacing: LX.Space.s200) {
             modeButton("Photo", "camera.fill") { onRoute(.photo) }
             modeButton("Scan", "barcode.viewfinder") { onRoute(.barcode) }
@@ -206,6 +208,12 @@ struct CaptureSheet: View {
             }
             .disabled(!store.isToday)
             modeButton("Weight", "scalemass.fill", role: .dataWeight) { showWeight = true }
+        }
+        if let onAsk {
+            Button { speech.cancel(); onAsk() } label: {
+                Label("Ask LifeOS instead", systemImage: "sparkles").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.lx(.plain))
         }
     }
 

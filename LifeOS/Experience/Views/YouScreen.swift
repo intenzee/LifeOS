@@ -4,6 +4,11 @@ import SwiftUI
 /// Settings, Profile and Todo screens (which Phase 3 does not redesign yet).
 struct YouScreen: View {
     @ObservedObject var store: ExperienceStore
+    // Phase 4 doors
+    var onMemory: () -> Void = {}
+    var onAutomations: () -> Void = {}
+    var onPrivacy: () -> Void = {}
+    var onWeeklyReview: (() -> Void)? = nil
     @AppStorage("lx.newExperience") private var newExperience = true
     @Environment(\.lxTheme) private var theme
 
@@ -107,6 +112,16 @@ struct YouScreen: View {
 
     private var more: some View {
         VStack(spacing: 0) {
+            row("What LifeOS knows", "brain.head.profile") { onMemory() }
+            Rectangle().fill(.lx(.separator)).frame(height: 0.5)
+            row("Automations", "bolt.badge.clock") { onAutomations() }
+            Rectangle().fill(.lx(.separator)).frame(height: 0.5)
+            row("AI and privacy", "lock.shield") { onPrivacy() }
+            Rectangle().fill(.lx(.separator)).frame(height: 0.5)
+            if let onWeeklyReview {
+                row("Weekly review", "book.pages") { onWeeklyReview() }
+                Rectangle().fill(.lx(.separator)).frame(height: 0.5)
+            }
             row("Profile and health details", "person.text.rectangle") { showProfile = true }
             Rectangle().fill(.lx(.separator)).frame(height: 0.5)
             row("Settings", "gearshape") { showSettings = true }

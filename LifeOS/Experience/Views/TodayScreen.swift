@@ -7,6 +7,11 @@ struct TodayScreen: View {
     var onCapture: () -> Void
     var onBudget: () -> Void
     var onNextUp: (ExperienceNextUp.Action) -> Void
+    // Phase 4
+    var onAsk: () -> Void = {}
+    var brief: String? = nil
+    var recap: String? = nil
+    var onWeeklyReview: (() -> Void)? = nil
 
     @State private var showCalendar = false
     @State private var showWeight = false
@@ -16,8 +21,21 @@ struct TodayScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: LX.Space.s500) {
                 LXDateScroller(date: dayBinding, onCalendar: { showCalendar = true })
+                    .overlay(alignment: .topTrailing) {
+                        // "Ask" glass chip (Phase 3 §3.1 header, Phase 4 §4.1 entry point).
+                        Button(action: onAsk) { LXChip(title: "Ask", systemImage: "sparkles", kind: .suggestion) }
+                            .buttonStyle(.plain)
+                            .padding(.trailing, LX.Space.minTouchTarget + LX.Space.s200)
+                            .accessibilityLabel("Ask LifeOS about today")
+                    }
                 hero
-                if let next = store.nextUp { nextUpCard(next) }
+                if let next = store.nextUp {
+                    nextUpCard(next)
+                } else if store.isToday, let brief {
+                    briefCard(brief)
+                }
+                if store.isToday, let recap { recapCard(recap) }
+                if store.isToday, let onWeeklyReview { weeklyCard(onWeeklyReview) }
                 metrics
                 timeline
                 plan
@@ -79,6 +97,43 @@ struct TodayScreen: View {
     }
 
     // MARK: Next up
+
+    private func briefCard(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: LX.Space.s300) {
+            Image(systemName: "sun.horizon").foregroundStyle(.lx(.accentPrimary))
+            Text(text).lxFont(.callout).foregroundStyle(.lx(.textPrimary)).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .lxCard(padding: LX.Space.s400)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Morning brief. \(text)")
+    }
+
+    private func recapCard(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: LX.Space.s200) {
+            Text("Evening recap").lxFont(.footnote, weight: .semibold).foregroundStyle(.lx(.textSecondary)).textCase(.uppercase)
+            Text(text).lxFont(.callout, numeric: true).foregroundStyle(.lx(.textPrimary)).fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .lxCard(padding: LX.Space.s400)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func weeklyCard(_ open: @escaping () -> Void) -> some View {
+        Button(action: open) {
+            HStack(spacing: LX.Space.s300) {
+                Image(systemName: "book.pages").font(.title3).foregroundStyle(.lx(.accentPrimary))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your weekly review").lxFont(.headline).foregroundStyle(.lx(.textPrimary))
+                    Text("The week in a few pages").lxFont(.footnote).foregroundStyle(.lx(.textSecondary))
+                }
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(.lx(.textTertiary))
+            }
+            .lxCard(padding: LX.Space.s400)
+        }
+        .buttonStyle(.plain)
+    }
 
     private func nextUpCard(_ next: ExperienceNextUp) -> some View {
         LXAdaptiveStack(spacing: LX.Space.s300) {
