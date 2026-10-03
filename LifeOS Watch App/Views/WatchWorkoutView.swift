@@ -44,12 +44,13 @@ struct WatchWorkoutView: View {
                     .lineLimit(1)
                 Text(exercise.bodyPart)
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WatchTheme.secondary)
             }
             Spacer()
             Text("\(exercise.setsCompleted)/\(exercise.maxSets)")
                 .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(exercise.setsCompleted >= exercise.maxSets ? WatchTheme.accent : .primary)
+                .monospacedDigit()
+                .foregroundStyle(exercise.setsCompleted >= exercise.maxSets ? WatchTheme.onTrack : .primary)
         }
     }
 }
@@ -84,27 +85,38 @@ struct WatchExercisePickerView: View {
     }
 }
 
-// MARK: - Live set tracking
+// MARK: - Live set tracking (UI/UX Phase 5 §2)
 
+/// Large rep counter, set dots, current exercise, elapsed time and the auto
+/// set-tracking state. Rep counting only works while this screen is on, so the
+/// screen says so, and "Log set" is a big fallback.
 struct WatchSetTrackingView: View {
     @ObservedObject var session: WatchSessionManager
     let exercise: WatchExercise
 
     @StateObject private var tracker = AutoSetTracker()
     @State private var started = false
+    @State private var startedAt: Date?
 
     private var isComplete: Bool { tracker.setsCompleted >= exercise.maxSets }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 header
-                setsRing
+                counter
+                setDots
                 if started { liveMeter }
                 controls
+                if started {
+                    Label("Keep this screen open while you lift", systemImage: "applewatch.radiowaves.left.and.right")
+                        .font(.system(size: 11))
+                        .foregroundStyle(WatchTheme.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
             .padding(.horizontal, 6)
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
         }
         .navigationTitle(exercise.bodyPart)
         .onAppear { configureTracker() }
@@ -114,42 +126,57 @@ struct WatchSetTrackingView: View {
     private var header: some View {
         VStack(spacing: 2) {
             Text(exercise.displayName)
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 15, weight: .semibold))
                 .multilineTextAlignment(.center)
-            Text(phaseLabel)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                .lineLimit(2)
+            HStack(spacing: 6) {
+                Text(phaseLabel).foregroundStyle(tracker.phase == .active ? WatchTheme.energy : WatchTheme.secondary)
+                if let startedAt {
+                    Text(startedAt, style: .timer).monospacedDigit().foregroundStyle(WatchTheme.secondary)
+                }
+            }
+            .font(.system(size: 11, weight: .medium))
         }
     }
 
-    private var setsRing: some View {
-        RingView(progress: Double(tracker.setsCompleted) / Double(max(exercise.maxSets, 1)),
-                 color: isComplete ? WatchTheme.accent : WatchTheme.burn, lineWidth: 9) {
-            VStack(spacing: 0) {
-                Text("\(tracker.setsCompleted)/\(exercise.maxSets)")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                Text("sets").font(.system(size: 10)).foregroundStyle(.secondary)
-                if started {
-                    Text("\(tracker.reps) reps")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(WatchTheme.accent)
-                }
+    private var counter: some View {
+        VStack(spacing: 0) {
+            Text("\(started ? tracker.reps : tracker.lastSetReps)")
+                .font(WatchTheme.number(52))
+                .foregroundStyle(tracker.phase == .active ? WatchTheme.energy : .primary)
+                .contentTransition(.numericText())
+            Text(started ? "reps" : (tracker.lastSetReps > 0 ? "reps last set" : "reps"))
+                .font(.system(size: 11)).foregroundStyle(WatchTheme.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(started ? tracker.reps : tracker.lastSetReps) reps")
+    }
+
+    private var setDots: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<max(exercise.maxSets, 1), id: \.self) { i in
+                Circle()
+                    .fill(i < tracker.setsCompleted ? (isComplete ? WatchTheme.onTrack : WatchTheme.energy) : WatchTheme.card)
+                    .overlay(Circle().strokeBorder(WatchTheme.energy.opacity(0.5), lineWidth: 1))
+                    .frame(width: 12, height: 12)
             }
         }
-        .frame(width: 108, height: 108)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Set \(min(tracker.setsCompleted, exercise.maxSets)) of \(exercise.maxSets)")
     }
 
     private var liveMeter: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.12))
-                Capsule().fill(WatchTheme.burn)
+                Capsule().fill(WatchTheme.energy)
                     .frame(width: geo.size.width * tracker.motionLevel)
                     .animation(.easeOut(duration: 0.15), value: tracker.motionLevel)
             }
         }
-        .frame(height: 6)
+        .frame(height: 5)
         .padding(.horizontal, 4)
+        .accessibilityHidden(true)
     }
 
     private var controls: some View {
@@ -157,35 +184,43 @@ struct WatchSetTrackingView: View {
             if isComplete {
                 Label("Exercise complete", systemImage: "checkmark.seal.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(WatchTheme.accent)
+                    .foregroundStyle(WatchTheme.onTrack)
             }
-
-            Button {
-                started ? tracker.stop() : tracker.start(initialSets: exercise.setsCompleted)
-                started.toggle()
-            } label: {
-                Label(started ? "Stop Auto-Track" : "Start Auto-Track",
-                      systemImage: started ? "stop.fill" : "play.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(started ? .red : WatchTheme.accent)
 
             Button {
                 tracker.manualAddSet()
             } label: {
-                Label("Log Set Manually", systemImage: "plus")
+                Label("Log set", systemImage: "plus")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(WatchTheme.energy)
+            .disabled(isComplete)
+
+            Button {
+                if started {
+                    tracker.stop()
+                    startedAt = nil
+                } else {
+                    tracker.start(initialSets: exercise.setsCompleted)
+                    startedAt = Date()
+                }
+                started.toggle()
+            } label: {
+                Label(started ? "Stop counting" : "Count reps for me",
+                      systemImage: started ? "stop.fill" : "waveform.path.ecg")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(isComplete)
+            .tint(started ? WatchTheme.over : WatchTheme.accent)
         }
     }
 
     private var phaseLabel: String {
         switch tracker.phase {
-        case .idle: return started ? "Ready" : "Tap start to auto-count sets"
-        case .active: return "Working set…"
+        case .idle: return started ? "Counting…" : "Ready"
+        case .active: return "Counting…"
         case .resting: return "Resting"
         }
     }
@@ -197,6 +232,7 @@ struct WatchSetTrackingView: View {
             if total >= exercise.maxSets {
                 tracker.stop()
                 started = false
+                startedAt = nil
             }
         }
     }
