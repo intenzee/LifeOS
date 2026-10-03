@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import LifeOSHealth
 
 struct AppDependencies {
     let healthManager: HealthManager
@@ -44,8 +45,23 @@ struct AppDependencies {
     }
 }
 
+/// Starts HealthKit observers in `didFinishLaunching`, before any UI: a
+/// background-delivery wake launches the app without a scene (WCH-04).
+final class LifeOSAppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("UITEST_MEALRESULT") { return true }
+        #endif
+        MainActor.assumeIsolated { HealthSync.shared.start() }
+        return true
+    }
+}
+
 @main
 struct LifeOSApp: App {
+    @UIApplicationDelegateAdaptor(LifeOSAppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
     private let dependencies = AppDependencies()
     @StateObject private var store = LocalStore.shared
 
@@ -79,6 +95,10 @@ struct LifeOSApp: App {
             }
             // The design direction chosen in Settings → Direction Lab.
             .modifier(LXDirectionRoot())
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Foreground trigger (WCH-05). Background delivery is best-effort.
+            if phase == .active, store.phase == .ready { HealthSync.shared.syncInBackground(.foreground) }
         }
     }
 }

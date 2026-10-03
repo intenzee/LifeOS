@@ -8,6 +8,8 @@ final class CalorieSettings {
 
     func savePercentage(_ percentage: Double) {
         UserDefaults.standard.set(percentage, forKey: percentageKey)
+        // The calorie engine reads EnergySettings (CAL-05); this key is kept for rollback.
+        Task { @MainActor in HealthSync.shared.updateSettings { $0.eatBack = percentage } }
     }
 
     func loadPercentage() -> Double {
@@ -41,12 +43,15 @@ final class CalorieLimitSettings {
     func saveAutoLimit(_ limit: Double) {
         UserDefaults.standard.set(limit, forKey: limitKey)
         UserDefaults.standard.set(false, forKey: manualKey)
+        Task { @MainActor in HealthSync.shared.updateSettings { $0.manualTarget = nil } }
     }
 
     /// Persists a user-entered custom target and disables auto-tracking.
     func saveManualLimit(_ limit: Double) {
         UserDefaults.standard.set(limit, forKey: limitKey)
         UserDefaults.standard.set(true, forKey: manualKey)
+        // A typed target is fixed mode: no exercise credit (doc 03 §3.1).
+        Task { @MainActor in HealthSync.shared.updateSettings { $0.manualTarget = limit } }
     }
 
     /// Legacy entry point — treated as an auto (profile-derived) save.

@@ -7,8 +7,8 @@ final class NotificationService {
 
     func requestPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error { print("🔔 Notification permission error: \(error)") }
-            else { print("🔔 Notification permission granted: \(granted)") }
+            if let error { Log.automation.error("Notification permission error: \(error.localizedDescription, privacy: .public)") }
+            else { Log.automation.info("Notification permission granted: \(granted)") }
         }
     }
 
@@ -24,8 +24,8 @@ final class NotificationService {
         let request = UNNotificationRequest(identifier: todo.id.uuidString, content: content, trigger: trigger)
 
         UNUserNotificationCenter.current().add(request) { error in
-            if let error { print("❌ Reminder error: \(error)") }
-            else { print("✅ Reminder set for \(date)") }
+            if let error { Log.automation.error("Reminder scheduling failed: \(error.localizedDescription, privacy: .public)") }
+            else { Log.automation.info("Reminder set for \(date, privacy: .private)") }
         }
     }
 

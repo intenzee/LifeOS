@@ -376,7 +376,6 @@ struct GymWeekView: View {
                 // Treadmill toggle
                 Button(action: {
                     workoutDatabase.toggleTreadmillForDay(selectedDay, durationMinutes: workout.treadmillDuration)
-                    syncWorkoutToAppleHealth(day: selectedDay)
                 }) {
                     Image(systemName: workout.treadmillDone ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 22))
@@ -472,7 +471,6 @@ struct GymWeekView: View {
             // Set cycle button
             Button(action: {
                 workoutDatabase.cycleExerciseSetsForDay(selectedDay, exerciseId: exercise.id)
-                syncWorkoutToAppleHealth(day: selectedDay)
             }) {
                 intensityBadge(for: exercise)
             }
@@ -480,7 +478,6 @@ struct GymWeekView: View {
             // Delete
             Button(action: {
                 workoutDatabase.deleteExerciseForDay(selectedDay, exerciseId: exercise.id)
-                syncWorkoutToAppleHealth(day: selectedDay)
             }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))
@@ -625,7 +622,6 @@ struct GymWeekView: View {
                 Button(action: {
                     let newExercise = Exercise(bodyPart: selectedBodyPart, setsCompleted: 0, maxSets: selectedMaxSets)
                     workoutDatabase.addExerciseForDay(selectedDay, exercise: newExercise)
-                    syncWorkoutToAppleHealth(day: selectedDay)
                     showAddExercise = false
                 }) {
                     Text("Add Exercise")
@@ -717,7 +713,6 @@ struct GymWeekView: View {
                     }
                     workoutDatabase.allDailyWorkouts[dateKey] = workout
                     workoutDatabase.saveAllWorkoutsPublic()
-                    syncWorkoutToAppleHealth(day: selectedDay)
                     showTreadmillTimePicker = false
                 }) {
                     Text("Log Workout")
@@ -737,14 +732,6 @@ struct GymWeekView: View {
         }
     }
 
-    // MARK: - Helpers
-    private func syncWorkoutToAppleHealth(day: String) {
-        let workout = workoutDatabase.loadWorkoutForDay(day)
-        let totalBurned = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
-        if day == currentDay && healthManager.isAuthorized {
-            healthManager.saveWorkoutCalories(totalBurned)
-        }
-    }
 }
 
 // MARK: - Weight Picker (unchanged)

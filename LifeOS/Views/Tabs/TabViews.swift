@@ -736,7 +736,6 @@ struct StatsView: View {
 struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("appTheme") private var appThemeRaw = AppTheme.system.rawValue
-    @State private var caloriePercentage: Double
     @State private var dailyCalorieLimit: Double
     @State private var smokingEnabled: Bool
     @State private var showLimitPicker = false
@@ -745,7 +744,6 @@ struct SettingsView: View {
     @State private var showAIDiagnostics = false
 
     init() {
-        _caloriePercentage = State(initialValue: CalorieSettings.shared.loadPercentage())
         _dailyCalorieLimit = State(initialValue: CalorieLimitSettings.shared.loadLimit())
         _smokingEnabled = State(initialValue: SmokingSettings.shared.loadSmokingEnabled())
     }
@@ -775,7 +773,8 @@ struct SettingsView: View {
                         themeCard
                         healthProfileCard
                         calorieLimitCard
-                        calorieBankCard
+                        EnergySettingsCard()
+                        SaveToHealthCard()
                         smokingCard
                         if AIDiagnosticsView.isEnabled {
                             aiDiagnosticsCard
@@ -919,7 +918,7 @@ struct SettingsView: View {
                 .font(.headline)
                 .foregroundColor(palette.textPrimary)
 
-            Text("Set your baseline daily calorie budget (before workout adjustments)")
+            Text("Auto follows your profile and adds Apple Watch exercise. A custom target stays fixed all day.")
                 .font(.caption)
                 .foregroundColor(palette.textSecondary)
 
@@ -932,7 +931,7 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(palette.textSecondary)
 
-                        Text("\(Int(dailyCalorieLimit)) calories")
+                        Text("\(Int(CalorieLimitSettings.shared.isManual ? dailyCalorieLimit : HealthSync.shared.budget())) calories")
                             .font(.title3)
                             .fontWeight(.bold)
                             .foregroundColor(palette.primaryAccent)
@@ -949,42 +948,6 @@ struct SettingsView: View {
                         .fill(palette.elevatedSurface)
                 )
             }
-        }
-        .padding()
-        .glassCard(cornerRadius: 20, elevation: 0.5)
-    }
-
-    private var calorieBankCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Metabolic Intensity")
-                .font(.headline)
-                .foregroundColor(palette.textPrimary)
-
-            Text("Controls how much burned calories return to your daily target")
-                .font(.caption)
-                .foregroundColor(palette.textSecondary)
-
-            VStack(spacing: 10) {
-                intensityOptionButton(
-                    0.5,
-                    title: "Low",
-                    subtitle: "Slow add-back for a tighter deficit."
-                )
-                intensityOptionButton(
-                    0.75,
-                    title: "Medium",
-                    subtitle: "Balanced add-back for steady days."
-                )
-                intensityOptionButton(
-                    1.0,
-                    title: "High",
-                    subtitle: "Fast add-back to support hard training."
-                )
-            }
-
-            Text("Current: \(intensityLabel(for: caloriePercentage))")
-                .font(.caption)
-                .foregroundColor(palette.textSecondary)
         }
         .padding()
         .glassCard(cornerRadius: 20, elevation: 0.5)
@@ -1103,7 +1066,7 @@ struct SettingsView: View {
                     HStack {
                         Image(systemName: "sparkles")
                             .foregroundColor(palette.primaryAccent)
-                        Text("Recommended \(Int(recommended)) cal")
+                        Text("Automatic · \(Int(HealthSync.shared.budget())) cal today")
                             .font(.subheadline.weight(.bold))
                             .foregroundColor(palette.textPrimary)
                         Spacer()
@@ -1117,7 +1080,7 @@ struct SettingsView: View {
                         .font(.caption2)
                         .foregroundColor(palette.textSecondary)
                         .multilineTextAlignment(.leading)
-                    Text("Auto-updates when your weight or profile changes.")
+                    Text("Updates with your weight, profile and Apple Watch activity.")
                         .font(.caption2)
                         .foregroundColor(palette.textSecondary)
                 }
@@ -1155,54 +1118,6 @@ struct SettingsView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(dailyCalorieLimit == value ? palette.primaryAccent.opacity(0.2) : palette.elevatedSurface)
             )
-        }
-    }
-
-    func intensityOptionButton(_ value: Double, title: String, subtitle: String) -> some View {
-        Button(action: {
-            caloriePercentage = value
-            CalorieSettings.shared.savePercentage(value)
-        }) {
-            let isSelected = caloriePercentage == value
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(palette.textPrimary)
-
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundColor(palette.textSecondary)
-                }
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(palette.primaryAccent)
-                }
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? palette.primaryAccent.opacity(0.12) : palette.elevatedSurface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? palette.primaryAccent.opacity(0.4) : Color.clear, lineWidth: 1)
-            )
-        }
-    }
-
-    func intensityLabel(for value: Double) -> String {
-        switch value {
-        case 0.5:
-            return "Low"
-        case 0.75:
-            return "Medium"
-        default:
-            return "High"
         }
     }
 }

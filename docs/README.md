@@ -32,6 +32,7 @@ All planning and status documents, grouped by workstream. Each workstream has:
 | [00-MASTER-PLAN.md](engineering-roadmap/00-MASTER-PLAN.md) | Engineering master plan |
 | `01`–`10` | Squad plans: platform, watch, calorie engine, food logging, assistant, automation, AI backend, premium UI, security, quality and CI |
 | [P0-STATUS.md](engineering-roadmap/P0-STATUS.md) | **Phase 0 status**: LifeOSKit, data migration, watch contract |
+| [P1-STATUS.md](engineering-roadmap/P1-STATUS.md) | **Phase 1 status**: HealthKit ingestion, calorie engine budget, merge rules |
 | [adr/0001-persistence.md](adr/0001-persistence.md), [adr/0002-module-structure.md](adr/0002-module-structure.md) | Architecture decisions |
 
 ## Who owns which code

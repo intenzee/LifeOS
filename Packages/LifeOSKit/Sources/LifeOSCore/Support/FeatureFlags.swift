@@ -3,19 +3,20 @@ import Foundation
 /// Every user-visible P1+ feature ships behind one of these (FND-22).
 /// Raw values are the keys used by remote config (doc 07, BE-08).
 public enum FeatureFlag: String, CaseIterable, Sendable {
-    /// Write MET-estimated active energy to Apple Health. Off since FND-07:
-    /// it double-counted Activity rings. Doc 02 replaces it with HKWorkout writes.
-    case healthKitEstimatedEnergyWrite = "healthkit_estimated_energy_write"
-    /// HealthKit anchored workout/energy ingestion (doc 02, P1).
+    /// HealthKit anchored workout/energy ingestion (doc 02, P1). A kill switch:
+    /// off = no Health import, and the budget falls back to the MET estimate.
     case healthKitIngestion = "healthkit_ingestion"
+    /// Save LifeOS-only strength sessions to Apple Health as real `HKWorkout`s
+    /// (WCH-07, optional). Bare estimated energy samples are never written.
+    case healthKitWorkoutWrite = "healthkit_workout_write"
     /// Typed phone ↔ watch messages (FND-11). A kill switch: on by default.
     /// Off = the phone sends only legacy v1 dictionaries.
     case typedWatchContract = "typed_watch_contract"
 
     public var defaultValue: Bool {
         switch self {
-        case .typedWatchContract: return true
-        case .healthKitEstimatedEnergyWrite, .healthKitIngestion: return false
+        case .typedWatchContract, .healthKitIngestion: return true
+        case .healthKitWorkoutWrite: return false
         }
     }
 }

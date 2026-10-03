@@ -40,6 +40,7 @@ struct LaunchGate: View {
             }
         }
         .task {
+            Diagnostics.shared.start()
             await store.bootstrap()
             // The watch may have connected before data was loaded. Push a real snapshot.
             if store.phase == .ready { dependencies.watchConnectivity.sendSnapshot() }

@@ -9,7 +9,8 @@ let package = Package(
     products: [
         .library(name: "LifeOSCore", targets: ["LifeOSCore"]),
         .library(name: "LifeOSData", targets: ["LifeOSData"]),
-        .library(name: "LifeOSConnectivity", targets: ["LifeOSConnectivity"])
+        .library(name: "LifeOSConnectivity", targets: ["LifeOSConnectivity"]),
+        .library(name: "LifeOSHealth", targets: ["LifeOSHealth"])
     ],
     targets: [
         // Pure Swift: models, calculators, DayKey. Foundation + os only. Safe on watchOS.
@@ -19,10 +20,13 @@ let package = Package(
                 resources: [.process("PrivacyInfo.xcprivacy")]),
         // Typed, versioned phone <-> watch contract.
         .target(name: "LifeOSConnectivity", dependencies: ["LifeOSCore"]),
+        // HealthKit ingestion (doc 02). The service is tested against a fake client.
+        .target(name: "LifeOSHealth", dependencies: ["LifeOSCore", "LifeOSData"]),
 
         .testTarget(name: "LifeOSCoreTests", dependencies: ["LifeOSCore"]),
         .testTarget(name: "LifeOSDataTests", dependencies: ["LifeOSData"]),
-        .testTarget(name: "LifeOSConnectivityTests", dependencies: ["LifeOSConnectivity"])
+        .testTarget(name: "LifeOSConnectivityTests", dependencies: ["LifeOSConnectivity"]),
+        .testTarget(name: "LifeOSHealthTests", dependencies: ["LifeOSHealth"])
     ],
     swiftLanguageModes: [.v6]
 )

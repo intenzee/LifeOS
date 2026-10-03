@@ -75,4 +75,35 @@ struct WatchContractTests {
         #expect(snapshot.todosCompleted == 1)
         #expect(WatchSnapshot.empty(day: day).calorieProgress == 0)
     }
+
+    @Test func v2AdditionsRoundTripAndOlderPayloadsStillDecode() throws {
+        var snapshot = WatchSnapshot.empty(day: DayKey("2026-10-03")!)
+        snapshot.budgetMode = "measured"
+        snapshot.activeKcal = 640
+        snapshot.earnedKcal = 190
+        snapshot.proteinG = 82
+        snapshot.proteinTargetG = 125
+        snapshot.presets = [.init(id: "usual-breakfast", name: "Usual breakfast", kcal: 420, proteinG: 24)]
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        snapshot.workoutsToday = [.init(WorkoutSession(dayKey: snapshot.day, start: start,
+                                                       end: start.addingTimeInterval(1800), kind: .run,
+                                                       activeEnergyKcal: 310, source: .watch))]
+        let decoded = try WatchWire.decodeSnapshot(try WatchWire.encode(snapshot))
+        #expect(decoded == snapshot)
+        #expect(decoded.workoutsToday?.first?.minutes == 30)
+        #expect(decoded.workoutsToday?.first?.sourceBadge == "Apple Watch")
+
+        // A payload written before WCH-16 has none of the new keys.
+        var old = try JSONSerialization.jsonObject(with: JSONEncoder().encode(WatchSnapshot.empty(day: snapshot.day))) as! [String: Any]
+        old.removeValue(forKey: "budgetMode")
+        let legacy = try JSONDecoder().decode(WatchSnapshot.self, from: JSONSerialization.data(withJSONObject: old))
+        #expect(legacy.workoutsToday == nil)
+    }
+
+    @Test func workoutEndedMutationRoundTrips() throws {
+        for mutation in [WatchMutation.workoutEnded(day: DayKey("2026-10-03")!),
+                         .logPreset(id: "usual-breakfast", day: DayKey("2026-10-03")!)] {
+            #expect(try WatchWire.decodeMutation(try WatchWire.encode(mutation)) == mutation)
+        }
+    }
 }

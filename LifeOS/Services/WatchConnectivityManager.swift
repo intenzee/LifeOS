@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import LifeOSConnectivity
+import LifeOSHealth
 #if canImport(WatchConnectivity)
 import WatchConnectivity
 #endif
@@ -72,13 +73,14 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         let currentWeight = persistence.loadCurrentWeight()
         let todayLog = foodDatabase.dailyLog(for: Date())
         let workout = workoutDatabase.workout(on: today)
-        let burned = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
-        let adjustedLimit = CalorieLimitSettings.shared.loadLimit() + burned * CalorieSettings.shared.loadPercentage()
+        // One budget everywhere (CAL-03): the engine's stored number for today.
+        let health = HealthSync.shared
+        let burned = health.exerciseKcal(on: today)
 
-        return LifeOSConnectivity.WatchSnapshot(
+        var snapshot = LifeOSConnectivity.WatchSnapshot(
             day: today,
             caloriesConsumed: todayLog.totalCalories(),
-            calorieLimit: adjustedLimit,
+            calorieLimit: health.budget(on: today),
             caloriesBurned: burned,
             waterGlasses: persistence.loadWaterCount(for: Date()),
             waterTarget: persistence.loadUserProfile()?.waterGoalGlasses ?? 8,
@@ -89,6 +91,12 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             todos: persistence.todos(on: Date()).map { .init(id: $0.id, title: $0.title, done: $0.isCompleted) },
             exercises: workout.exercises
         )
+        // WCH-16 additions.
+        snapshot.budgetMode = health.energyByDay[today]?.budgetMode.map { String(describing: $0) }
+        snapshot.activeKcal = health.activeKcal(on: today)
+        snapshot.workoutsToday = health.todaySessions.map(LifeOSConnectivity.WatchSnapshot.Workout.init)
+        snapshot.earnedKcal = health.todayBreakdown?.credit
+        return snapshot
     }
 
     /// The application-context dictionary: legacy v1 keys plus, unless the
@@ -182,6 +190,12 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             workoutDatabase.updateWorkout(on: day) {
                 $0.exercises.append(Exercise(bodyPart: bodyPart, name: name, maxSets: maxSets))
             }
+        case .workoutEnded:
+            // The watch saved an HKWorkout: pull it in now (WCH-05).
+            HealthSync.shared.syncInBackground(.watchWorkoutEnded)
+        case .logPreset:
+            // Wired by UI/UX Phase 5 to the same preset path Siri uses.
+            Log.watch.notice("logPreset from watch is not handled in this build")
         }
     }
 

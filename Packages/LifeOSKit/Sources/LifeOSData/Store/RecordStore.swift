@@ -89,6 +89,31 @@ public actor RecordStore<R: DayRecord> {
         bus?.publish(StoreChange(collection: R.collection, days: changedDays))
     }
 
+    /// Read-modify-write of one record, atomic with respect to other writers of
+    /// this collection (it runs entirely on the actor). Writes, and publishes a
+    /// change, only when the record actually changed. Returns the stored value.
+    @discardableResult
+    public func update(id: R.ID, on day: DayKey, default make: () -> R, _ mutate: (inout R) -> Void) throws -> R
+    where R: Equatable {
+        let existing = try record(id: id, on: day)
+        var value = existing ?? make()
+        mutate(&value)
+        if value != existing { try upsert(value) }
+        return value
+    }
+
+    /// Replaces every record on `day` with `records` in one write. Publishes
+    /// only when something changed.
+    public func replaceAll(on day: DayKey, with records: [R]) throws where R: Equatable {
+        precondition(records.allSatisfy { $0.dayKey == day }, "replaceAll records must be on \(day)")
+        let current = try month(day.monthKey)
+        let others = current.filter { $0.dayKey != day }
+        let existing = current.filter { $0.dayKey == day }
+        guard existing != records else { return }
+        try persist(others + records, monthKey: day.monthKey)
+        bus?.publish(StoreChange(collection: R.collection, days: [day]))
+    }
+
     /// Removes the record. Returns `false` if it wasn't there.
     @discardableResult
     public func delete(id: R.ID, on day: DayKey) throws -> Bool {
