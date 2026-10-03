@@ -57,6 +57,8 @@ struct LifeOSApp: App {
         dependencies.notificationService.requestPermission()
         dependencies.watchConnectivity.activate()
         AIServices.shared.start()
+        // UI/UX Phase 4: actionable automation notifications (set before launch finishes).
+        ExperienceNotifications.shared.install()
     }
 
     var body: some Scene {

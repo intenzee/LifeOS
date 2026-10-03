@@ -50,8 +50,8 @@ final class ExperienceStore: ObservableObject {
             .store(in: &bag)
     }
 
-    private var food: FoodDatabaseManager { dependencies.foodDatabase }
-    private var workouts: WorkoutDatabaseManager { dependencies.workoutDatabase }
+    var food: FoodDatabaseManager { dependencies.foodDatabase }
+    var workouts: WorkoutDatabaseManager { dependencies.workoutDatabase }
     var health: HealthManager { dependencies.healthManager }
 
     // MARK: - Day
