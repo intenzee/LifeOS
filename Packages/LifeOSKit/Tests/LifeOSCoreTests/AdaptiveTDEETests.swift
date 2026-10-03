@@ -67,7 +67,7 @@ struct AdaptiveTDEETests {
 
     @Test func accurateLoggerRecoversTheTrueExpenditure() {
         let result = estimate(persona(trueTDEE: 2400, eaten: 1900, logged: 1900))
-        #expect(result.status == .ok)
+        #expect(result.status == .estimated)
         #expect(abs(result.observedKcal! - 2400) < 25)
         #expect(result.trendDeltaKg! < 0)
         #expect(result.weight == AdaptiveTDEE.maxWeight)   // every day logged and weighed
@@ -79,20 +79,20 @@ struct AdaptiveTDEETests {
     /// limit of the method, and why CAL-12 rate-limits and announces changes.
     @Test func underLoggerReadsLowByTheUnloggedAmount() {
         let result = estimate(persona(trueTDEE: 2400, eaten: 1900, logged: 1500))
-        #expect(result.status == .ok)
+        #expect(result.status == .estimated)
         #expect(abs(result.observedKcal! - 2000) < 25)
     }
 
     @Test func waterNoiseIsSmoothedAway() {
         let noisy = persona(trueTDEE: 2400, eaten: 1900, logged: 1900, noise: { $0 % 2 == 0 ? 1.0 : -1.0 })
         let result = estimate(noisy)
-        #expect(result.status == .ok)
+        #expect(result.status == .estimated)
         #expect(abs(result.observedKcal! - 2400) < 100)
     }
 
     @Test func sparseWeighInsLowerTheBlendWeight() {
         let result = estimate(persona(trueTDEE: 2400, eaten: 1900, logged: 1900, weighs: { $0 % 3 == 0 }))
-        #expect(result.status == .ok)
+        #expect(result.status == .estimated)
         #expect(result.weight < AdaptiveTDEE.maxWeight)
         #expect(result.weight > 0.5)
     }

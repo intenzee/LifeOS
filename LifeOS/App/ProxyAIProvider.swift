@@ -94,38 +94,22 @@ nonisolated struct ProxyAIProvider: AIProvider {
 
     /// `choices[0].delta.content` of a streamed chunk.
     static func delta(in payload: String) -> String? {
-        struct Chunk: Decodable {
-            struct Choice: Decodable {
-                struct Delta: Decodable { let content: String? }
-                let delta: Delta?
-            }
-            let choices: [Choice]
-        }
-        return (try? JSONDecoder().decode(Chunk.self, from: Data(payload.utf8)))?.choices.first?.delta?.content
+        (try? JSONDecoder().decode(CompletionChunk.self, from: Data(payload.utf8)))?.choices.first?.delta?.content
     }
 
     /// A refusal or a content-filter stop, in a completion or a streamed chunk.
     /// Mapped to `.guardrail` so the gateway doesn't hand the same request to
     /// the next provider (unless the task allows it).
     static func isGuardrailStop(_ body: Data) -> Bool {
-        struct Payload: Decodable {
-            struct Choice: Decodable {
-                struct Message: Decodable { let refusal: String? }
-                let message: Message?
-                let delta: Message?
-                let finishReason: String?
-                enum CodingKeys: String, CodingKey {
-                    case message, delta
-                    case finishReason = "finish_reason"
-                }
-            }
-            let choices: [Choice]
+        guard let choice = (try? JSONDecoder().decode(CompletionChunk.self, from: body))?.choices.first else {
+            return false
         }
-        guard let choice = (try? JSONDecoder().decode(Payload.self, from: body))?.choices.first else { return false }
         let refusal = choice.message?.refusal ?? choice.delta?.refusal
         return choice.finishReason == "content_filter" || !(refusal ?? "").isEmpty
     }
 
+    // One case per `LifeOSAPIError`: splitting the switch would only hide that.
+    // swiftlint:disable:next cyclomatic_complexity
     static func aiError(_ error: Error, provider: ProviderID) -> AIError {
         if let error = error as? AIError { return error }
         guard let error = error as? LifeOSAPIError else {
@@ -147,6 +131,27 @@ nonisolated struct ProxyAIProvider: AIProvider {
         case .cancelled: return .cancelled
         }
     }
+}
+
+/// The parts of an OpenAI-compatible completion or streamed chunk the provider reads.
+nonisolated private struct CompletionChunk: Decodable {
+    struct Choice: Decodable {
+        let message: Message?
+        let delta: Message?
+        let finishReason: String?
+
+        enum CodingKeys: String, CodingKey {
+            case message, delta
+            case finishReason = "finish_reason"
+        }
+    }
+
+    struct Message: Decodable {
+        let content: String?
+        let refusal: String?
+    }
+
+    let choices: [Choice]
 }
 
 /// Where the proxy client comes from. Both settings are off until BE-09 deploys

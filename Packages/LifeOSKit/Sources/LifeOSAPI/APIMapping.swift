@@ -2,6 +2,24 @@ import Foundation
 
 // Wire formats and error mapping for `LifeOSAPIClient`.
 extension LifeOSAPIClient {
+    struct Request: Sendable {
+        var method: String
+        var path: String
+        var query: [URLQueryItem] = []
+        var body: Data?
+        var headers: [String: String] = [:]
+
+        static func get(_ path: String, query: [URLQueryItem] = []) -> Request {
+            Request(method: "GET", path: path, query: query)
+        }
+
+        static func post(_ path: String, _ body: Data, headers: [String: String] = [:]) -> Request {
+            Request(method: "POST", path: path, body: body, headers: headers)
+        }
+    }
+
+    // MARK: - Wire format
+
     /// Must match the proxy's `clientDataForRequest`: `METHOD\npath\ntimestamp\nsha256hex(body)`.
     static func clientData(method: String, path: String, timestamp: String, body: Data) -> Data {
         Data("\(method.uppercased())\n\(path)\n\(timestamp)\n\(Digest.sha256Hex(body))".utf8)

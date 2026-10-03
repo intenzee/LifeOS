@@ -51,21 +51,21 @@ final class ComplicationBridge {
 
 extension ComplicationSnapshot {
     /// From the phone's snapshot as the watch holds it. Values are copied, never derived.
-    init(_ s: WatchSnapshot, workoutActive: Bool, now: Date) {
-        let trained = !s.workoutsToday.isEmpty || s.exercises.contains { $0.setsCompleted > 0 }
-        self.init(day: DayKey(s.date) ?? .today(),
-                  budgetKcal: s.calorieLimit,
-                  eatenKcal: s.caloriesConsumed,
-                  earnedKcal: s.earnedKcal ?? 0,
-                  proteinG: s.proteinG,
-                  proteinTargetG: s.proteinTargetG,
-                  waterGlasses: s.waterCount,
-                  waterTarget: s.waterTarget,
-                  streak: s.perfectStreak,
+    init(_ watch: WatchSnapshot, workoutActive: Bool, now: Date) {
+        let trained = !watch.workoutsToday.isEmpty || watch.exercises.contains { $0.setsCompleted > 0 }
+        self.init(day: DayKey(watch.date) ?? .today(),
+                  budgetKcal: watch.calorieLimit,
+                  eatenKcal: watch.caloriesConsumed,
+                  earnedKcal: watch.earnedKcal ?? 0,
+                  proteinG: watch.proteinG,
+                  proteinTargetG: watch.proteinTargetG,
+                  waterGlasses: watch.waterCount,
+                  waterTarget: watch.waterTarget,
+                  streak: watch.perfectStreak,
                   trainedToday: trained || workoutActive,
                   workoutActive: workoutActive,
-                  trainingWindow: s.trainingWindow,
-                  preset: s.presets.first.map { Preset(name: $0.name, kcal: $0.kcal) },
+                  trainingWindow: watch.trainingWindow,
+                  preset: watch.presets.first.map { Preset(name: $0.name, kcal: $0.kcal) },
                   updatedAt: now)
     }
 }

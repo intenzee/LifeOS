@@ -24,15 +24,15 @@ public struct APIResponse: Sendable, Equatable {
 
     /// `choices[0].message.content`, the part callers usually want.
     public var content: String? {
-        struct Payload: Decodable {
-            struct Choice: Decodable {
-                struct Message: Decodable { let content: String? }
-                let message: Message
-            }
-            let choices: [Choice]
-        }
-        return (try? JSONDecoder().decode(Payload.self, from: body))?.choices.first?.message.content
+        (try? JSONDecoder().decode(CompletionBody.self, from: body))?.choices.first?.message.content
     }
+}
+
+/// `choices[].message.content` of a chat completion.
+private struct CompletionBody: Decodable {
+    struct Choice: Decodable { let message: Message }
+    struct Message: Decodable { let content: String? }
+    let choices: [Choice]
 }
 
 /// Typed failures. Every case leaves the app able to degrade: on-device

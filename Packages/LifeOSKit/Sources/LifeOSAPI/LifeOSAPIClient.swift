@@ -279,22 +279,6 @@ public actor LifeOSAPIClient {
 
     // MARK: - Requests
 
-    struct Request: Sendable {
-        var method: String
-        var path: String
-        var query: [URLQueryItem] = []
-        var body: Data?
-        var headers: [String: String] = [:]
-
-        static func get(_ path: String, query: [URLQueryItem] = []) -> Request {
-            Request(method: "GET", path: path, query: query)
-        }
-
-        static func post(_ path: String, _ body: Data, headers: [String: String] = [:]) -> Request {
-            Request(method: "POST", path: path, body: body, headers: headers)
-        }
-    }
-
     private func sendData(_ request: Request, _ creds: APICredentials) async throws -> (Data, HTTPURLResponse) {
         let work: @Sendable () async throws -> (Data, HTTPURLResponse) = {
             let (data, response) = try await self.raw(request, token: creds.token, signedBy: creds)

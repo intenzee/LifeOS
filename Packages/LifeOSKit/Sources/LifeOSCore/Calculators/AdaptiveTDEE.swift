@@ -63,7 +63,8 @@ public enum TrendWeight {
 /// What the adaptive estimator concluded (CAL-11).
 public struct TDEEEstimate: Sendable, Equatable {
     public enum Status: Sendable, Equatable {
-        case ok
+        /// Enough data: `observedKcal` is set and blended in.
+        case estimated
         /// Fewer than 14 qualifying days, or under 80% of the window.
         case notEnoughLoggedDays
         /// Fewer than 8 weigh-ins in the window.
@@ -76,10 +77,10 @@ public struct TDEEEstimate: Sendable, Equatable {
     }
 
     public let status: Status
-    /// `mean(intake) − Δtrend × 7700 / days`. `nil` unless `status == .ok`.
+    /// `mean(intake) − Δtrend × 7700 / days`. `nil` unless `status == .estimated`.
     public let observedKcal: Double?
     public let formulaKcal: Double
-    /// `w × observed + (1 − w) × formula`. The formula alone unless `status == .ok`.
+    /// `w × observed + (1 − w) × formula`. The formula alone unless `status == .estimated`.
     public let blendedKcal: Double
     /// `w`, from 0 to 0.8 with data quality.
     public let weight: Double
@@ -157,6 +158,6 @@ public enum AdaptiveTDEE {
         // Weighing every other day counts as full density.
         let density = min(Double(weighInDays.count) / (Double(window) * 0.5), 1)
         let blend = maxWeight * min(coverage, 1) * density
-        return result(.ok, observed: observed, weight: blend, delta: delta)
+        return result(.estimated, observed: observed, weight: blend, delta: delta)
     }
 }
