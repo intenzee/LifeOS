@@ -111,3 +111,49 @@ private enum Fx {
         #expect(late > Fx.date(8, 10) && late < Fx.date(8, 10, 2))
     }
 }
+
+@Suite struct AchievementTests {
+    private func days(_ range: ClosedRange<Int>, month: Int = 9) -> [Date] {
+        range.map { Fx.cal.date(from: DateComponents(year: 2026, month: month, day: $0))! }
+    }
+    private func week(_ startDay: Int, eaten: Double, budget: Double = 2000, logged: Int = 7) -> AchievementInputs.Week {
+        .init(start: Fx.cal.date(from: DateComponents(year: 2026, month: 8, day: startDay))!, avgEaten: eaten, avgBudget: budget, loggedDays: logged)
+    }
+
+    @Test func perfectRunsFindTheLongestAndWhenItWasReached() {
+        let d = days(1...3) + days(10...17) // 3, then 8 in a row
+        let r = Achievements.perfectRuns(d.shuffled(), calendar: Fx.cal)
+        #expect(r.longest == 8)
+        #expect(r.reached[7] == days(16...16)[0])
+    }
+
+    @Test func streakMedalsAndProgressText() {
+        let i = AchievementInputs(perfectDays: days(10...17), topPresetUses: 12, topPresetName: "Poha", trainingSessions: 50, weeks: [])
+        let p = Dictionary(uniqueKeysWithValues: Achievements.progress(i, calendar: Fx.cal).map { ($0.medal, $0) })
+        #expect(p[.firstWeek]!.earned)
+        #expect(!p[.month]!.earned && p[.month]!.text == "Best run so far: 8 of 30 days")
+        #expect(p[.ritual]!.text == "12 of 20 times")
+        #expect(p[.synced]!.earned)
+    }
+
+    @Test func balanceNeedsFourConsecutiveWeeksWithin5Percent() {
+        let ok = [week(3, eaten: 1950), week(10, eaten: 2080), week(17, eaten: 2000), week(24, eaten: 1910)]
+        #expect(Achievements.balanceRun(ok, calendar: Fx.cal).longest == 4)
+        var broken = ok
+        broken[2] = week(17, eaten: 2300) // 15% over
+        #expect(Achievements.balanceRun(broken, calendar: Fx.cal).longest == 2)
+        var thin = ok
+        thin[1] = week(10, eaten: 2000, logged: 2) // not enough logged days
+        #expect(Achievements.balanceRun(thin, calendar: Fx.cal).longest == 2)
+        let gap = [week(3, eaten: 2000), week(17, eaten: 2000)] // not consecutive
+        #expect(Achievements.balanceRun(gap, calendar: Fx.cal).longest == 1)
+    }
+
+    @Test func firstCheckCelebratesOnlyTheLatest() {
+        let i = AchievementInputs(perfectDays: days(1...8), topPresetUses: 25, topPresetName: nil, trainingSessions: 0, weeks: [])
+        let p = Achievements.progress(i, calendar: Fx.cal)
+        #expect(Achievements.newlyEarned(p, known: nil).count == 1)
+        #expect(Achievements.newlyEarned(p, known: [.firstWeek]) == [.ritual])
+        #expect(Achievements.newlyEarned(p, known: [.firstWeek, .ritual]).isEmpty)
+    }
+}

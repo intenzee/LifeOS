@@ -35,6 +35,9 @@ struct ExperienceRootView: View {
     @ObservedObject private var backup = BackupService.shared
     @State private var showData = false
     @State private var showRefreshHelp = false
+    @ObservedObject private var achievements = AchievementStore.shared
+    @State private var showAchievements = false
+    @State private var viewingMedal: Medal?
 
     struct AssistantLaunch: Identifiable { let id = UUID(); var context: String?; var listening: Bool }
     struct AutomationsLaunch: Identifiable { let id = UUID(); var focus: String? }
@@ -74,7 +77,8 @@ struct ExperienceRootView: View {
                               onPrivacy: { showPrivacy = true },
                               onWeeklyReview: currentReview() != nil ? { openWeeklyReview() } : nil,
                               onData: { showData = true },
-                              onRefreshHelp: { showRefreshHelp = true })
+                              onRefreshHelp: { showRefreshHelp = true },
+                              onAchievements: { showAchievements = true })
                 }
             }
             .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 76) } // last row clears the tab bar (audit A4)
@@ -90,6 +94,14 @@ struct ExperienceRootView: View {
                               onSaveCustom: { dependencies.foodDatabase.addCustomFood($0) })
         }
         .overlay(alignment: .top) { eventBanner }
+        .overlay {
+            if let medal = achievements.celebrating {
+                MedalEarningMoment(medal: medal,
+                                   onDone: { achievements.didCelebrate() },
+                                   onView: { achievements.didCelebrate(); viewingMedal = medal })
+                    .transition(.opacity)
+            }
+        }
         .sheet(isPresented: $showCapture) {
             CaptureSheet(store: store, startTyping: captureStartsTyping, initialSlot: captureSlot,
                          onLogged: { ids, kcal, protein in showCapture = false; logged(ids, kcal: kcal, protein: protein) },
@@ -129,6 +141,8 @@ struct ExperienceRootView: View {
         }
         .sheet(isPresented: $showData) { DataBackupScreen() }
         .sheet(isPresented: $showRefreshHelp) { RefreshHelpView() }
+        .sheet(isPresented: $showAchievements) { AchievementsScreen() }
+        .sheet(item: $viewingMedal) { m in MedalViewer(medal: m, earnedOn: achievements.earnedOn[m]) }
         .fullScreenCover(item: $weeklyReview) { launch in WeeklyReviewView(review: launch.review) }
         .lxToast($toast) {
             store.remove(undoIDs)
@@ -144,6 +158,7 @@ struct ExperienceRootView: View {
             if let route = intelligence.pendingRoute { handle(route) }
             backup.autoBackupIfDue()
             backup.scheduleRefreshNotification()
+            achievements.refresh()
         }
         // Re-infer memories, fire "when I log…" rules and re-plan notifications after changes.
         .onReceive(store.objectWillChange.debounce(for: .milliseconds(700), scheduler: RunLoop.main)) { _ in
@@ -155,6 +170,7 @@ struct ExperienceRootView: View {
                 intelligence.refresh()
                 backup.autoBackupIfDue()
                 backup.scheduleRefreshNotification()
+                achievements.refresh()
             }
         }
         .onChange(of: intelligence.pendingRoute) { _, route in if let route { handle(route) } }
