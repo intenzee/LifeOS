@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>LifeOS needs camera access to scan food barcodes.</string>
+	<string>LifeOS uses the camera to scan food barcodes, nutrition labels and meals.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>LifeOS needs photo library access to select food images for AI meal scanning.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LifeOS uses the microphone when you log food or water by voice. Audio is processed on your iPhone when possible and never stored.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>LifeOS turns what you say (“two rotis and dal for lunch”) into a food log. Recognition runs on your iPhone when your language supports it.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>LifeOS reads your health data to display fitness and wellness insights.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>LifeOS writes health data to keep your records up to date.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>LifeOS listens when you tap Say so you can log a meal by speaking, like "two rotis and dal".</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>LifeOS turns what you say into text to log meals. It runs on your iPhone when the iPhone supports it.</string>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>

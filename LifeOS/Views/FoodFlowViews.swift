@@ -200,6 +200,9 @@ struct FoodSearchView: View {
     @State private var showingCustomFood = false
     @State private var showPortionSelector = false
     @State private var scannedFood: FoodItem? = nil
+    /// Say-or-type logging (AI plan F02/F03).
+    @State private var showSmartLog = false
+    @State private var loggedViaSmartLog = false
 
     init(isPresented: Binding<Bool>, selectedMeal: MealType, onFoodSelected: @escaping (FoodItem) -> Void) {
         _isPresented = isPresented
@@ -208,6 +211,41 @@ struct FoodSearchView: View {
     }
 
     private var palette: ThemePalette { ThemePalette(colorScheme: colorScheme) }
+
+    /// "Say or type it" — natural-language and voice logging with presets.
+    private var smartLogButton: some View {
+        Button(action: { showSmartLog = true }) {
+            HStack(spacing: 10) {
+                Image(systemName: "mic.fill")
+                    .foregroundColor(ThemePalette.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Say or type it")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.white)
+                    Text("“2 rotis, dal and curd” · “my usual breakfast”")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+            .background(Color(red: 0.13, green: 0.13, blue: 0.15))
+        }
+        .accessibilityHint("Log food by speaking or typing a sentence")
+        .sheet(isPresented: $showSmartLog, onDismiss: {
+            if loggedViaSmartLog { isPresented = false }
+        }) {
+            SmartLogSheet(isPresented: $showSmartLog, meal: selectedMeal) { foods in
+                foods.forEach(onFoodSelected)
+                loggedViaSmartLog = true
+            }
+            .lxSheetStyle(detents: [.large])
+        }
+    }
 
     var filteredFoods: [FoodItem] {
         let foods = FoodDatabaseManager.shared.allFoods
@@ -268,6 +306,8 @@ struct FoodSearchView: View {
                 }
                 .padding()
                 .background(Color(red: 0.15, green: 0.15, blue: 0.17))
+
+                smartLogButton
 
                 HStack(spacing: 0) {
                     tabButton("Common", true)

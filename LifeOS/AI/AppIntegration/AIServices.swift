@@ -10,6 +10,8 @@ final class AIServices {
     let gateway: AIGateway
     let consents: UserDefaultsConsentStore
     let credentials: KeychainCredentialStore
+    /// Food presets (F03). AI-owned file store until FoodPreset moves into LifeOSData (C1).
+    let presets: FilePresetRepository
 
     /// Info.plist key holding the remote-config URL (contract C10). Absent →
     /// code defaults only, which is the correct Phase 0 behaviour.
@@ -24,6 +26,7 @@ final class AIServices {
         let configURL = (Bundle.main.object(forInfoDictionaryKey: Self.remoteConfigInfoKey) as? String)
             .flatMap(URL.init(string:))
 
+        presets = FilePresetRepository(url: storage?.appendingPathComponent("presets.json"))
         gateway = AIStack.makeGateway(.init(
             remoteConfigURL: configURL,
             storageDirectory: storage,
@@ -61,5 +64,77 @@ final class AIServices {
     func revokeCloudConsent(for provider: ProviderID) {
         consents.revoke(provider)
         Task { await gateway.consentDidChange() }
+    }
+}
+
+// MARK: - Food logging (Phase 1)
+
+extension AIServices {
+    /// Text/voice/preset logging. The user's custom, favourite and recent foods
+    /// are read fresh each time so their own numbers win over the catalog.
+    var foodLogger: SmartFoodLogger {
+        SmartFoodLogger(gateway: gateway, presets: presets, userFoods: {
+            await MainActor.run { Self.userFoods() }
+        })
+    }
+
+    @MainActor
+    static func userFoods() -> [UserFood] {
+        let db = FoodDatabaseManager.shared
+        func map(_ foods: [FoodItem], _ kind: UserFood.Kind) -> [UserFood] {
+            foods.map { UserFood(name: $0.name, macros: Macros(kcal: $0.calories, protein: $0.protein, carbs: $0.carbs, fat: $0.fat),
+                                 servingDescription: $0.servingSize, kind: kind) }
+        }
+        // Custom foods are the user's own numbers; recents only count when they
+        // were entered manually (AI-logged recents would just echo the catalog).
+        let recents = db.recentFoods.filter { $0.source == nil || $0.source == .manual || $0.source == .barcode }
+        return map(db.customFoods, .custom) + map(db.favoriteFoods, .favorite) + map(recents, .recent)
+    }
+
+    /// Last 30 days of the food log, grouped by meal, for the routine miner.
+    @MainActor
+    static func recentMeals(days: Int = 30, now: Date = Date()) -> [LoggedMeal] {
+        let calendar = Calendar.current
+        let db = FoodDatabaseManager.shared
+        return (0..<days).flatMap { offset -> [LoggedMeal] in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: now) else { return [] }
+            let log = db.dailyLog(for: day)
+            let foods = log.breakfast + log.lunch + log.dinner + log.snacks
+            return Dictionary(grouping: foods, by: \.mealType).map { meal, items in
+                LoggedMeal(date: items.map(\.timestamp).min() ?? day, meal: ParsedMeal.MealSlot(meal),
+                           items: items.map { .init(name: $0.name,
+                                                    macros: Macros(kcal: $0.calories, protein: $0.protein, carbs: $0.carbs, fat: $0.fat),
+                                                    servingDescription: $0.servingSize) })
+            }
+        }
+    }
+
+    /// Food names for speech recognition hints: presets, the user's foods, catalog.
+    @MainActor
+    func speechVocabulary() async -> [String] {
+        let presetNames = await presets.all().map(\.name)
+        let mine = Self.userFoods().map(\.name)
+        return Array(Set(presetNames + mine + FoodCatalog.all.map(\.name))).sorted()
+    }
+}
+
+extension ParsedMeal.MealSlot {
+    init(_ meal: MealType) {
+        switch meal {
+        case .breakfast: self = .breakfast
+        case .lunch: self = .lunch
+        case .dinner: self = .dinner
+        case .snacks: self = .snacks
+        }
+    }
+
+    var mealType: MealType? {
+        switch self {
+        case .breakfast: .breakfast
+        case .lunch: .lunch
+        case .dinner: .dinner
+        case .snacks: .snacks
+        case .unknown: nil
+        }
     }
 }

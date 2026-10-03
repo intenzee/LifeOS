@@ -37,6 +37,13 @@ struct OpenFoodFactsNutriments: Decodable {
 
 final class BarcodeFoodLookup {
     static func lookup(barcode: String, apiClient: any APIClient) async throws -> FoodItem? {
+        // Offline cache first (AI plan AI-146): scanned products work without network.
+        if let cached = await BarcodeCache.shared.product(for: barcode) {
+            return FoodItem(name: cached.name, calories: cached.per100g.kcal, protein: cached.per100g.protein,
+                            carbs: cached.per100g.carbs, fat: cached.per100g.fat, servingSize: cached.servingDescription,
+                            barcode: barcode, mealType: .snacks)
+        }
+
         let urlString = "https://world.openfoodfacts.org/api/v2/product/\(barcode).json"
         guard let url = URL(string: urlString) else {
             throw BarcodeFoodLookupError.invalidURL
@@ -59,6 +66,13 @@ final class BarcodeFoodLookup {
         }
 
         let nutriments = product.nutriments
+        if let kcal = nutriments.energyKcal100g, kcal > 0 {
+            await BarcodeCache.shared.store(.init(name: product.productName ?? "Unknown Product",
+                                                  per100g: Macros(kcal: kcal, protein: nutriments.proteins100g ?? 0,
+                                                                  carbs: nutriments.carbohydrates100g ?? 0, fat: nutriments.fat100g ?? 0),
+                                                  servingDescription: product.servingSize ?? "100g", cachedAt: Date()),
+                                            for: barcode)
+        }
         return FoodItem(
             name: product.productName ?? "Unknown Product",
             calories: nutriments.energyKcal100g ?? 0,

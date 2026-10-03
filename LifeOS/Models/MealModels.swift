@@ -101,8 +101,14 @@ struct FoodItem: Identifiable, Codable, Hashable {
     var barcode: String?
     var mealType: MealType
     var timestamp: Date
+    /// Provenance for AI and automated writes (voice/text, preset, photo). nil →
+    /// derived as manual/barcode, so existing call sites and saved data are unchanged.
+    var source: EntrySource?
+    /// 0…1 AI confidence; nil for manual entries.
+    var aiConfidence: Double?
 
-    init(id: UUID = UUID(), name: String, calories: Double, protein: Double = 0, carbs: Double = 0, fat: Double = 0, servingSize: String = "1 serving", barcode: String? = nil, mealType: MealType, timestamp: Date = Date()) {
+    init(id: UUID = UUID(), name: String, calories: Double, protein: Double = 0, carbs: Double = 0, fat: Double = 0, servingSize: String = "1 serving", barcode: String? = nil, mealType: MealType, timestamp: Date = Date(),
+         source: EntrySource? = nil, aiConfidence: Double? = nil) {
         self.id = id
         self.name = name
         self.calories = calories
@@ -113,6 +119,8 @@ struct FoodItem: Identifiable, Codable, Hashable {
         self.barcode = barcode
         self.mealType = mealType
         self.timestamp = timestamp
+        self.source = source
+        self.aiConfidence = aiConfidence
     }
 
     func scaled(toGrams grams: Double) -> FoodItem {

@@ -57,6 +57,24 @@ struct MealScannerEngine {
         // 4. Gateway: premium read (taught by similar past corrections) with
         //    automatic fallback to the on-device estimate.
         if !typedKey.isEmpty { AIServices.shared.recordKeyEntryConsent(for: .groqBYOK) }
+        let overrides: [ProviderID: String] = typedKey.isEmpty ? [:] : [.groqBYOK: typedKey]
+        let hintsContext = Self.hintsContext(learning.learnedHints(from: matches))
+
+        // Photo v2 (F04): items with grams → nutrition catalog → calibrated confidence.
+        if await gateway.currentConfig().flags.photoSchemaV2 {
+            let request = AIRequest<PhotoMealAnalysis>(
+                task: .mealPhotoAnalyze, prompt: PromptRegistry.mealPhotoAnalyzeV2(), input: .image(Self.aiImage(prepared)),
+                context: hintsContext, privacy: .personal, latencyBudget: .seconds(90),
+                generation: AIGenerationOptions(temperature: 0.2, maxOutputTokens: 1_400), credentialOverrides: overrides)
+            do {
+                let result = try await gateway.run(request)
+                return MealScanOutcome(analysis: try Self.analysis(fromV2: result),
+                                       degradedFrom: Self.groqFailure(in: result.degradedFrom), signature: signature)
+            } catch let error as AIError {
+                throw Self.scanError(for: error)
+            }
+        }
+
         let request = AIRequest<MealPhotoEstimate>(
             task: .mealPhotoAnalyze,
             prompt: PromptRegistry.mealPhotoAnalyze(),
@@ -96,6 +114,21 @@ struct MealScannerEngine {
         let note = feedback.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !note.isEmpty else {
             return MealScanOutcome(analysis: previous, degradedFrom: nil, signature: signature)
+        }
+
+        if await gateway.currentConfig().flags.photoSchemaV2 {
+            let request = AIRequest<PhotoMealAnalysis>(
+                task: .mealPhotoRefine,
+                prompt: PromptRegistry.mealPhotoRefineV2(previous: Self.summary(of: previous), feedback: note),
+                input: .image(Self.aiImage(prepared)), context: Self.hintsContext(hints), privacy: .personal,
+                latencyBudget: .seconds(90), generation: AIGenerationOptions(temperature: 0.2, maxOutputTokens: 1_400),
+                credentialOverrides: typedKey.isEmpty ? [:] : [.groqBYOK: typedKey])
+            do {
+                let result = try await gateway.run(request)
+                return MealScanOutcome(analysis: try Self.analysis(fromV2: result), degradedFrom: nil, signature: signature)
+            } catch let error as AIError {
+                throw Self.scanError(for: error)
+            }
         }
 
         let request = AIRequest<MealPhotoEstimate>(
@@ -173,6 +206,39 @@ struct MealScannerEngine {
                 MealAnalysis.Component(name: $0.name ?? "", calories: $0.calories ?? 0, protein: $0.protein ?? 0,
                                        carbs: $0.carbs ?? 0, fat: $0.fat ?? 0)
             })
+    }
+
+    /// Schema v2 → the app's `MealAnalysis`: totals from resolved items,
+    /// calibrated confidence instead of the legacy constant.
+    static func analysis(fromV2 result: AIResult<PhotoMealAnalysis>) throws -> MealAnalysis {
+        let output = result.output
+        let items = PhotoMealResolver.resolve(output)
+        guard !output.notFood, !items.isEmpty else { throw MealScanError.badResponse }
+        let totals = items.reduce(Macros.zero) { $0 + $1.macros }
+        let grams = items.compactMap(\.grams).reduce(0, +)
+        return MealAnalysis(
+            name: output.mealName.isEmpty ? "Meal" : output.mealName.capitalizedFirst,
+            calories: totals.kcal.rounded(),
+            protein: totals.protein,
+            carbs: totals.carbs,
+            fat: totals.fat,
+            servingSize: grams > 0 ? "1 plate (~\(Int(grams.rounded())) g)" : "1 plate",
+            confidence: PhotoMealResolver.confidence(items),
+            source: source(for: result.provider),
+            components: items.map {
+                MealAnalysis.Component(name: $0.displayName.capitalizedFirst, calories: $0.macros.kcal.rounded(),
+                                       protein: $0.macros.protein, carbs: $0.macros.carbs, fat: $0.macros.fat)
+            })
+    }
+
+    static func source(for provider: ProviderID) -> MealAnalysis.Source {
+        switch provider {
+        case .groqBYOK: .groq
+        case .geminiBYOK: .gemini
+        case .appleOnDevice: .appleOnDevice
+        case .applePCC: .appleCloud
+        case .visionLegacy, .deterministic: .onDevice
+        }
     }
 
     /// The Groq failure the user should hear about, if Groq was actually tried.

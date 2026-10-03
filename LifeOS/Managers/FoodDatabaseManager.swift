@@ -59,7 +59,8 @@ final class FoodDatabaseManager: ObservableObject {
         if loggedIDs.contains(food.id) {
             food = FoodItem(name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs,
                             fat: food.fat, servingSize: food.servingSize, barcode: food.barcode,
-                            mealType: food.mealType, timestamp: food.timestamp)
+                            mealType: food.mealType, timestamp: food.timestamp,
+                            source: food.source, aiConfidence: food.aiConfidence)
         }
         loggedIDs.insert(food.id)
 

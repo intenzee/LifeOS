@@ -116,7 +116,8 @@ extension FoodItem {
     init(_ entry: FoodEntry) {
         self.init(id: entry.id, name: entry.name, calories: entry.calories, protein: entry.proteinG,
                   carbs: entry.carbsG, fat: entry.fatG, servingSize: entry.servingDescription,
-                  barcode: entry.barcode, mealType: entry.meal, timestamp: entry.loggedAt)
+                  barcode: entry.barcode, mealType: entry.meal, timestamp: entry.loggedAt,
+                  source: entry.source, aiConfidence: entry.confidence)
     }
 
     init(_ template: FoodTemplate) {
@@ -128,7 +129,7 @@ extension FoodItem {
     func entry(on day: DayKey) -> FoodEntry {
         FoodEntry(id: id, dayKey: day, loggedAt: timestamp, meal: mealType, name: name,
                   servingDescription: servingSize, calories: calories, proteinG: protein, carbsG: carbs, fatG: fat,
-                  barcode: barcode, source: barcode == nil ? .manual : .barcode)
+                  barcode: barcode, source: source ?? (barcode == nil ? .manual : .barcode), confidence: aiConfidence)
     }
 
     var template: FoodTemplate {
