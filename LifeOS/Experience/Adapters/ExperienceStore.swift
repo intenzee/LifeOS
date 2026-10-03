@@ -290,6 +290,7 @@ final class ExperienceStore: ObservableObject {
     func afterWrite() {
         objectWillChange.send()
         dependencies.watchConnectivity.sendSnapshot()
+        WidgetBridge.publish(self) // Phase 5 §3: widgets, Lock Screen, StandBy
         guard isToday else { return }
         let b = budget
         dependencies.streakManager.recordToday(

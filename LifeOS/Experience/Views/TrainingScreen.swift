@@ -7,6 +7,7 @@ struct TrainingScreen: View {
     var onBudget: () -> Void
 
     @State private var showGym = false
+    @ObservedObject private var live = GymLiveSession.shared
 
     var body: some View {
         ScrollView {
@@ -14,6 +15,7 @@ struct TrainingScreen: View {
                 Text("Training").lxFont(.titleLarge).foregroundStyle(.lx(.textPrimary))
                     .accessibilityAddTraits(.isHeader)
                 effectOnToday
+                liveSession
                 healthCard
                 week
                 Button { showGym = true } label: {
@@ -31,6 +33,47 @@ struct TrainingScreen: View {
                         onDismiss: { store.afterWrite() }, currentWeight: store.currentWeight)
         }
         .onChange(of: showGym) { _, open in if !open { store.afterWrite() } }
+    }
+
+    // MARK: Live session (Phase 5 §4: Lock Screen + Dynamic Island)
+
+    @ViewBuilder private var liveSession: some View {
+        if live.isActive, let s = live.state {
+            VStack(alignment: .leading, spacing: LX.Space.s300) {
+                HStack {
+                    Label("Live session", systemImage: "dot.radiowaves.left.and.right")
+                        .lxFont(.footnote, weight: .semibold).foregroundStyle(.lx(.dataActivity))
+                    Spacer()
+                    Text("\(s.setsToday) sets today").lxFont(.footnote, numeric: true).foregroundStyle(.lx(.textSecondary))
+                }
+                Text(s.exercise).lxFont(.headline).foregroundStyle(.lx(.textPrimary))
+                if let end = s.restEndsAt, end > Date() {
+                    HStack {
+                        Text("Rest").lxFont(.body).foregroundStyle(.lx(.textSecondary))
+                        Text(timerInterval: Date()...end, countsDown: true).lxFont(.title3, numeric: true).foregroundStyle(.lx(.textPrimary))
+                    }
+                } else if s.setsTotal > 0 {
+                    Text("Set \(min(s.setsDone + 1, s.setsTotal)) of \(s.setsTotal)").lxFont(.body, numeric: true).foregroundStyle(.lx(.textSecondary))
+                }
+                LXTileRow {
+                    Button { Task { await live.logSet() } } label: { Label("Log set", systemImage: "plus").frame(maxWidth: .infinity) }
+                        .buttonStyle(.lx(.primary)).disabled(s.setsTotal == 0)
+                    if s.restEndsAt.map({ $0 > Date() }) == true {
+                        Button { live.skipRest() } label: { Text("Skip rest").frame(maxWidth: .infinity) }.buttonStyle(.lx(.secondary))
+                    }
+                    Button { Task { await live.end() } } label: { Text("End").frame(maxWidth: .infinity) }.buttonStyle(.lx(.secondary))
+                }
+                Stepper("Rest \(live.restSeconds) s", value: $live.restSeconds, in: 30...300, step: 15)
+                    .lxFont(.footnote, numeric: true).foregroundStyle(.lx(.textSecondary))
+            }
+            .lxCard(padding: LX.Space.s400)
+        } else {
+            Button { Task { await live.start() } } label: {
+                Label("Start a live session", systemImage: "dot.radiowaves.left.and.right").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.lx(.secondary))
+            .accessibilityHint("Shows your sets and rest timer on the Lock Screen and in the Dynamic Island")
+        }
     }
 
     private var effectOnToday: some View {

@@ -153,6 +153,7 @@ struct ExperienceRootView: View {
             store.onAppear()
             intelligence.attach(store)
             IntentRuntime.attach(store)
+            WidgetBridge.publish(store)
             LifeOSShortcuts.updateAppShortcutParameters()
             intelligence.refresh()
             if let route = intelligence.pendingRoute { handle(route) }
@@ -165,6 +166,7 @@ struct ExperienceRootView: View {
             intelligence.refresh()
         }
         .onChange(of: scenePhase) { _, phase in
+            if phase == .background { WidgetBridge.publish(store) }
             if phase == .active {
                 store.reload()
                 intelligence.refresh()
@@ -174,6 +176,15 @@ struct ExperienceRootView: View {
             }
         }
         .onChange(of: intelligence.pendingRoute) { _, route in if let route { handle(route) } }
+        // Phase 5: widget, Live Activity and control links (lifeos://today, …/capture, …/training).
+        .onOpenURL { url in
+            guard url.scheme == LifeOSShared.urlScheme else { return }
+            switch url.host {
+            case "capture": handle(.capture)
+            case "training": handle(.training)
+            default: handle(.today)
+            }
+        }
         .onChange(of: intelligence.eventBanner) { _, b in
             guard let b else { return }
             banner = b
