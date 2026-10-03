@@ -1,0 +1,90 @@
+{"id": "at-001", "category": "water", "text": "log 2 glasses of water", "tool": "logWater", "args": {"glasses": "2"}}
+{"id": "at-002", "category": "water", "text": "add a glass of water", "tool": "logWater", "args": {"glasses": "1"}}
+{"id": "at-003", "category": "water", "text": "I drank 500 ml water", "tool": "logWater", "args": {"ml": "500"}}
+{"id": "at-004", "category": "water", "text": "had a litre of water", "tool": "logWater", "args": {"ml": "1000"}}
+{"id": "at-005", "category": "water", "text": "drank 750ml of water just now", "tool": "logWater", "args": {"ml": "750"}}
+{"id": "at-006", "category": "water", "text": "log water", "tool": "logWater", "args": {"glasses": "1"}}
+{"id": "at-007", "category": "water", "text": "do glass paani", "tool": "logWater", "args": {"glasses": "2"}}
+{"id": "at-008", "category": "water", "text": "ek glass pani", "tool": "logWater", "args": {"glasses": "1"}}
+{"id": "at-009", "category": "water", "text": "3 glasses of water", "tool": "logWater", "args": {"glasses": "3"}}
+{"id": "at-010", "category": "water", "text": "just had a bottle of water", "tool": "logWater", "args": {"ml": "500"}}
+{"id": "at-011", "category": "water", "text": "I had two cups of water", "tool": "logWater", "args": {"glasses": "2"}}
+{"id": "at-012", "category": "water", "text": "add 250 ml water", "tool": "logWater", "args": {"ml": "250"}}
+{"id": "at-013", "category": "water", "text": "drank 1.5 litres of water today", "tool": "logWater", "args": {"ml": "1500"}}
+{"id": "at-014", "category": "water", "text": "had half a litre of water", "tool": "logWater", "args": {"ml": "500"}}
+{"id": "at-015", "category": "water", "text": "log 4 glasses water", "tool": "logWater", "args": {"glasses": "4"}}
+{"id": "at-016", "category": "weight", "text": "log my weight 72.4", "tool": "logWeight", "args": {"value": "72.4", "unit": "kg"}}
+{"id": "at-017", "category": "weight", "text": "I weigh 160 lbs", "tool": "logWeight", "args": {"value": "160", "unit": "lb"}}
+{"id": "at-018", "category": "weight", "text": "weighed in at 71.8 kg this morning", "tool": "logWeight", "args": {"value": "71.8", "unit": "kg"}}
+{"id": "at-019", "category": "weight", "text": "my weight is 68 kg", "tool": "logWeight", "args": {"value": "68", "unit": "kg"}}
+{"id": "at-020", "category": "weight", "text": "weight today is 80.2", "tool": "logWeight", "args": {"value": "80.2", "unit": "kg"}}
+{"id": "at-021", "category": "weight", "text": "I weighed 175 pounds", "tool": "logWeight", "args": {"value": "175", "unit": "lb"}}
+{"id": "at-022", "category": "weight", "text": "log weight 74 kg", "tool": "logWeight", "args": {"value": "74", "unit": "kg"}}
+{"id": "at-023", "category": "weight", "text": "my weight today is 66.5 kg", "tool": "logWeight", "args": {"value": "66.5", "unit": "kg"}}
+{"id": "at-024", "category": "weight", "text": "I weigh 59 kilos", "tool": "logWeight", "args": {"value": "59", "unit": "kg"}}
+{"id": "at-025", "category": "weight", "text": "log my weight as 90 kg", "tool": "logWeight", "args": {"value": "90", "unit": "kg"}}
+{"id": "at-026", "category": "todo", "text": "remind me to call mom at 6pm", "tool": "addTodo", "args": {"title": "Call mom"}}
+{"id": "at-027", "category": "todo", "text": "add a todo to buy milk tomorrow", "tool": "addTodo", "args": {"title": "Buy milk"}}
+{"id": "at-028", "category": "todo", "text": "add task: book physio", "tool": "addTodo", "args": {"title": "Book physio"}}
+{"id": "at-029", "category": "todo", "text": "create a task to pay rent", "tool": "addTodo", "args": {"title": "Pay rent"}}
+{"id": "at-030", "category": "todo", "text": "remind me to take my vitamins at 9am", "tool": "addTodo", "args": {"title": "Take my vitamins"}}
+{"id": "at-031", "category": "todo", "text": "remind me to meal prep tonight", "tool": "addTodo", "args": {"title": "Meal prep"}}
+{"id": "at-032", "category": "todo", "text": "remind me to stretch in 2 hours", "tool": "addTodo", "args": {"title": "Stretch"}}
+{"id": "at-033", "category": "todo", "text": "add a reminder to call the gym at 5:30 pm", "tool": "addTodo", "args": {"title": "Call the gym"}}
+{"id": "at-034", "category": "todo", "text": "move my gym todo to 7pm", "tool": "updateTodo", "args": {"query": "gym"}}
+{"id": "at-035", "category": "todo", "text": "move the dentist task to tomorrow", "tool": "updateTodo", "args": {"query": "dentist"}}
+{"id": "at-036", "category": "todo", "text": "reschedule call priya to 9pm", "tool": "updateTodo", "args": {"query": "call priya"}}
+{"id": "at-037", "category": "todo", "text": "mark buy protein powder as done", "tool": "completeTodo", "args": {"query": "buy protein powder"}}
+{"id": "at-038", "category": "todo", "text": "tick off gym", "tool": "completeTodo", "args": {"query": "gym"}}
+{"id": "at-039", "category": "todo", "text": "mark the laundry task done", "tool": "completeTodo", "args": {"query": "laundry"}}
+{"id": "at-040", "category": "todo", "text": "complete the todo pay rent", "tool": "completeTodo", "args": {"query": "pay rent"}}
+{"id": "at-041", "category": "read", "text": "Why is my target higher today?", "tool": "explainBudget", "args": {}}
+{"id": "at-042", "category": "read", "text": "why did my budget go up", "tool": "explainBudget", "args": {}}
+{"id": "at-043", "category": "read", "text": "explain my budget", "tool": "explainBudget", "args": {}}
+{"id": "at-044", "category": "read", "text": "how is my budget calculated", "tool": "explainBudget", "args": {}}
+{"id": "at-045", "category": "read", "text": "budget breakdown", "tool": "explainBudget", "args": {}}
+{"id": "at-046", "category": "read", "text": "why's my target so high", "tool": "explainBudget", "args": {}}
+{"id": "at-047", "category": "read", "text": "where does my target come from", "tool": "explainBudget", "args": {}}
+{"id": "at-048", "category": "read", "text": "What did I eat last Tuesday?", "tool": "searchFoodLog", "args": {"date": "last tuesday"}}
+{"id": "at-049", "category": "read", "text": "what did i eat yesterday", "tool": "searchFoodLog", "args": {"date": "yesterday"}}
+{"id": "at-050", "category": "read", "text": "what did I have for lunch on monday", "tool": "searchFoodLog", "args": {"date": "monday"}}
+{"id": "at-051", "category": "read", "text": "what did I eat on 28 sep", "tool": "searchFoodLog", "args": {"date": "28 sep"}}
+{"id": "at-052", "category": "read", "text": "when did I last have biryani", "tool": "searchFoodLog", "args": {"query": "biryani"}}
+{"id": "at-053", "category": "read", "text": "when did I last eat pizza", "tool": "searchFoodLog", "args": {"query": "pizza"}}
+{"id": "at-054", "category": "read", "text": "how many times did I have samosa this week", "tool": "searchFoodLog", "args": {"query": "samosa"}}
+{"id": "at-055", "category": "read", "text": "how often have I had chole bhature", "tool": "searchFoodLog", "args": {"query": "chole bhature"}}
+{"id": "at-056", "category": "read", "text": "compare my protein this week vs last week", "tool": "queryStats", "args": {"metric": "protein", "aggregation": "compare"}}
+{"id": "at-057", "category": "read", "text": "compare calories this week to last week", "tool": "queryStats", "args": {"metric": "kcal", "aggregation": "compare"}}
+{"id": "at-058", "category": "read", "text": "average calories last 30 days", "tool": "queryStats", "args": {"metric": "kcal", "range": "last30"}}
+{"id": "at-059", "category": "read", "text": "average protein this month", "tool": "queryStats", "args": {"metric": "protein", "range": "thisMonth"}}
+{"id": "at-060", "category": "read", "text": "how many workouts this week", "tool": "queryStats", "args": {"metric": "workouts", "range": "thisWeek"}}
+{"id": "at-061", "category": "read", "text": "how much water did I drink this week", "tool": "queryStats", "args": {"metric": "water", "range": "thisWeek"}}
+{"id": "at-062", "category": "read", "text": "what was my highest calorie day last week", "tool": "queryStats", "args": {"metric": "kcal", "aggregation": "max"}}
+{"id": "at-063", "category": "read", "text": "average sleep last 7 days", "tool": "queryStats", "args": {"metric": "sleep"}}
+{"id": "at-064", "category": "read", "text": "how many steps on average this week", "tool": "queryStats", "args": {"metric": "steps"}}
+{"id": "at-065", "category": "read", "text": "lowest protein day this week", "tool": "queryStats", "args": {"metric": "protein", "aggregation": "min"}}
+{"id": "at-066", "category": "read", "text": "what do you know about me", "tool": "listMemories", "args": {}}
+{"id": "at-067", "category": "read", "text": "what do you remember about me?", "tool": "listMemories", "args": {}}
+{"id": "at-068", "category": "read", "text": "show my memories", "tool": "listMemories", "args": {}}
+{"id": "at-069", "category": "read", "text": "show my presets", "tool": "listPresets", "args": {}}
+{"id": "at-070", "category": "read", "text": "what presets do I have", "tool": "listPresets", "args": {}}
+{"id": "at-071", "category": "passthrough", "text": "log 2 eggs and toast", "tool": "none", "args": {}}
+{"id": "at-072", "category": "passthrough", "text": "what should I eat for dinner", "tool": "none", "args": {}}
+{"id": "at-073", "category": "passthrough", "text": "plan dinner under 600 kcal", "tool": "none", "args": {}}
+{"id": "at-074", "category": "passthrough", "text": "how's my protein this week?", "tool": "none", "args": {}}
+{"id": "at-075", "category": "passthrough", "text": "tell me about creatine", "tool": "none", "args": {}}
+{"id": "at-076", "category": "passthrough", "text": "how many calories are left", "tool": "none", "args": {}}
+{"id": "at-077", "category": "passthrough", "text": "suggest a high protein breakfast", "tool": "none", "args": {}}
+{"id": "at-078", "category": "passthrough", "text": "is paneer good for weight loss", "tool": "none", "args": {}}
+{"id": "at-079", "category": "passthrough", "text": "I had poha for breakfast", "tool": "none", "args": {}}
+{"id": "at-080", "category": "passthrough", "text": "remind me to drink water every 2 hours", "tool": "none", "args": {}}
+{"id": "at-081", "category": "passthrough", "text": "remind me to stretch every evening", "tool": "none", "args": {}}
+{"id": "at-082", "category": "passthrough", "text": "remind me to stretch", "tool": "none", "args": {}}
+{"id": "at-083", "category": "passthrough", "text": "what's a good post workout meal", "tool": "none", "args": {}}
+{"id": "at-084", "category": "passthrough", "text": "how am I doing", "tool": "none", "args": {}}
+{"id": "at-085", "category": "passthrough", "text": "why do I feel tired after lunch", "tool": "none", "args": {}}
+{"id": "at-086", "category": "passthrough", "text": "give me a 3 day meal plan", "tool": "none", "args": {}}
+{"id": "at-087", "category": "passthrough", "text": "what's my usual breakfast", "tool": "none", "args": {}}
+{"id": "at-088", "category": "passthrough", "text": "log my usual lunch", "tool": "none", "args": {}}
+{"id": "at-089", "category": "passthrough", "text": "how much protein is in 100g chicken", "tool": "none", "args": {}}
+{"id": "at-090", "category": "passthrough", "text": "can I eat rice at night", "tool": "none", "args": {}}

@@ -132,10 +132,13 @@ nonisolated struct ResolvedFoodItem: Sendable, Hashable, Codable, Identifiable {
 nonisolated struct NutritionResolver: Sendable {
     var userFoods: [UserFood]
     var catalog: [String: FoodRecord]
+    /// The user's own portion sizes from memory ("my katori is 120 ml").
+    var portionHints: PortionHints
 
-    init(userFoods: [UserFood] = [], catalog: [String: FoodRecord] = FoodCatalog.index) {
+    init(userFoods: [UserFood] = [], catalog: [String: FoodRecord] = FoodCatalog.index, portionHints: PortionHints = .none) {
         self.userFoods = userFoods
         self.catalog = catalog
+        self.portionHints = portionHints
     }
 
     func resolve(_ meal: ParsedMeal) -> [ResolvedFoodItem] {
@@ -240,7 +243,8 @@ nonisolated struct NutritionResolver: Sendable {
 
     private func build(record: FoodRecord, kind: MatchKind, item: ParsedFoodItem, unit: String,
                        parseConfidence: Double) -> ResolvedFoodItem {
-        let (gramsPerUnit, unitConfidence, displayUnit) = Self.gramsPerUnit(record: record, unit: unit)
+        let (gramsPerUnit, unitConfidence, displayUnit) = portionHints.gramsPerUnit(record: record, unit: unit)
+            ?? Self.gramsPerUnit(record: record, unit: unit)
         var perUnit = record.macros(grams: gramsPerUnit)
         perUnit = Self.applyPreparation(item.preparation, to: perUnit, record: record, gramsPerUnit: gramsPerUnit)
         return ResolvedFoodItem(displayName: record.name, quantity: item.quantity, unit: displayUnit,
@@ -332,4 +336,49 @@ nonisolated struct NutritionEstimate: AIOutput, Hashable {
     ])
 
     func semanticIssues() -> [String] { kcal <= 0 ? ["kcal must be above 0"] : [] }
+}
+
+/// The user's own household sizes (F04 portion hints from F06 `unitSize` memories).
+nonisolated struct PortionHints: Sendable, Hashable {
+    /// Container → ml/g it holds ("katori": 120).
+    var containers: [String: Double]
+    /// Normalised food name → grams per piece ("roti": 30).
+    var pieces: [String: Double]
+
+    static let none = PortionHints(containers: [:], pieces: [:])
+    static let containerUnits: Set<String> = ["katori", "bowl", "cup", "glass", "mug", "plate", "tumbler", "scoop", "spoon"]
+
+    init(containers: [String: Double] = [:], pieces: [String: Double] = [:]) {
+        self.containers = containers
+        self.pieces = pieces
+    }
+
+    /// Built from active `unitSize` memories.
+    init(memories: [MemoryRecord], now: Date = Date()) {
+        var containers: [String: Double] = [:], pieces: [String: Double] = [:]
+        for record in memories where record.isUsable(at: now) {
+            guard case .unitSize(let unit, let grams)? = record.facet, grams > 0 else { continue }
+            let u = unit == "tumbler" ? "glass" : unit
+            if Self.containerUnits.contains(u) { containers[u] = grams } else { pieces[FoodNameNormalizer.normalise(u)] = grams }
+        }
+        self.init(containers: containers, pieces: pieces)
+    }
+
+    var isEmpty: Bool { containers.isEmpty && pieces.isEmpty }
+
+    func gramsPerUnit(record: FoodRecord, unit: String) -> (Double, Double, String)? {
+        guard !isEmpty else { return nil }
+        let defaulted = unit == "serving" || unit.isEmpty
+        let names = [record.name] + record.aliases
+        if unit == "piece" || (defaulted && record.defaultUnit == "piece"),
+           let grams = names.lazy.compactMap({ self.pieces[FoodNameNormalizer.normalise($0)] }).first {
+            return (grams, 1.0, "piece")
+        }
+        let u = defaulted ? record.defaultUnit : unit
+        guard let size = containers[u] ?? (u == "bowl" ? containers["katori"] : u == "katori" ? containers["bowl"] : nil),
+              let generic = NutritionUnits.genericGrams[u], generic > 0 else { return nil }
+        // The food's usual fill for that container, scaled to the user's container.
+        let base = record.units[u] ?? generic
+        return (base * size / generic, 1.0, u)
+    }
 }
