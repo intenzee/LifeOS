@@ -161,6 +161,8 @@ struct InsightCardView: View {
                 }
                 .chartXAxis(.hidden)
                 .frame(height: CGFloat(card.evidence.count) * 36)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(card.evidence.map { "\($0.label): \(Fmt.kcal($0.value)) kilocalories" }.joined(separator: ", "))
                 Text(card.evidenceRange).lxFont(.caption).foregroundStyle(.lx(.textTertiary))
             }
             HStack {

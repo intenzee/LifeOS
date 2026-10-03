@@ -58,7 +58,7 @@ struct TrainingScreen: View {
     @ViewBuilder private var healthCard: some View {
         let h = store.health
         if h.activeEnergyToday > 0 || h.stepsToday > 0 {
-            HStack(spacing: LX.Space.s300) {
+            LXTileRow {
                 LXMetricTile(label: "Active energy", value: "\(Int(h.activeEnergyToday.rounded()))", unit: "kcal",
                              systemImage: "applewatch", dataRole: .dataActivity, caption: "Apple Health, today")
                 LXMetricTile(label: "Steps", value: Int(h.stepsToday).formatted(), systemImage: "figure.walk",

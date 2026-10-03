@@ -104,6 +104,9 @@ struct MemoryScreen: View {
         }
         .accessibilityAction(named: "Forget") { intelligence.forget([m.id]) }
         .accessibilityAction(named: m.isPinned ? "Unpin" : "Always remember") { intelligence.togglePin(m.id) }
+        .accessibilityActions {
+            if m.category != .photoCorrections { Button("Edit") { editing = m } }
+        }
     }
 }
 

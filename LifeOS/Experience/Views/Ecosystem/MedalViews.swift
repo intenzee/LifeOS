@@ -269,12 +269,14 @@ struct MedalEarningMoment: View {
     var onView: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.lxDirection) private var direction
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var landed = false
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.55).ignoresSafeArea()
+            Color.black.opacity(reduceTransparency ? 0.95 : 0.65).ignoresSafeArea()
                 .onTapGesture { onDone() }
+                .accessibilityHidden(true) // the Done button is the accessible way out
             VStack(spacing: LX.Space.s500) {
                 MedalBadge(medal: medal, size: 180)
                     .offset(y: landed || reduceMotion ? 0 : -420)
@@ -287,7 +289,7 @@ struct MedalEarningMoment: View {
                 }
                 .multilineTextAlignment(.center)
                 .opacity(landed ? 1 : 0)
-                HStack(spacing: LX.Space.s300) {
+                LXTileRow {
                     Button("View in 3D", action: onView).buttonStyle(.lx(.primary))
                     Button("Done", action: onDone).buttonStyle(.lx(.secondary))
                 }

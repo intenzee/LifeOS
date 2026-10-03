@@ -16,6 +16,7 @@ struct YouScreen: View {
     @ObservedObject private var backup = BackupService.shared
     @AppStorage("lx.newExperience") private var newExperience = true
     @Environment(\.lxTheme) private var theme
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     @State private var showWeight = false
     @State private var showSettings = false
@@ -61,7 +62,7 @@ struct YouScreen: View {
                 Spacer()
                 Button("Log weight") { showWeight = true }.buttonStyle(.lx(.secondary))
             }
-            HStack(spacing: LX.Space.s300) {
+            LXTileRow {
                 LXMetricTile(label: "Now", value: store.currentWeight > 0 ? ExperienceStore.weightText(store.currentWeight, units: units) : "–",
                              systemImage: "scalemass.fill", dataRole: .dataWeight)
                 LXMetricTile(label: "Target", value: store.targetWeight > 0 ? ExperienceStore.weightText(store.targetWeight, units: units) : "–",
@@ -77,7 +78,7 @@ struct YouScreen: View {
         let m = store.dependencies.streakManager
         return VStack(alignment: .leading, spacing: LX.Space.s200) {
             LXSectionHeader(title: "Streaks", action: "History") { showStreaks = true }
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: LX.Space.s300), GridItem(.flexible())], spacing: LX.Space.s300) {
+            LazyVGrid(columns: typeSize.lxColumns(2), spacing: LX.Space.s300) {
                 LXMetricTile(label: "Perfect days", value: "\(m.perfectDayStreak)", unit: "days", systemImage: "sparkles", dataRole: .statusOnTrack,
                              caption: "Today \(store.todayScore) of 4")
                 LXMetricTile(label: "On budget", value: "\(m.calorieStreak)", unit: "days", systemImage: "flame.fill", dataRole: .dataEnergy)

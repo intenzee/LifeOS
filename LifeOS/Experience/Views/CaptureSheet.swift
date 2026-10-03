@@ -21,6 +21,7 @@ struct CaptureSheet: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     @StateObject private var speech = SpeechCapture()
     @State private var stage: Stage = .input
     @State private var slot: ExperienceMealSlot = .lunch
@@ -198,7 +199,7 @@ struct CaptureSheet: View {
     }
 
     @ViewBuilder private var modeRow: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: LX.Space.s200), count: 5), spacing: LX.Space.s200) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: LX.Space.s200), count: typeSize.isAccessibilitySize ? 2 : 5), spacing: LX.Space.s200) {
             modeButton("Photo", "camera.fill") { onRoute(.photo) }
             modeButton("Scan", "barcode.viewfinder") { onRoute(.barcode) }
             modeButton("Search", "magnifyingglass") { onRoute(.search) }

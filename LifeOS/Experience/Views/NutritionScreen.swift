@@ -165,7 +165,7 @@ struct NutritionScreen: View {
                     .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month())): \(s.map { "\(Int($0.caloriesConsumed)) of \(Int($0.calorieLimit)) kilocalories" } ?? "nothing logged")")
                 }
             }
-            HStack(spacing: LX.Space.s300) {
+            LXTileRow {
                 legend(.lx(.dataEnergy).opacity(0.3), "Under")
                 legend(.lx(.dataEnergy), "On budget")
                 legend(.lx(.statusOver), "Over")

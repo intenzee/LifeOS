@@ -19,6 +19,7 @@ struct TodayScreen: View {
     @State private var showCalendar = false
     @State private var showWeight = false
     @State private var orbWobble = 0.0
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         ScrollView {
@@ -164,7 +165,7 @@ struct TodayScreen: View {
         let targets = store.macroTargets
         let health = store.health
         let healthConnected = health.activeEnergyToday > 0 || health.stepsToday > 0
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: LX.Space.s300), GridItem(.flexible())], spacing: LX.Space.s300) {
+        return LazyVGrid(columns: typeSize.lxColumns(2), spacing: LX.Space.s300) {
             LXMetricTile(label: "Protein", value: "\(Int(log.totalProtein().rounded()))", unit: "of \(Int(targets.protein)) g",
                          systemImage: "bolt.heart", dataRole: .dataProtein,
                          progress: targets.protein > 0 ? log.totalProtein() / targets.protein : 0)
