@@ -65,6 +65,11 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
     /// Top presets for this time of day (at most 4).
     public var presets: [Preset]?
 
+    // WCH-15. Optional, additive.
+    /// When the user usually trains, learned from recent workouts. The watch's
+    /// "Start workout" Smart Stack card is relevant inside it.
+    public var trainingWindow: TrainingWindow?
+
     public struct Preset: Codable, Sendable, Equatable, Identifiable {
         public let id: String
         public var name: String

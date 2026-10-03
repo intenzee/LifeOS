@@ -4,6 +4,18 @@
 <dict>
 	<!-- Merged with the generated Info.plist (GENERATE_INFOPLIST_FILE). Keys the
 	     generator can't express live here. -->
+	<!-- WCH-15: complications open lifeos://watch/… links (WatchRootView). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.tanmay.LifeOS.watchkitapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lifeos</string>
+			</array>
+		</dict>
+	</array>
 	<key>WKBackgroundModes</key>
 	<array>
 		<!-- HKWorkoutSession keeps the app running wrist-down (WCH-12/13). -->

@@ -101,6 +101,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         snapshot.proteinG = todayLog.totalProtein()
         snapshot.proteinTargetG = CalorieGoalCalculator.macroTargets(forCalories: snapshot.calorieLimit).protein
         snapshot.presets = watchPresets()
+        // WCH-15: the "Start workout" Smart Stack card's window.
+        snapshot.trainingWindow = health.trainingWindow
         return snapshot
     }
 
