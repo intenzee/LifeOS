@@ -79,8 +79,8 @@ nonisolated enum ExperienceFoodResolver {
             ?? bundled(name).flatMap { sharesWord($0.name, name) ? ($0, .medium) : nil }
 
         guard let (base, confidence) = match else {
-            return ExperienceResolvedItem(id: id, name: name.capitalizedFirst, quantity: quantity, unit: unit,
-                                          nutrient: ExperienceNutrient(name: name.capitalizedFirst, kcal: 0), confidence: .low)
+            return ExperienceResolvedItem(id: id, name: name.firstLetterCapitalized, quantity: quantity, unit: unit,
+                                          nutrient: ExperienceNutrient(name: name.firstLetterCapitalized, kcal: 0), confidence: .low)
         }
         let nutrient = base.scaled(factor(quantity: quantity, unit: unit, base: base))
         return ExperienceResolvedItem(id: id, name: base.name, quantity: quantity, unit: unit, nutrient: nutrient, confidence: confidence)
@@ -207,5 +207,5 @@ nonisolated struct ExperiencePresetCandidate: Identifiable, Equatable, Sendable 
 }
 
 private extension String {
-    nonisolated var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
+    nonisolated var firstLetterCapitalized: String { prefix(1).uppercased() + dropFirst() }
 }
