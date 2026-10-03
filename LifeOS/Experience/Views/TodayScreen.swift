@@ -18,6 +18,7 @@ struct TodayScreen: View {
 
     @State private var showCalendar = false
     @State private var showWeight = false
+    @State private var editing: FoodItem?
     @State private var orbWobble = 0.0
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -56,6 +57,9 @@ struct TodayScreen: View {
         .scrollIndicators(.hidden)
         .sheet(isPresented: $showCalendar) { calendarSheet }
         .sheet(isPresented: $showWeight) { WeightQuickSheet(store: store).lxSheetStyle(detents: [.medium]) }
+        .sheet(item: $editing) { item in
+            FoodEditSheet(item: item, onSave: { store.update($0, scale: $1) }, onDelete: { store.remove([item.id]) })
+        }
         .onChange(of: loggedTick) { _, _ in pulseOrb() }
     }
 
@@ -216,7 +220,17 @@ struct TodayScreen: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(rows) { row in
-                        timelineRow(row)
+                        if row.kind == .meal, let item = store.item(id: row.id) {
+                            Button { editing = item } label: { timelineRow(row).contentShape(Rectangle()) }
+                                .buttonStyle(.plain)
+                                .accessibilityHint("Edit")
+                                .contextMenu {
+                                    Button("Edit", systemImage: "pencil") { editing = item }
+                                    Button("Delete", systemImage: "trash", role: .destructive) { store.remove([item.id]) }
+                                }
+                        } else {
+                            timelineRow(row)
+                        }
                         if row.id != rows.last?.id { Rectangle().fill(.lx(.separator)).frame(height: 0.5) }
                     }
                 }

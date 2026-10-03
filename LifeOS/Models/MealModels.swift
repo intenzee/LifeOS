@@ -190,6 +190,26 @@ struct DailyFoodLog: Codable {
         dinner.removeAll { $0.id == foodId }
         snacks.removeAll { $0.id == foodId }
     }
+
+    /// Replaces the entry with the same id. It keeps its place when the meal is
+    /// unchanged and moves to the end of the new meal otherwise.
+    mutating func replaceFood(_ food: FoodItem) {
+        func replace(in list: inout [FoodItem]) -> Bool {
+            guard let i = list.firstIndex(where: { $0.id == food.id }) else { return false }
+            list[i] = food
+            return true
+        }
+        let replaced: Bool
+        switch food.mealType {
+        case .breakfast: replaced = replace(in: &breakfast)
+        case .lunch: replaced = replace(in: &lunch)
+        case .dinner: replaced = replace(in: &dinner)
+        case .snacks: replaced = replace(in: &snacks)
+        }
+        guard !replaced else { return }
+        removeFood(food.id)
+        addFood(food)
+    }
 }
 
 // MARK: - Quick Action Type

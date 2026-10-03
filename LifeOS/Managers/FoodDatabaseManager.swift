@@ -102,6 +102,30 @@ final class FoodDatabaseManager: ObservableObject {
         enqueue { db in try await db.food.delete(id: foodId, on: day) }
     }
 
+    /// Saves an edited entry of the browsed date under the same id (the store
+    /// upserts by id, and Health write-back reconciles the day from the store).
+    /// `FoodItem` doesn't carry the v2 fields, so they're copied from the stored
+    /// entry: amounts scale with `scale`, links (preset, photo, source) are kept.
+    func updateFood(_ food: FoodItem, scale: Double = 1) {
+        let day = DayKey.make(for: selectedDate)
+        dailyLog.replaceFood(food)
+        allDailyLogs[day] = dailyLog
+        let edited = food.entry(on: day)
+        enqueue { db in
+            var entry = edited
+            if let stored = try await db.food.entries(on: day).first(where: { $0.id == entry.id }) {
+                entry.fiberG = stored.fiberG.map { $0 * scale }
+                entry.sugarG = stored.sugarG.map { $0 * scale }
+                entry.sodiumMg = stored.sodiumMg.map { $0 * scale }
+                entry.grams = stored.grams.map { $0 * scale }
+                entry.presetID = stored.presetID
+                entry.photoAssetID = stored.photoAssetID
+                entry.nutritionSourceRef = stored.nutritionSourceRef
+            }
+            try await db.food.save(entry)
+        }
+    }
+
     func toggleFavorite(_ food: FoodItem) {
         if let index = favoriteFoods.firstIndex(where: { $0.id == food.id }) {
             favoriteFoods.remove(at: index)

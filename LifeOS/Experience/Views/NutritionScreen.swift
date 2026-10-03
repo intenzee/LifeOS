@@ -7,6 +7,7 @@ struct NutritionScreen: View {
     var onLogPreset: (String) -> Void
 
     @State private var showCalendar = false
+    @State private var editing: FoodItem?
 
     var body: some View {
         ScrollView {
@@ -29,6 +30,9 @@ struct NutritionScreen: View {
                        in: ...Date(), displayedComponents: .date)
                 .datePickerStyle(.graphical).padding()
                 .presentationDetents([.medium])
+        }
+        .sheet(item: $editing) { item in
+            FoodEditSheet(item: item, onSave: { store.update($0, scale: $1) }, onDelete: { store.remove([item.id]) })
         }
     }
 
@@ -97,16 +101,22 @@ struct NutritionScreen: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(items) { item in
-                        LXListRow(title: item.name,
-                                  subtitle: "\(item.servingSize) · \(item.timestamp.formatted(date: .omitted, time: .shortened))",
-                                  value: "\(Int(item.calories.rounded()))", valueCaption: "kcal",
-                                  source: store.source(of: item) == .manual ? nil : store.source(of: item).lxSource)
-                            .contextMenu {
-                                Button(store.dependencies.foodDatabase.isFavorite(item) ? "Remove from My Meals" : "Add to My Meals",
-                                       systemImage: "star") { store.toggleFavorite(item) }
-                                Button("Delete", systemImage: "trash", role: .destructive) { store.remove([item.id]) }
-                            }
-                            .accessibilityAction(named: "Delete") { store.remove([item.id]) }
+                        Button { editing = item } label: {
+                            LXListRow(title: item.name,
+                                      subtitle: "\(item.servingSize) · \(item.timestamp.formatted(date: .omitted, time: .shortened))",
+                                      value: "\(Int(item.calories.rounded()))", valueCaption: "kcal",
+                                      source: store.source(of: item) == .manual ? nil : store.source(of: item).lxSource)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Edit")
+                        .contextMenu {
+                            Button("Edit", systemImage: "pencil") { editing = item }
+                            Button(store.dependencies.foodDatabase.isFavorite(item) ? "Remove from My Meals" : "Add to My Meals",
+                                   systemImage: "star") { store.toggleFavorite(item) }
+                            Button("Delete", systemImage: "trash", role: .destructive) { store.remove([item.id]) }
+                        }
+                        .accessibilityAction(named: "Delete") { store.remove([item.id]) }
                         if item.id != items.last?.id { Rectangle().fill(.lx(.separator)).frame(height: 0.5) }
                     }
                 }

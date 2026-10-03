@@ -248,6 +248,17 @@ final class ExperienceStore: ObservableObject {
         afterWrite()
     }
 
+    /// An entry of the viewed day, for the edit sheet (timeline rows carry only the id).
+    func item(id: String) -> FoodItem? {
+        items.first { $0.id.uuidString == id }
+    }
+
+    /// Saves an edited entry in place: same id, so its source badge and Undo history stay.
+    func update(_ item: FoodItem, scale: Double = 1) {
+        food.updateFood(item, scale: scale)
+        afterWrite()
+    }
+
     func toggleFavorite(_ item: FoodItem) {
         food.toggleFavorite(item)
         objectWillChange.send()
