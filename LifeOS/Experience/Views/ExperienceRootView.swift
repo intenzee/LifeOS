@@ -1,3 +1,4 @@
+import AppIntents
 import Combine
 import SwiftUI
 
@@ -30,6 +31,11 @@ struct ExperienceRootView: View {
     @State private var ruleDraft: AutomationRule?
     @State private var banner: IntelligenceStore.EventBanner?
 
+    // Phase 5
+    @ObservedObject private var backup = BackupService.shared
+    @State private var showData = false
+    @State private var showRefreshHelp = false
+
     struct AssistantLaunch: Identifiable { let id = UUID(); var context: String?; var listening: Bool }
     struct AutomationsLaunch: Identifiable { let id = UUID(); var focus: String? }
     struct ReviewLaunch: Identifiable { let id = UUID(); var review: WeeklyReview }
@@ -53,7 +59,9 @@ struct ExperienceRootView: View {
                                 onAsk: { openAssistant(context: "Looking at: Today, \(store.day.formatted(.dateTime.day().month(.abbreviated)))") },
                                 brief: morningBrief,
                                 recap: eveningRecap,
-                                onWeeklyReview: weeklyReviewAvailable ? { openWeeklyReview() } : nil)
+                                onWeeklyReview: weeklyReviewAvailable ? { openWeeklyReview() } : nil,
+                                refreshBanner: backup.refreshStage == .lastDay ? backup.refreshMessage : nil,
+                                onRefreshHelp: { showRefreshHelp = true })
                 case .nutrition:
                     NutritionScreen(store: store, onCapture: { slot in openCapture(slot: slot) },
                                     onLogPreset: { id in logPreset(id) })
@@ -64,7 +72,9 @@ struct ExperienceRootView: View {
                               onMemory: { showMemory = true },
                               onAutomations: { automationsFocus = AutomationsLaunch(focus: nil) },
                               onPrivacy: { showPrivacy = true },
-                              onWeeklyReview: currentReview() != nil ? { openWeeklyReview() } : nil)
+                              onWeeklyReview: currentReview() != nil ? { openWeeklyReview() } : nil,
+                              onData: { showData = true },
+                              onRefreshHelp: { showRefreshHelp = true })
                 }
             }
             .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 76) } // last row clears the tab bar (audit A4)
@@ -117,6 +127,8 @@ struct ExperienceRootView: View {
         .sheet(isPresented: $showPrivacy) {
             AIPrivacyScreen(onOpenMemory: { afterDismiss { showMemory = true } })
         }
+        .sheet(isPresented: $showData) { DataBackupScreen() }
+        .sheet(isPresented: $showRefreshHelp) { RefreshHelpView() }
         .fullScreenCover(item: $weeklyReview) { launch in WeeklyReviewView(review: launch.review) }
         .lxToast($toast) {
             store.remove(undoIDs)
@@ -126,15 +138,24 @@ struct ExperienceRootView: View {
         .onAppear {
             store.onAppear()
             intelligence.attach(store)
+            IntentRuntime.attach(store)
+            LifeOSShortcuts.updateAppShortcutParameters()
             intelligence.refresh()
             if let route = intelligence.pendingRoute { handle(route) }
+            backup.autoBackupIfDue()
+            backup.scheduleRefreshNotification()
         }
         // Re-infer memories, fire "when I log…" rules and re-plan notifications after changes.
         .onReceive(store.objectWillChange.debounce(for: .milliseconds(700), scheduler: RunLoop.main)) { _ in
             intelligence.refresh()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { store.reload(); intelligence.refresh() }
+            if phase == .active {
+                store.reload()
+                intelligence.refresh()
+                backup.autoBackupIfDue()
+                backup.scheduleRefreshNotification()
+            }
         }
         .onChange(of: intelligence.pendingRoute) { _, route in if let route { handle(route) } }
         .onChange(of: intelligence.eventBanner) { _, b in
@@ -201,6 +222,11 @@ struct ExperienceRootView: View {
         switch route {
         case .weeklyReview: openWeeklyReview()
         case .recap, .today: tab = .today
+        case .training: tab = .training
+        case .capture:
+            // The Capture sheet starts in Say when speech permission exists (Phase 3 §3.2).
+            tab = .today
+            openCapture()
         case .automation(let id): automationsFocus = AutomationsLaunch(focus: id)
         case .logPreset(let id):
             tab = .today

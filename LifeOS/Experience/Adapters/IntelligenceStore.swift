@@ -39,6 +39,8 @@ final class IntelligenceStore: ObservableObject {
 
     enum Route: Equatable {
         case weeklyReview, recap, automation(String), logPreset(String), today
+        // Phase 5: Siri / Shortcuts / Control Center
+        case training, capture
     }
 
     private let defaults = UserDefaults.standard
@@ -334,10 +336,10 @@ final class IntelligenceStore: ObservableObject {
             return UNNotificationRequest(identifier: p.id, content: content, trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false))
         }
         let center = UNUserNotificationCenter.current()
-        center.getPendingNotificationRequests { pending in
-            let old = pending.map(\.identifier).filter { $0.hasPrefix("lx.auto.") }
+        Task {
+            let old = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix("lx.auto.") }
             center.removePendingNotificationRequests(withIdentifiers: old)
-            for r in requests { center.add(r) }
+            for r in requests { try? await center.add(r) }
         }
     }
 

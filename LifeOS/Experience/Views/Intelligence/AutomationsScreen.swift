@@ -15,9 +15,9 @@ struct AutomationsScreen: View {
                     VStack(alignment: .leading, spacing: LX.Space.s600) {
                         if intelligence.notificationsAuthorized == false {
                             LXInlineBanner(kind: .attention, message: "Notifications are off for LifeOS, so scheduled automations can't reach you.",
-                                           actionTitle: "Open Settings") {
+                                           actionTitle: "Open Settings", action: {
                                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                            }
+                            })
                         }
                         active
                         suggested

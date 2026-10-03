@@ -43,8 +43,9 @@ final class ExperienceNotifications: NSObject, UNUserNotificationCenterDelegate 
     /// Adds or replaces categories by identifier, keeping everyone else's.
     static func mergeCategories(_ new: Set<UNNotificationCategory>) {
         let center = UNUserNotificationCenter.current()
-        center.getNotificationCategories { existing in
-            let ids = Set(new.map(\.identifier))
+        let ids = Set(new.map(\.identifier))
+        Task {
+            let existing = await center.notificationCategories()
             center.setNotificationCategories(existing.filter { !ids.contains($0.identifier) }.union(new))
         }
     }

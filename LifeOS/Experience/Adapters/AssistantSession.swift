@@ -34,8 +34,8 @@ final class AssistantSession: ObservableObject {
     private let intelligence: IntelligenceStore
     private var current: Task<Void, Never>?
 
-    init(intelligence: IntelligenceStore = .shared, contextChip: String? = nil) {
-        self.intelligence = intelligence
+    init(intelligence: IntelligenceStore? = nil, contextChip: String? = nil) {
+        self.intelligence = intelligence ?? .shared
         self.contextChip = contextChip
     }
 
