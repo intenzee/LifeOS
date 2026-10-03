@@ -1,5 +1,7 @@
 # Phase 2 — Context, Memory & Workout-Aware Calories (Weeks 10–13) → Beta 2
 
+> **Status (3 Oct 2026):** implemented with Phase 3 for non-Apple-Intelligence devices (iPhone 15). Reconciliation, budget policy and adaptive TDEE are engineering-owned (WCH-06, CAL-01..12); see [`../phase-2-3/PHASE-2-3-REPORT.md`](../phase-2-3/PHASE-2-3-REPORT.md).
+
 **Goal:** give LifeOS a brain and a body sense — it knows the user's day, remembers what matters, and adapts calories to real Apple Watch workouts.
 
 ## Scope

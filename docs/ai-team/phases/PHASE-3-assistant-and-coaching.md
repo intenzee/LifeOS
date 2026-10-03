@@ -1,5 +1,7 @@
 # Phase 3 — Assistant & Coaching (Weeks 14–18) → Beta 3
 
+> **Status (3 Oct 2026):** assistant engine (safety, 17 tools, grounding, memory, context) implemented under UI/UX's Phase 4 assistant screens; see [`../phase-2-3/PHASE-2-3-REPORT.md`](../phase-2-3/PHASE-2-3-REPORT.md).
+
 **Goal:** a private concierge the user can talk to, which acts through tools, answers from their own data and coaches without preaching.
 
 ## Scope
