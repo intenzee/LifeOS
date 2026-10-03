@@ -12,6 +12,9 @@ struct TodayScreen: View {
     var brief: String? = nil
     var recap: String? = nil
     var onWeeklyReview: (() -> Void)? = nil
+    // Phase 5
+    var refreshBanner: String? = nil
+    var onRefreshHelp: () -> Void = {}
 
     @State private var showCalendar = false
     @State private var showWeight = false
@@ -28,6 +31,10 @@ struct TodayScreen: View {
                             .padding(.trailing, LX.Space.minTouchTarget + LX.Space.s200)
                             .accessibilityLabel("Ask LifeOS about today")
                     }
+                if store.isToday, let refreshBanner {
+                    // Phase 5 §9.1: on the last day the refresh note moves to Today.
+                    LXInlineBanner(kind: .attention, message: refreshBanner, actionTitle: "How to refresh", action: onRefreshHelp)
+                }
                 hero
                 if let next = store.nextUp {
                     nextUpCard(next)

@@ -9,6 +9,11 @@ struct YouScreen: View {
     var onAutomations: () -> Void = {}
     var onPrivacy: () -> Void = {}
     var onWeeklyReview: (() -> Void)? = nil
+    // Phase 5 doors
+    var onData: () -> Void = {}
+    var onRefreshHelp: () -> Void = {}
+    var onAchievements: () -> Void = {}
+    @ObservedObject private var backup = BackupService.shared
     @AppStorage("lx.newExperience") private var newExperience = true
     @Environment(\.lxTheme) private var theme
 
@@ -22,6 +27,10 @@ struct YouScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: LX.Space.s500) {
                 Text("You").lxFont(.titleLarge).foregroundStyle(.lx(.textPrimary)).accessibilityAddTraits(.isHeader)
+                if let message = backup.refreshMessage {
+                    // Phase 5 §9.1: calm, never blocking.
+                    LXInlineBanner(kind: .info, message: message, actionTitle: "How to refresh", action: onRefreshHelp)
+                }
                 goalCard
                 streaks
                 todos
@@ -122,6 +131,10 @@ struct YouScreen: View {
                 row("Weekly review", "book.pages") { onWeeklyReview() }
                 Rectangle().fill(.lx(.separator)).frame(height: 0.5)
             }
+            row("Achievements", "medal") { onAchievements() }
+            Rectangle().fill(.lx(.separator)).frame(height: 0.5)
+            row("Data and backup", "externaldrive") { onData() }
+            Rectangle().fill(.lx(.separator)).frame(height: 0.5)
             row("Profile and health details", "person.text.rectangle") { showProfile = true }
             Rectangle().fill(.lx(.separator)).frame(height: 0.5)
             row("Settings", "gearshape") { showSettings = true }
