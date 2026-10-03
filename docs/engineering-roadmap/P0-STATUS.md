@@ -50,8 +50,8 @@ Current numbers: all green. **89.7% line coverage** across the package (target: 
 ### P0-C · Observability, flags, hygiene
 | ID | Status | Notes |
 |---|---|---|
-| FND-20 `os.Logger` | 🟡 | `Log` in Core. 17 `print` calls remain in the app. The SwiftLint `no_print` rule is in place. |
-| FND-21 MetricKit | ⏳ | App-only |
+| FND-20 `os.Logger` | ✅ | No `print` left in either app. `Log.<category>` is re-exported app-wide with `os`. SwiftLint `no_print` rule. |
+| FND-21 MetricKit | ✅ | `LifeOS/App/Diagnostics.swift` stores metric and diagnostic payloads on device (newest 30, excluded from backup, never uploaded). Crashlytics stays optional behind a flag. |
 | FND-22 Feature flags | ✅ | `FeatureFlags`: local override → remote → default. Unknown remote keys ignored. |
 | FND-23 SwiftLint | ✅ | `.swiftlint.yml`. Strict on packages, report-only on app targets until FND-12. SwiftFormat config not added yet. |
 | FND-24 Repo hygiene | ✅ | Nothing junk is tracked (`build/`, `.DS_Store` were already untracked). `.gitignore` extended. README tech sections rewritten to match the code. |
@@ -61,15 +61,35 @@ Current numbers: all green. **89.7% line coverage** across the package (target: 
 | ID | Status | Notes |
 |---|---|---|
 | SEC-01 File protection | 🟡 | `FileStorageBackend` applies `.completeUntilFirstUserAuthentication` to files and directories. Needs on-device verification. |
-| SEC-02 Privacy manifest | 🟡 | `LifeOSData/PrivacyInfo.xcprivacy` (UserDefaults CA92.1). The **app** manifest is still to add. |
-| SEC-03 Logging privacy | 🟡 | Package logs user values as `.private`. App `print`s pending (FND-20). |
+| SEC-02 Privacy manifest | ✅ | App: `LifeOS/PrivacyInfo.xcprivacy` (no tracking; meal photos and meal text to the AI provider for app functionality, not linked; UserDefaults CA92.1). Package: `LifeOSData/PrivacyInfo.xcprivacy`. Both are in the built app bundle. The AI team should confirm the declared types against PrivacyGate. |
+| SEC-03 Logging privacy | ✅ | User values (calories, dates, food) are logged `.private`. Errors use `.public` system messages only. |
 | QA-01 Test targets | 🟡 | Package test targets ✅. App unit/UI targets need Xcode. |
 | QA-02 Baseline unit tests | 🟡 | Calculators, streaks, DayKey ✅. `GroqMealAnalyzer.isolateJSONObject`, `MealLearningEngine`, `AutoSetTracker` pending (app-target code). |
 | QA-03 Persona fixtures | 🟡 | `LegacyFixture.heavyLogger(days:)` exists. Launch-argument seeding pending. |
 | QA-04 CI pipeline | ✅ | `.github/workflows/ci.yml`: lint, LifeOSKit tests + coverage, AI harness tests, design-system tests + token check, iOS + watchOS build. Mark `lint`, `packages`, `design-system` and `app-build` as required on `main`. |
 | QA-05 Snapshot testing | ⏳ | Needs Xcode. Coordinate with UI Engineering (design-system components). |
 
-## App wiring progress
+## Pulled forward from P1
+
+| ID | Status | Notes |
+|---|---|---|
+| CAL-01 `CalorieEngine` | ✅ (pure engine) | `LifeOSCore/Calculators/CalorieEngine.swift`: measured / estimated / fixed modes per doc 03 §3.1, plus `.classic`, which reproduces today's app formula exactly. Not yet the app's source of truth: that's CAL-02/03, which need HealthKit ingestion (doc 02). |
+| CAL-07 `BudgetBreakdown` | ✅ | The waterfall contract for UI-14: `lines` (`.bmr`, `.everydayActivity`, `.goal`, `.manualTarget`, `.exerciseCredit`, `.floorTopUp`) sum to `budget`. Built early so UI/UX Phase 3 can render "Why this number?" with today's numbers (`.classic`). |
+
+## Cross-team contracts
+
+| Contract | Owner | Consumers | Notes |
+|---|---|---|---|
+| `CalorieEngine.budget` / `BudgetBreakdown` (LifeOSCore) | Platform | UI/UX Phase 3 budget explainer (`.classic` until CAL-02/03) | Lines sum to the budget. Bump `formulaVersion` on any change. |
+| `ExperienceNotifications` (single `UNUserNotificationCenter` delegate) | UI/UX Phase 4 (`uiux/phase4-intelligence`) | AUTO-03 actionable notifications (Platform, P3) | Register with `ExperienceNotifications.shared.register(categoryPrefix: "auto03.", categories:, handler:)`. Categories are merged by identifier, never set from a fixed list. Don't add a second delegate. |
+| `WatchWire` / `WatchSnapshot` / `WatchMutation` (LifeOSConnectivity) | Platform | iPhone + Watch apps | Bump `WatchContract.schemaVersion` on breaking changes. The v1 reader is removed two releases after FND-11. |
+
+## Recommendations on the remaining P0 items
+
+- **FND-12 (split monolith views): re-scope.** UI/UX Phase 3 is building a new 5-tab experience in new files (`LifeOS/Experience/`), with the old UI behind a toggle. Splitting the old 1,000+ line views would be throwaway work. Instead, enforce ≤400 lines in `LifeOS/Experience/` and delete the old views once the new shell ships. Then move streak recompute to `SummaryService` (finishing FND-08) inside the new Today screen.
+- **QA-01 (app test targets): schedule an install window.** Running host-app tests on the iPhone installs the test host over whatever build is on the phone, and several sessions share that phone. Do it in an agreed window. Until then, logic lives in LifeOSKit, where it's tested (81 tests).
+
+
 
 | Step | Status |
 |---|---|
@@ -80,7 +100,7 @@ Current numbers: all green. **89.7% line coverage** across the package (target: 
 | 5. Managers on repositories | ✅ Persistence, Food, Workout and Streak managers read a preloaded `DataSnapshot` and write through `LocalStore.enqueue` |
 | 6. `SummaryService` + remove `.onChange` handlers | ⏳ with FND-12 |
 | 7. Typed watch contract | 🟡 built for device, install and wrist test pending |
-| 8. FND-12 splits, FND-20 prints, app privacy manifest, MetricKit, app test targets | ⏳ |
+| 8. FND-20 prints ✅, app privacy manifest ✅, MetricKit ✅. FND-12 view splits and app test targets ⏳ |
 
 Every step was built for, installed on and launched on the iPhone 15. Each build had zero new warnings.
 

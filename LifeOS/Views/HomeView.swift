@@ -237,7 +237,6 @@ final class HomeViewModel: ObservableObject {
 
     func syncWorkoutToAppleHealth() {
         guard Calendar.current.isDateInToday(foodDatabase.selectedDate) else {
-            print("📅 Viewing past/future date - skipping Apple Health sync")
             return
         }
 
@@ -250,7 +249,7 @@ final class HomeViewModel: ObservableObject {
         let percentage = CalorieSettings.shared.loadPercentage()
         let caloriesToBank = totalBurned * percentage
 
-        print("🔥 Burned: \(Int(totalBurned)) cal | Added to bank: \(Int(caloriesToBank)) cal (\(Int(percentage * 100))%)")
+        Log.health.debug("Burned \(Int(totalBurned), privacy: .private) kcal, banked \(Int(caloriesToBank), privacy: .private) (\(Int(percentage * 100))%)")
     }
 
     func handleCardTap(_ type: MiniCardType) {
