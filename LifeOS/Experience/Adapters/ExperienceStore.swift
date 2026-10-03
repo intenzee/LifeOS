@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import LifeOSCore
 import SwiftUI
 
 /// The single bridge between the Phase 3 screens and the app's existing managers.
@@ -40,6 +41,17 @@ final class ExperienceStore: ObservableObject {
         dependencies.healthManager.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] in self?.lastHealthUpdate = Date() }
+            .store(in: &bag)
+
+        // The calorie engine recomputes budgets on its own (Health sync, settings):
+        // redraw and refresh the widgets with its numbers.
+        HealthSync.shared.objectWillChange
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                self.objectWillChange.send()
+                WidgetBridge.publish(self)
+            }
             .store(in: &bag)
 
         // The Watch and the classic Todo tab write behind our back.
@@ -93,16 +105,15 @@ final class ExperienceStore: ObservableObject {
     var workoutKcal: Double { workouts.getTotalCaloriesBurned(weight: currentWeight) }
     var dayWorkout: DayWorkout { workouts.dailyWorkout }
 
-    var budget: ExperienceBudget {
-        ExperienceBudget(baseLimit: CalorieLimitSettings.shared.loadLimit(),
-                         activeEnergy: workoutKcal,
-                         eatBackShare: CalorieSettings.shared.loadPercentage(),
-                         eaten: log.totalCalories())
-    }
+    /// The calorie engine's budget for the selected day (CAL-03), via `HealthSync`.
+    var budget: ExperienceBudget { EngineBudget.budget(on: day, eaten: log.totalCalories()) }
 
     var budgetLines: [ExperienceBudget.Line] {
-        budget.lines(activeSourceNote: workoutKcal > 0 ? "Estimated from the sets you logged in LifeOS." : nil,
-                     derivation: budgetDerivation)
+        let measured = HealthSync.shared.energyByDay[DayKey.make(for: day)]?.budgetMode == .measured
+        let note: String? = budget.activeEnergy <= 0 ? nil
+            : measured ? "Measured by your Apple Watch, through Apple Health."
+            : "Estimated from your workouts and the sets you logged."
+        return budget.lines(activeSourceNote: note, derivation: budgetDerivation)
     }
 
     /// Present only while the limit is the automatic, profile-based one.
@@ -113,10 +124,11 @@ final class ExperienceStore: ObservableObject {
                      weeklyChangeKg: CalorieGoalCalculator.targetWeeklyChangeKg(profile: p))
     }
 
-    var calorieLimitIsManual: Bool { CalorieLimitSettings.shared.isManual }
+    var calorieLimitIsManual: Bool { HealthSync.shared.settings.manualTarget != nil }
 
     var macroTargets: (protein: Double, carbs: Double, fat: Double) {
-        CalorieGoalCalculator.macroTargets(forCalories: CalorieLimitSettings.shared.loadLimit())
+        // From the engine's budget, like the Watch's protein bar.
+        CalorieGoalCalculator.macroTargets(forCalories: HealthSync.shared.budget(on: DayKey.make(for: day)))
     }
 
     var orbState: LifeOrbState {
@@ -278,11 +290,11 @@ final class ExperienceStore: ObservableObject {
         afterWrite()
     }
 
-    /// Eat-back share for activity. `CalorieSettings` cannot store 0, so the sheet offers 25–100%.
-    var eatBackShare: Double { CalorieSettings.shared.loadPercentage() }
+    /// Eat-back share for activity, as the calorie engine uses it (0…1, steps of 10%).
+    var eatBackShare: Double { EngineBudget.eatBack }
 
     func setEatBack(_ share: Double) {
-        CalorieSettings.shared.savePercentage(min(max(share, 0.25), 1))
+        EngineBudget.setEatBack(min(max(share, 0), 1))
         afterWrite()
     }
 

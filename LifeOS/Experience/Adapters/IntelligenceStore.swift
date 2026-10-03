@@ -225,8 +225,8 @@ final class IntelligenceStore: ObservableObject {
                 let text: String
                 switch rules[i].action {
                 case .budgetEffect:
-                    let added = Int(((new.workoutKcal - old.workoutKcal) * CalorieSettings.shared.loadPercentage()).rounded())
-                    text = "Workout logged · +\(added) kcal earned. Budget now \(Fmt.kcal(store.budget.budget))."
+                    let b = store.budget
+                    text = "Workout logged · +\(Int(b.earned)) kcal earned today. Budget now \(Fmt.kcal(b.budget)) kcal."
                 default:
                     text = body(for: rules[i], today: new, proteinTarget: proteinTarget, isToday: true)
                 }

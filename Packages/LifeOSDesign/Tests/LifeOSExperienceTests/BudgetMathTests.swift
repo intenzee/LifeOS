@@ -70,6 +70,30 @@ import Testing
         #expect(Array(maintain.lines(derivation: .init(maintenance: 2100, adjustment: 0, weeklyChangeKg: 0)).map(\.id).prefix(2)) == ["maintenance", "base"])
     }
 
+    @Test func engineBudgetIsTakenAsIs() {
+        // CAL-03: the engine capped the credit (300 of 50% × 800), so earned is
+        // its credit, not a share of active energy, and the total is its total.
+        let b = ExperienceBudget.engine(budget: 2100, credit: 300, rawActive: 800, eatBack: 0.5, eaten: 1500,
+                                        lines: [.init(kind: .bmr, kcal: 1500), .init(kind: .everydayActivity, kcal: 300),
+                                                .init(kind: .goal, kcal: -300), .init(kind: .floorTopUp, kcal: 300),
+                                                .init(kind: .exerciseCredit, kcal: 300)])
+        #expect(b.earned == 300)
+        #expect(b.budget == 2100)
+        #expect(b.remaining == 600)
+        let ids = b.lines().map(\.id)
+        // Engine order (floor before credit, formula v2), then the totals.
+        #expect(ids == ["bmr0", "everyday1", "goal2", "floor3", "earned", "budget", "eaten", "remaining"])
+        #expect(b.lines().first { $0.id == "budget" }?.kcal == 2100)
+    }
+
+    @Test func engineWithoutCreditStillShowsEarnedLine() {
+        let b = ExperienceBudget.engine(budget: 1800, credit: 0, rawActive: 0, eatBack: 0, eaten: 0,
+                                        lines: [.init(kind: .manualTarget, kcal: 1800)])
+        let earned = b.lines().first { $0.id == "earned" }
+        #expect(earned?.kcal == 0)
+        #expect(earned?.note == "Counting activity is off in Settings.")
+    }
+
     @Test func loggedCopy() {
         #expect(ExperienceCopy.logged(kcal: 412, proteinG: 31) == "Logged. 412 kcal, 31 g protein.")
         #expect(ExperienceCopy.logged(kcal: 90, proteinG: 0) == "Logged. 90 kcal.")

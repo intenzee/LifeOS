@@ -88,7 +88,7 @@ struct TrainingScreen: View {
                     Image(systemName: "chevron.right").foregroundStyle(.lx(.textTertiary))
                 }
                 Text(b.earned > 0
-                     ? "\(Int((b.eatBackShare * 100).rounded()))% of \(Int(b.activeEnergy.rounded())) kcal from today's logged sets is added to your budget."
+                     ? "\(Int((b.eatBackShare * 100).rounded()))% of \(Int(b.activeEnergy.rounded())) active kcal today is added to your budget, within your daily cap."
                      : "Log sets or a treadmill session and part of it is added to your budget.")
                     .lxFont(.footnote).foregroundStyle(.lx(.textSecondary)).multilineTextAlignment(.leading)
             }

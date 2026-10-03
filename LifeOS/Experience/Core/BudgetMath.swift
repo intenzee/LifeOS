@@ -15,6 +15,13 @@ nonisolated struct ExperienceBudget: Equatable, Sendable {
     /// Calories logged today.
     var eaten: Double
 
+    /// The calorie engine's exercise credit (CAL-03). When set, `earned` is this
+    /// number, not a share of `activeEnergy`: the engine applies the cap, the
+    /// measured-mode allowance and the floor.
+    var credit: Double? = nil
+    /// The engine's own lines (`BudgetBreakdown.lines`), shown by the explainer.
+    var engineLines: [EngineLine]? = nil
+
     init(baseLimit: Double, activeEnergy: Double, eatBackShare: Double, eaten: Double) {
         self.baseLimit = baseLimit
         self.activeEnergy = activeEnergy
@@ -22,9 +29,29 @@ nonisolated struct ExperienceBudget: Equatable, Sendable {
         self.eaten = eaten
     }
 
+    /// The budget exactly as the calorie engine stored it: `budget` is the engine's
+    /// total and `earned` its credit, so the orb, widgets, Watch and Siri agree.
+    static func engine(budget: Double, credit: Double, rawActive: Double, eatBack: Double, eaten: Double,
+                       lines: [EngineLine]) -> ExperienceBudget {
+        let c = max(finite(credit), 0).rounded()
+        var b = ExperienceBudget(baseLimit: max(finite(budget) - c, 0), activeEnergy: rawActive,
+                                 eatBackShare: eatBack, eaten: eaten)
+        b.credit = c
+        b.engineLines = lines
+        return b
+    }
+
+    /// Mirror of `LifeOSCore.BudgetBreakdown.Line` (this layer is Foundation-only).
+    nonisolated struct EngineLine: Equatable, Sendable {
+        enum Kind: String, Sendable { case bmr, everydayActivity, goal, manualTarget, exerciseCredit, floorTopUp }
+        var kind: Kind
+        var kcal: Double
+    }
+
     private static func finite(_ v: Double) -> Double { v.isFinite ? v : 0 }
 
     var earned: Double {
+        if let credit { return max(Self.finite(credit), 0).rounded() }
         let share = min(max(Self.finite(eatBackShare), 0), 1)
         return (max(Self.finite(activeEnergy), 0) * share).rounded()
     }
@@ -46,6 +73,7 @@ nonisolated struct ExperienceBudget: Equatable, Sendable {
     /// Lines for the explainer sheet, in reading order. With a `derivation` (auto target)
     /// the base line is preceded by maintenance and goal lines; a floor shows as its own note.
     func lines(activeSourceNote: String? = nil, derivation: Derivation? = nil) -> [Line] {
+        if let engineLines { return lines(engine: engineLines, activeSourceNote: activeSourceNote) }
         var out: [Line] = []
         let base = Int(max(Self.finite(baseLimit), 0).rounded())
         if let d = derivation, d.maintenance.isFinite, d.maintenance > 0 {
@@ -71,6 +99,50 @@ nonisolated struct ExperienceBudget: Equatable, Sendable {
                             ? "\(sharePct)% of \(Int(max(activeEnergy, 0).rounded())) active kcal."
                             : (sharePct == 0 ? "Counting activity is off in Settings." : "No active energy recorded yet today."),
                         source: activeSourceNote))
+        out.append(Line(id: "budget", label: "Today's budget", kcal: Int(budget.rounded()), kind: .subtotal))
+        out.append(Line(id: "eaten", label: "Eaten so far", kcal: Int(max(Self.finite(eaten), 0).rounded()), kind: .eaten))
+        out.append(Line(id: "remaining", label: isOver ? "Over today" : "Remaining",
+                        kcal: Int(abs(remaining).rounded()), kind: .total))
+        return out
+    }
+
+    /// The engine's lines in its order (floor top-up before exercise credit, formula v2),
+    /// then the budget, eaten and remaining.
+    private func lines(engine: [EngineLine], activeSourceNote: String?) -> [Line] {
+        var out: [Line] = []
+        let sharePct = Int((min(max(Self.finite(eatBackShare), 0), 1) * 100).rounded())
+        for (i, l) in engine.enumerated() {
+            let kcal = Int(Self.finite(l.kcal).rounded())
+            switch l.kind {
+            case .bmr:
+                out.append(Line(id: "bmr\(i)", label: "Resting burn", kcal: kcal, kind: .component,
+                                note: "What your body uses at rest, from Apple Health or your profile."))
+            case .everydayActivity:
+                out.append(Line(id: "everyday\(i)", label: "Everyday activity", kcal: kcal, kind: .component,
+                                note: "Normal moving about, already counted before any workout."))
+            case .goal where kcal != 0:
+                out.append(Line(id: "goal\(i)", label: kcal < 0 ? "Goal: lose weight" : "Goal: gain weight", kcal: kcal,
+                                kind: .component, note: "Spreads the gap to your target weight over safe weekly rates."))
+            case .goal:
+                break
+            case .manualTarget:
+                out.append(Line(id: "manual\(i)", label: "Your daily target", kcal: kcal, kind: .component,
+                                note: "Your own calorie target from Settings."))
+            case .floorTopUp:
+                out.append(Line(id: "floor\(i)", label: "Safe minimum top-up", kcal: kcal, kind: .component,
+                                note: "Raised so your budget never drops below a safe minimum."))
+            case .exerciseCredit:
+                out.append(Line(id: "earned", label: "Earned from activity", kcal: kcal, kind: .earned,
+                                note: sharePct == 0 ? "Counting activity is off in Settings."
+                                    : "\(sharePct)% of \(Int(max(Self.finite(activeEnergy), 0).rounded())) active kcal, within your daily cap.",
+                                source: activeSourceNote))
+            }
+        }
+        if !engine.contains(where: { $0.kind == .exerciseCredit }) {
+            out.append(Line(id: "earned", label: "Earned from activity", kcal: Int(earned), kind: .earned,
+                            note: sharePct == 0 ? "Counting activity is off in Settings." : "No activity counted yet today.",
+                            source: activeSourceNote))
+        }
         out.append(Line(id: "budget", label: "Today's budget", kcal: Int(budget.rounded()), kind: .subtotal))
         out.append(Line(id: "eaten", label: "Eaten so far", kcal: Int(max(Self.finite(eaten), 0).rounded()), kind: .eaten))
         out.append(Line(id: "remaining", label: isOver ? "Over today" : "Remaining",

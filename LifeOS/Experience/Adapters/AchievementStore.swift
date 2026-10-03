@@ -26,8 +26,10 @@ final class AchievementStore: ObservableObject {
     }
 
     /// Reads every record once; call on appear and when the app becomes active, not on every change.
-    func refresh(streaks: StreakManager = .shared, food: FoodDatabaseManager = .shared) {
+    func refresh(streaks: StreakManager? = nil, food: FoodDatabaseManager? = nil) {
         guard !running, LocalStore.shared.phase == .ready else { return }
+        let streaks = streaks ?? .shared
+        let food = food ?? .shared
         running = true
         Task {
             defer { running = false }

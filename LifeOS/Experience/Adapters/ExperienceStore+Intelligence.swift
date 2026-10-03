@@ -6,10 +6,7 @@ extension ExperienceStore {
     func intelligenceSnapshot(memories: [MemoryItem], days: Int = 28, now: Date = Date()) -> IntelligenceSnapshot {
         let cal = Calendar.current
         let today = cal.startOfDay(for: now)
-        let streaks = dependencies.streakManager
         let metrics = dependencies.dailyMetricsRepository
-        let share = CalorieSettings.shared.loadPercentage()
-        let base = CalorieLimitSettings.shared.loadLimit()
         let weights = PersistenceManager.shared.loadWeightHistory()
 
         let facts: [DayFacts] = (0..<days).reversed().compactMap { offset in
@@ -27,17 +24,14 @@ extension ExperienceStore {
             }
             let workout = workouts.workout(on: DayKey.make(for: d))
             let wk = CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
-            // A recorded streak summary has that day's real budget; otherwise use today's settings.
-            let budget = streaks.summaries[streaks.dateKey(for: d)]?.calorieLimit ?? (base + (wk * share).rounded())
+            // The engine's stored budget for that day (CAL-03).
+            let budget = HealthSync.shared.budget(on: DayKey.make(for: d))
             let weight = weights.last { cal.isDate($0.date, inSameDayAs: d) }?.weightKg
             return DayFacts(date: d, meals: meals, budget: budget, water: metrics.loadWaterCount(for: d), waterTarget: waterTarget,
                             workoutKcal: wk, gymSets: workout.totalSets, weightKg: weight)
         }
         // Today's budget and eaten always come from today, whatever day the UI is showing.
-        let todayBudget = ExperienceBudget(baseLimit: base,
-                                           activeEnergy: CalorieCalculator.totalWorkoutCalories(workout: workouts.workout(on: DayKey.make(for: now)), weightKg: currentWeight),
-                                           eatBackShare: share,
-                                           eaten: food.dailyLog(for: now).totalCalories())
+        let todayBudget = EngineBudget.budget(on: now, eaten: food.dailyLog(for: now).totalCalories())
         return IntelligenceSnapshot(days: facts, now: now, proteinTarget: macroTargets.protein, budgetToday: todayBudget, memories: memories)
     }
 }
