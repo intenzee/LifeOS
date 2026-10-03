@@ -13,6 +13,7 @@
 		2B0000000000000000000003 /* LifeOSConnectivity in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000013 /* LifeOSConnectivity */; };
 		2B0000000000000000000004 /* LifeOSCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000014 /* LifeOSCore */; };
 		2B0000000000000000000005 /* LifeOSConnectivity in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000015 /* LifeOSConnectivity */; };
+		5A000000000000000000000C /* LifeOS Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5A0000000000000000000001 /* LifeOS Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -22,6 +23,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 1A0000000000000000000004;
 			remoteInfo = "LifeOS Watch App";
+		};
+		5A000000000000000000000E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3D08A1D12EF9524500C3B6B6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5A0000000000000000000004;
+			remoteInfo = "LifeOS Widgets";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -37,11 +45,23 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A000000000000000000000B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5A000000000000000000000C /* LifeOS Widgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		1A0000000000000000000001 /* LifeOS Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "LifeOS Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D08A1D92EF9524500C3B6B6 /* LifeOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LifeOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A0000000000000000000001 /* LifeOS Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "LifeOS Widgets.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -68,6 +88,16 @@
 			path = LifeOS;
 			sourceTree = "<group>";
 		};
+		5A0000000000000000000002 /* LifeOS Widgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "LifeOS Widgets";
+			sourceTree = "<group>";
+		};
+		5A0000000000000000000003 /* LifeOSShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LifeOSShared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +120,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A0000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -98,6 +135,8 @@
 			children = (
 				3D08A1DB2EF9524500C3B6B6 /* LifeOS */,
 				1A0000000000000000000002 /* LifeOS Watch App */,
+				5A0000000000000000000002 /* LifeOS Widgets */,
+				5A0000000000000000000003 /* LifeOSShared */,
 				3D08A1DA2EF9524500C3B6B6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -107,6 +146,7 @@
 			children = (
 				3D08A1D92EF9524500C3B6B6 /* LifeOS.app */,
 				1A0000000000000000000001 /* LifeOS Watch App.app */,
+				5A0000000000000000000001 /* LifeOS Widgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -146,14 +186,17 @@
 				3D08A1D62EF9524500C3B6B6 /* Frameworks */,
 				3D08A1D72EF9524500C3B6B6 /* Resources */,
 				1A000000000000000000000B /* Embed Watch Content */,
+				5A000000000000000000000B /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				1A000000000000000000000D /* PBXTargetDependency */,
+				5A000000000000000000000D /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				3D08A1DB2EF9524500C3B6B6 /* LifeOS */,
+				5A0000000000000000000003 /* LifeOSShared */,
 			);
 			name = LifeOS;
 			packageProductDependencies = (
@@ -164,6 +207,27 @@
 			productName = LifeOS;
 			productReference = 3D08A1D92EF9524500C3B6B6 /* LifeOS.app */;
 			productType = "com.apple.product-type.application";
+		};
+		5A0000000000000000000004 /* LifeOS Widgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A0000000000000000000008 /* Build configuration list for PBXNativeTarget "LifeOS Widgets" */;
+			buildPhases = (
+				5A0000000000000000000005 /* Sources */,
+				5A0000000000000000000006 /* Frameworks */,
+				5A0000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5A0000000000000000000002 /* LifeOS Widgets */,
+				5A0000000000000000000003 /* LifeOSShared */,
+			);
+			name = "LifeOS Widgets";
+			productName = "LifeOS Widgets";
+			productReference = 5A0000000000000000000001 /* LifeOS Widgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -179,6 +243,9 @@
 						CreatedOnToolsVersion = 26.2;
 					};
 					3D08A1D82EF9524500C3B6B6 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					5A0000000000000000000004 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -202,6 +269,7 @@
 			targets = (
 				3D08A1D82EF9524500C3B6B6 /* LifeOS */,
 				1A0000000000000000000004 /* LifeOS Watch App */,
+				5A0000000000000000000004 /* LifeOS Widgets */,
 			);
 		};
 /* End PBXProject section */
@@ -215,6 +283,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		3D08A1D72EF9524500C3B6B6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5A0000000000000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -238,6 +313,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A0000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -245,6 +327,11 @@
 			isa = PBXTargetDependency;
 			target = 1A0000000000000000000004 /* LifeOS Watch App */;
 			targetProxy = 1A000000000000000000000E /* PBXContainerItemProxy */;
+		};
+		5A000000000000000000000D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5A0000000000000000000004 /* LifeOS Widgets */;
+			targetProxy = 5A000000000000000000000E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -516,6 +603,69 @@
 			};
 			name = Release;
 		};
+		5A0000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/LifeOSWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DN9P7V5R2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/LifeOSWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tanmay.LifeOS.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG WIDGET_EXTENSION $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5A000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/LifeOSWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DN9P7V5R2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/LifeOSWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = LifeOS;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tanmay.LifeOS.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "WIDGET_EXTENSION $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -542,6 +692,15 @@
 			buildConfigurations = (
 				3D08A1E52EF9524700C3B6B6 /* Debug */,
 				3D08A1E62EF9524700C3B6B6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5A0000000000000000000008 /* Build configuration list for PBXNativeTarget "LifeOS Widgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A0000000000000000000009 /* Debug */,
+				5A000000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
