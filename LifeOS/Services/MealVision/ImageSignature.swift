@@ -1,28 +1,20 @@
 import UIKit
 import Vision
 
-/// A compact, comparable fingerprint of a meal photo used by the learning
-/// system to recognise "I've seen a dish like this before."
-///
-/// Two complementary signals, as an ML engineer would layer them:
-///  • **Perceptual hash (aHash)** — a 64-bit average hash. Cheap, and its
-///    Hamming distance is a robust detector of *near-identical* images (the same
-///    plate, same shot). We use it for the high-confidence "instant override".
-///  • **Vision feature print** — Apple's on-device image embedding
-///    (`VNFeaturePrintObservation`). Its distance captures *semantic* similarity
-///    (two different photos of egg fried rice look close), which is what powers
-///    retrieval of relevant past corrections for in-context learning.
-struct ImageSignature: Codable, Equatable {
-    /// 64-bit average-hash of an 8×8 luminance thumbnail.
-    let pHash: UInt64
-    /// Archived `VNFeaturePrintObservation` (NSSecureCoding). Optional because
-    /// the request can occasionally fail; the system degrades to pHash-only.
-    let featurePrintData: Data?
-
-    enum CodingKeys: String, CodingKey {
-        case pHash, featurePrintData
-    }
-}
+// A compact, comparable fingerprint of a meal photo used by the learning
+// system to recognise "I've seen a dish like this before."
+//
+// Two complementary signals, as an ML engineer would layer them:
+//  • **Perceptual hash (aHash)** — a 64-bit average hash. Cheap, and its
+//    Hamming distance is a robust detector of *near-identical* images (the same
+//    plate, same shot). We use it for the high-confidence "instant override".
+//  • **Vision feature print** — Apple's on-device image embedding
+//    (`VNFeaturePrintObservation`). Its distance captures *semantic* similarity
+//    (two different photos of egg fried rice look close), which is what powers
+//    retrieval of relevant past corrections for in-context learning.
+//
+// The `ImageSignature` value type itself lives in LifeOSCore (FOOD-14), with
+// the stored corrections; this file builds and compares signatures.
 
 enum ImageSignatureBuilder {
 
