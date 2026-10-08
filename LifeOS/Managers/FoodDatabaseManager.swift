@@ -127,16 +127,30 @@ final class FoodDatabaseManager: ObservableObject {
     }
 
     func toggleFavorite(_ food: FoodItem) {
-        if let index = favoriteFoods.firstIndex(where: { $0.id == food.id }) {
-            favoriteFoods.remove(at: index)
-        } else {
+        // Same rule as `isFavorite`: a recent or custom copy of a favourite has its
+        // own id, so match by name too, or un-starring it would add a duplicate.
+        let matching = favoriteFoods.indices.filter { favoriteFoods[$0].id == food.id || Self.sameName(favoriteFoods[$0], food) }
+        if matching.isEmpty {
             favoriteFoods.append(food)
+        } else {
+            for index in matching.reversed() { favoriteFoods.remove(at: index) }
         }
         saveLibrary()
     }
 
+    /// Drops recent foods matching `predicate` and saves the library.
+    func removeRecents(where predicate: (FoodItem) -> Bool) {
+        let before = recentFoods.count
+        recentFoods.removeAll(where: predicate)
+        if recentFoods.count != before { saveLibrary() }
+    }
+
     func isFavorite(_ food: FoodItem) -> Bool {
-        favoriteFoods.contains(where: { $0.name == food.name })
+        favoriteFoods.contains(where: { Self.sameName($0, food) })
+    }
+
+    private static func sameName(_ a: FoodItem, _ b: FoodItem) -> Bool {
+        a.name.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(b.name.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
     }
 
     private func saveLibrary() {

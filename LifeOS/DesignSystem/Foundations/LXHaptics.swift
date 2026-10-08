@@ -10,6 +10,7 @@ enum LXHaptic: CaseIterable, Sendable {
     case workoutArrived  // Watch workout raised the budget
     case firstOverBudget // once per day
     case destructive     // destructive confirm
+    case scanLocked      // a barcode or label was read; the camera stops on it
 
     var feedback: SensoryFeedback {
         switch self {
@@ -21,6 +22,7 @@ enum LXHaptic: CaseIterable, Sendable {
         case .workoutArrived: return .impact(weight: .medium)
         case .firstOverBudget: return .warning
         case .destructive: return .impact(weight: .heavy)
+        case .scanLocked: return .impact(weight: .medium)
         }
     }
 }

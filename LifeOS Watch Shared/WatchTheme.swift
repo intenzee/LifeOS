@@ -18,6 +18,13 @@ enum WatchTheme {
     static let secondary = Color(hex: 0x9AA3B5)    // textSecondary (Aurora)
     static let card = Color.white.opacity(0.08)
 
+    /// Text and symbols on an `accent` fill.
+    static let onAccent = Color(hex: 0x04140F)     // onAccent (Aurora)
+    /// Live heart rate.
+    static let heart = protein
+    /// Drop shadow under text drawn on rings and photos.
+    static let shadow = Color.black.opacity(0.5)
+
     /// Legacy names used by the workout screens.
     static let burn = energy
 

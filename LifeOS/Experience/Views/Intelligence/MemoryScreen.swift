@@ -94,7 +94,7 @@ struct MemoryScreen: View {
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) { intelligence.forget([m.id]) } label: { Label("Forget", systemImage: "trash") }
             if m.category != .photoCorrections {
-                Button { editing = m } label: { Label("Edit", systemImage: "pencil") }.tint(.gray)
+                Button { editing = m } label: { Label("Edit", systemImage: "pencil") }.tint(theme.color(.textSecondary))
             }
         }
         .contextMenu {

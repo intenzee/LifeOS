@@ -111,7 +111,7 @@ struct LXChip: View {
             }
             Text(title).lxFont(.subhead, weight: .medium)
             if let trailing {
-                Text(trailing).lxFont(.subhead, numeric: true).foregroundStyle(.lx(.textSecondary))
+                Text(trailing).lxFont(.subhead, numeric: true).foregroundStyle(trailingColor)
             }
         }
         .lineLimit(1)
@@ -131,6 +131,12 @@ struct LXChip: View {
         case .status(let role): return theme.color(role)
         case .neutral: return theme.color(.textPrimary)
         }
+    }
+
+    /// Secondary text on the chip; on a selected (accent) chip it must read on the accent.
+    private var trailingColor: Color {
+        if case .filter(true) = kind { return theme.color(.onAccent).opacity(0.72) }
+        return theme.color(.textSecondary)
     }
 
     private var fill: Color {

@@ -55,7 +55,7 @@ struct AssistantOrb: View {
                 let p = CGPoint(x: c.x + cos(a) * r * 0.35, y: c.y + sin(a * 1.3) * r * 0.3)
                 let br = r * (0.55 - Double(k) * 0.15)
                 ctx.fill(Path(ellipseIn: CGRect(x: p.x - br, y: p.y - br, width: 2 * br, height: 2 * br)),
-                         with: .radialGradient(Gradient(colors: [Color.white.opacity(0.35), .clear]), center: p, startRadius: 0, endRadius: br))
+                         with: .radialGradient(Gradient(colors: [LXLight.specular.opacity(0.35), .clear]), center: p, startRadius: 0, endRadius: br))
             }
             // Rim and specular highlight.
             ctx.stroke(Path(ellipseIn: rect.insetBy(dx: 0.5, dy: 0.5)), with: .color(.white.opacity(0.35)), lineWidth: max(0.5, r * 0.03))

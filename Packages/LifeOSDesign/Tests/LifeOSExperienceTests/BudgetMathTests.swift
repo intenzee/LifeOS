@@ -94,6 +94,27 @@ import Testing
         #expect(earned?.note == "Counting activity is off in Settings.")
     }
 
+    @Test func activityNoteFollowsEngineMode() {
+        // Measured: logged sets don't add credit, so the note must not promise it.
+        let measuredIdle = ExperienceBudget.engine(budget: 1800, credit: 0, rawActive: 120, eatBack: 0.5, eaten: 0,
+                                                   lines: [], mode: .measured, allowance: 300)
+        #expect(measuredIdle.activityNote.hasPrefix("Measured by your Apple Watch"))
+        #expect(!measuredIdle.activityNote.contains("Log sets"))
+        let measured = ExperienceBudget.engine(budget: 2000, credit: 200, rawActive: 700, eatBack: 0.5, eaten: 0,
+                                               lines: [.init(kind: .exerciseCredit, kcal: 200)], mode: .measured, allowance: 300)
+        #expect(measured.activityNote == "50% of 700 active kcal, above your everyday 300, is added to your budget within your daily cap.")
+        #expect(measured.lines().first { $0.id == "earned" }?.note?.contains("above your everyday 300") == true)
+        let estimated = ExperienceBudget.engine(budget: 1800, credit: 0, rawActive: 0, eatBack: 0.5, eaten: 0,
+                                                lines: [], mode: .estimated)
+        #expect(estimated.activityNote.hasPrefix("Log sets"))
+        let fixed = ExperienceBudget.engine(budget: 1800, credit: 0, rawActive: 0, eatBack: 0.5, eaten: 0,
+                                            lines: [], mode: .off)
+        #expect(fixed.activityNote.contains("fixed target"))
+        let offShare = ExperienceBudget.engine(budget: 1800, credit: 0, rawActive: 500, eatBack: 0, eaten: 0,
+                                               lines: [], mode: .measured, allowance: 300)
+        #expect(offShare.activityNote.hasPrefix("Counting activity is off"))
+    }
+
     @Test func loggedCopy() {
         #expect(ExperienceCopy.logged(kcal: 412, proteinG: 31) == "Logged. 412 kcal, 31 g protein.")
         #expect(ExperienceCopy.logged(kcal: 90, proteinG: 0) == "Logged. 90 kcal.")

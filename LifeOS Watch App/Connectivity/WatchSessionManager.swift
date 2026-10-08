@@ -59,9 +59,13 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     func updateExerciseSets(_ id: UUID, setsCompleted: Int) {
+        // Clamp to the exercise's max (if we know it) and send the *clamped*
+        // value, so the phone never records more sets than the plan allows.
+        var valueToSend = max(setsCompleted, 0)
         if let idx = snapshot.exercises.firstIndex(where: { $0.id == id }) {
             let exercise = snapshot.exercises[idx]
-            let clamped = min(max(setsCompleted, 0), exercise.maxSets)
+            let clamped = min(valueToSend, exercise.maxSets)
+            valueToSend = clamped
             snapshot.exercises[idx].setsCompleted = clamped // optimistic
             // A new set during a Health workout becomes a timed marker (WCH-14).
             if clamped > exercise.setsCompleted {
@@ -70,8 +74,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
                 }
             }
         }
-        send(.setExerciseSets(exerciseID: id, sets: setsCompleted, day: displayedDay),
-             legacy: ["action": "updateExerciseSets", "id": id.uuidString, "setsCompleted": setsCompleted])
+        send(.setExerciseSets(exerciseID: id, sets: valueToSend, day: displayedDay),
+             legacy: ["action": "updateExerciseSets", "id": id.uuidString, "setsCompleted": valueToSend])
     }
 
     func addExercise(bodyPart: String, name: String, maxSets: Int) {

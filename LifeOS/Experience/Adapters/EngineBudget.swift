@@ -16,12 +16,22 @@ enum EngineBudget {
         let total = health.budget(on: day)
         guard let breakdown = breakdown(on: day) else {
             return .engine(budget: total, credit: 0, rawActive: health.exerciseKcal(on: day),
-                           eatBack: health.settings.eatBack, eaten: eaten, lines: [])
+                           eatBack: health.settings.eatBack, eaten: eaten, lines: [],
+                           mode: health.energyByDay[day]?.budgetMode.map(creditMode))
         }
         // A frozen past day keeps its stored total even if settings changed since;
         // the credit then can't exceed it.
         return .engine(budget: total, credit: min(breakdown.credit, total), rawActive: breakdown.rawActive,
-                       eatBack: breakdown.eatBack, eaten: eaten, lines: lines(breakdown))
+                       eatBack: breakdown.eatBack, eaten: eaten, lines: lines(breakdown),
+                       mode: creditMode(breakdown.mode), allowance: breakdown.allowance)
+    }
+
+    private static func creditMode(_ mode: BudgetMode) -> ExperienceBudget.CreditMode {
+        switch mode {
+        case .measured: return .measured
+        case .estimated, .classic: return .estimated
+        case .fixed: return .off
+        }
     }
 
     static func breakdown(on day: DayKey) -> BudgetBreakdown? {

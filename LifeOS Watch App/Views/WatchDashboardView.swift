@@ -64,7 +64,7 @@ struct WatchDashboardView: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(isOver ? WatchTheme.over : WatchTheme.secondary)
             }
-            .shadow(color: .black.opacity(0.5), radius: 3)
+            .shadow(color: WatchTheme.shadow, radius: 3)
         }
         .frame(width: 118, height: 118)
         .accessibilityElement(children: .ignore)

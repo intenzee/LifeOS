@@ -221,19 +221,19 @@ struct FoodSearchView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Say or type it")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.lx(.textPrimary))
                     Text("“2 rotis, dal and curd” · “my usual breakfast”")
                         .font(.caption2)
-                        .foregroundColor(.gray)
+                        .foregroundStyle(.lx(.textSecondary))
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundStyle(.lx(.textSecondary))
             }
             .padding(.horizontal)
             .padding(.vertical, 10)
-            .background(Color(red: 0.13, green: 0.13, blue: 0.15))
+            .background(.lx(.surfaceRaised))
         }
         .accessibilityHint("Log food by speaking or typing a sentence")
         .sheet(isPresented: $showSmartLog, onDismiss: {

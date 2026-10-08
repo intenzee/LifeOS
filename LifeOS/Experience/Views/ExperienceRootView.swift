@@ -17,7 +17,8 @@ struct ExperienceRootView: View {
     @State private var captureStartsTyping = false
     @State private var captureSlot: ExperienceMealSlot?
     @State private var showBudget = false
-    @State private var legacyRoute: LegacyCaptureRoute = .none
+    @State private var captureRoute: CaptureRoute = .none
+    @State private var captureRouteSlot: ExperienceMealSlot?
     @State private var toast: LXToastModel?
     @State private var undoIDs: [UUID] = []
     @State private var loggedTick = 0
@@ -46,6 +47,21 @@ struct ExperienceRootView: View {
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
         _store = StateObject(wrappedValue: ExperienceStore(dependencies: dependencies))
+        #if DEBUG
+        // DEBUG-only: `LX_START_TAB=nutrition|training|you|today` opens that tab on
+        // launch so each screen can be screenshotted for UI review.
+        if let raw = ProcessInfo.processInfo.arguments
+            .first(where: { $0.hasPrefix("LX_START_TAB=") })?
+            .dropFirst("LX_START_TAB=".count),
+           let t = LXTab(rawValue: String(raw)), t != .capture {
+            _tab = State(initialValue: t)
+        }
+        // `LX_OPEN_CAPTURE=photo|barcode` opens that capture flow on launch.
+        if let raw = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("LX_OPEN_CAPTURE=") })?
+            .dropFirst("LX_OPEN_CAPTURE=".count) {
+            _captureRoute = State(initialValue: raw == "photo" ? .photo : raw == "barcode" ? .barcode : raw == "search" ? .search : .none)
+        }
+        #endif
     }
 
     var body: some View {
@@ -88,10 +104,13 @@ struct ExperienceRootView: View {
                      onAssistant: { openAssistant(context: nil, listening: true) })
                 .padding(.bottom, 4)
 
-            LegacyCaptureHost(route: $legacyRoute, slot: store.currentSlot, apiClient: dependencies.apiClient,
-                              onLog: { food, source in logged(store.log([food], slot: ExperienceMealSlot(food.mealType), source: source),
-                                                              kcal: food.calories, protein: food.protein) },
-                              onSaveCustom: { dependencies.foodDatabase.addCustomFood($0) })
+            CaptureFlowHost(route: $captureRoute, slot: captureRouteSlot ?? store.currentSlot, apiClient: dependencies.apiClient,
+                            foods: dependencies.foodDatabase,
+                            mealTargets: mealTargets,
+                            onLog: { food, source in logged(store.log([food], slot: ExperienceMealSlot(food.mealType), source: source),
+                                                            kcal: food.calories, protein: food.protein) },
+                            onSaveCustom: { dependencies.foodDatabase.addCustomFood($0) },
+                            onFavorite: saveFavorite)
         }
         .overlay(alignment: .top) { eventBanner }
         .overlay {
@@ -105,10 +124,11 @@ struct ExperienceRootView: View {
         .sheet(isPresented: $showCapture) {
             CaptureSheet(store: store, startTyping: captureStartsTyping, initialSlot: captureSlot,
                          onLogged: { ids, kcal, protein in showCapture = false; logged(ids, kcal: kcal, protein: protein) },
-                         onRoute: { route in
+                         onRoute: { route, slot in
                              showCapture = false
+                             captureRouteSlot = slot
                              // Let the sheet finish dismissing before the full-screen flow appears.
-                             afterDismiss { legacyRoute = route }
+                             afterDismiss { captureRoute = route }
                          },
                          onAsk: {
                              showCapture = false
@@ -281,6 +301,19 @@ struct ExperienceRootView: View {
         undoIDs = ids
         loggedTick += 1
         toast = LXToastModel(message: ExperienceCopy.logged(kcal: Int(kcal.rounded()), proteinG: Int(protein.rounded())))
+    }
+
+    /// A meal's share of today's macro targets (a third of the day), for capture flows.
+    private var mealTargets: (protein: Double, carbs: Double, fat: Double) {
+        let t = store.macroTargets
+        return (t.protein / 3, t.carbs / 3, t.fat / 3)
+    }
+
+    /// Keeps a food as a favourite preset (Capture's "Save as preset").
+    private func saveFavorite(_ food: FoodItem) {
+        let db = dependencies.foodDatabase
+        db.addCustomFood(food)
+        if !db.isFavorite(food) { store.toggleFavorite(food) }
     }
 
     private func logPreset(_ id: String) {

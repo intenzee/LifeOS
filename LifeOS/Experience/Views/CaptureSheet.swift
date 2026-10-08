@@ -8,7 +8,8 @@ struct CaptureSheet: View {
     var startTyping = false
     var initialSlot: ExperienceMealSlot? = nil
     var onLogged: (_ ids: [UUID], _ kcal: Double, _ protein: Double) -> Void
-    var onRoute: (LegacyCaptureRoute) -> Void
+    /// Photo, Scan or Search, with the meal picked here so the flow logs into it.
+    var onRoute: (CaptureRoute, ExperienceMealSlot) -> Void
     /// Phase 4: "Ask" switches to the assistant.
     var onAsk: (() -> Void)? = nil
 
@@ -200,9 +201,9 @@ struct CaptureSheet: View {
 
     @ViewBuilder private var modeRow: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: LX.Space.s200), count: typeSize.isAccessibilitySize ? 2 : 5), spacing: LX.Space.s200) {
-            modeButton("Photo", "camera.fill") { onRoute(.photo) }
-            modeButton("Scan", "barcode.viewfinder") { onRoute(.barcode) }
-            modeButton("Search", "magnifyingglass") { onRoute(.search) }
+            modeButton("Photo", "camera.fill") { onRoute(.photo, slot) }
+            modeButton("Scan", "barcode.viewfinder") { onRoute(.barcode, slot) }
+            modeButton("Search", "magnifyingglass") { onRoute(.search, slot) }
             modeButton(store.isToday ? "Water \(store.waterCount)" : "Water", "drop.fill", role: .dataWater) {
                 store.addWater(1)
                 waterTick += 1

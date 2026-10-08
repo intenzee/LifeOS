@@ -87,9 +87,7 @@ struct TrainingScreen: View {
                     Spacer()
                     Image(systemName: "chevron.right").foregroundStyle(.lx(.textTertiary))
                 }
-                Text(b.earned > 0
-                     ? "\(Int((b.eatBackShare * 100).rounded()))% of \(Int(b.activeEnergy.rounded())) active kcal today is added to your budget, within your daily cap."
-                     : "Log sets or a treadmill session and part of it is added to your budget.")
+                Text(b.activityNote)
                     .lxFont(.footnote).foregroundStyle(.lx(.textSecondary)).multilineTextAlignment(.leading)
             }
             .lxCard(padding: LX.Space.s400)
@@ -107,7 +105,9 @@ struct TrainingScreen: View {
                 LXMetricTile(label: "Steps", value: Int(h.stepsToday).formatted(), systemImage: "figure.walk",
                              dataRole: .dataActivity, caption: "Apple Health, today")
             }
-            Text("Apple Watch energy is shown for reference; your budget counts the sessions logged here until Health-based budgets ship.")
+            Text(store.budget.creditMode == .measured
+                 ? "Your budget is measured from this Apple Watch energy, so logged sets aren't counted twice."
+                 : "Shown for reference. Your budget counts the sessions logged here until your Apple Watch has 3 days of energy in a week.")
                 .lxFont(.caption).foregroundStyle(.lx(.textTertiary))
         } else {
             LXInlineBanner(kind: .info, message: "Connect Apple Health to see Watch activity and steps here.",
@@ -125,10 +125,9 @@ struct TrainingScreen: View {
                     .lxCard()
             } else {
                 ForEach(sessions.reversed(), id: \.date) { s in
-                    let kcal = store.workoutKcal(for: s.workout)
                     LXWorkoutCard(title: title(s.workout),
                                   durationMinutes: minutes(s.workout),
-                                  earnedKcal: Int((kcal * store.eatBackShare).rounded()),
+                                  earnedKcal: Int(store.earned(on: s.date)),
                                   time: dayLabel(s.date),
                                   systemImage: s.workout.totalSets == 0 ? "figure.run.treadmill" : "figure.strengthtraining.traditional",
                                   source: .manual,

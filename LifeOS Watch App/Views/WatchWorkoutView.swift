@@ -99,6 +99,10 @@ struct WatchSetTrackingView: View {
     @StateObject private var tracker = AutoSetTracker()
     @State private var started = false
     @State private var startedAt: Date?
+    // Digital Crown rep correction: we track deltas so auto-increments and the
+    // crown never fight over an absolute value.
+    @State private var crownValue: Double = 0
+    @State private var lastCrownInt = 0
 
     private var isComplete: Bool { tracker.setsCompleted >= exercise.maxSets }
 
@@ -107,11 +111,12 @@ struct WatchSetTrackingView: View {
             VStack(spacing: 10) {
                 header
                 counter
+                if started && !tracker.isCalibrating { repCorrection }
                 setDots
                 if started { liveMeter }
                 controls
                 if started {
-                    Label("Keep this screen open while you lift", systemImage: "applewatch.radiowaves.left.and.right")
+                    Label(footerNote, systemImage: "applewatch.radiowaves.left.and.right")
                         .font(.system(size: 11))
                         .foregroundStyle(WatchTheme.secondary)
                         .multilineTextAlignment(.center)
@@ -121,8 +126,40 @@ struct WatchSetTrackingView: View {
             .padding(.vertical, 6)
         }
         .navigationTitle(exercise.bodyPart)
+        .focusable(started && !tracker.isCalibrating)
+        .digitalCrownRotation($crownValue, from: -100000, through: 100000, by: 1,
+                              sensitivity: .low, isContinuous: true, isHapticFeedbackEnabled: true)
+        .onChange(of: crownValue) { _, newValue in
+            let i = Int(newValue.rounded())
+            let delta = i - lastCrownInt
+            if delta != 0 { tracker.adjustReps(by: delta); lastCrownInt = i }
+        }
         .onAppear { configureTracker() }
         .onDisappear { tracker.stop() }
+    }
+
+    /// Inline +/- correction (and the Crown) so a miscount is a one-tap fix.
+    private var repCorrection: some View {
+        HStack(spacing: 14) {
+            Button { tracker.adjustReps(by: -1) } label: {
+                Image(systemName: "minus").font(.system(size: 15, weight: .bold)).frame(width: 34, height: 28)
+            }
+            .buttonStyle(.bordered).tint(WatchTheme.secondary)
+            Text("Turn Crown to fix").font(.system(size: 10)).foregroundStyle(WatchTheme.secondary)
+            Button { tracker.adjustReps(by: 1) } label: {
+                Image(systemName: "plus").font(.system(size: 15, weight: .bold)).frame(width: 34, height: 28)
+            }
+            .buttonStyle(.bordered).tint(WatchTheme.accent)
+        }
+    }
+
+    private var footerNote: String {
+        if tracker.isCalibrating {
+            return "Do \(tracker.calibrationTarget) clean reps so I learn your pace"
+        }
+        return StrengthWorkoutSession.shared.isActive
+            ? "Counting during your workout — wrist down is fine"
+            : "Keep this screen open while you lift"
     }
 
     private var header: some View {
@@ -142,16 +179,23 @@ struct WatchSetTrackingView: View {
     }
 
     private var counter: some View {
-        VStack(spacing: 0) {
-            Text("\(started ? tracker.reps : tracker.lastSetReps)")
+        let count = tracker.isCalibrating ? tracker.calibrationReps : (started ? tracker.reps : tracker.lastSetReps)
+        let caption: String = {
+            if tracker.isCalibrating { return "of \(tracker.calibrationTarget) · learning" }
+            if started { return "reps" }
+            return tracker.lastSetReps > 0 ? "reps last set" : "reps"
+        }()
+        return VStack(spacing: 0) {
+            Text("\(count)")
                 .font(WatchTheme.number(52))
-                .foregroundStyle(tracker.phase == .active ? WatchTheme.energy : .primary)
+                .foregroundStyle(tracker.phase == .active ? WatchTheme.energy :
+                                 (tracker.isCalibrating ? WatchTheme.accent : .primary))
                 .contentTransition(.numericText())
-            Text(started ? "reps" : (tracker.lastSetReps > 0 ? "reps last set" : "reps"))
+            Text(caption)
                 .font(.system(size: 11)).foregroundStyle(WatchTheme.secondary)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(started ? tracker.reps : tracker.lastSetReps) reps")
+        .accessibilityLabel("\(count) reps")
     }
 
     private var setDots: some View {
@@ -205,6 +249,7 @@ struct WatchSetTrackingView: View {
                     tracker.stop()
                     startedAt = nil
                 } else {
+                    resetCrown()
                     tracker.start(initialSets: exercise.setsCompleted)
                     startedAt = Date()
                 }
@@ -216,13 +261,31 @@ struct WatchSetTrackingView: View {
             }
             .buttonStyle(.bordered)
             .tint(started ? WatchTheme.over : WatchTheme.accent)
+
+            if !started {
+                Button {
+                    resetCrown()
+                    tracker.startCalibration(initialSets: exercise.setsCompleted)
+                    startedAt = Date()
+                    started = true
+                } label: {
+                    Label("Calibrate my pace", systemImage: "scope")
+                        .font(.system(size: 13))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(WatchTheme.secondary)
+            }
         }
     }
 
+    private func resetCrown() { crownValue = 0; lastCrownInt = 0 }
+
     private var phaseLabel: String {
+        if tracker.isCalibrating { return "Calibrating…" }
         switch tracker.phase {
         case .idle: return started ? "Counting…" : "Ready"
-        case .active: return "Counting…"
+        case .active, .calibrating: return "Counting…"
         case .resting: return "Resting"
         }
     }

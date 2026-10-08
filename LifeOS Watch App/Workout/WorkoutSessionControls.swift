@@ -18,7 +18,7 @@ struct WorkoutSessionControls: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(WatchTheme.accent)
-                .foregroundStyle(.black)
+                .foregroundStyle(WatchTheme.onAccent)
                 if case .failed(let message) = workout.state {
                     Text(message).font(.system(size: 10)).foregroundStyle(WatchTheme.over)
                 } else {
@@ -37,7 +37,7 @@ struct WorkoutSessionControls: View {
                 }
                 HStack(spacing: 12) {
                     Label(workout.heartRate.map { "\(Int($0))" } ?? "--", systemImage: "heart.fill")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(WatchTheme.heart)
                     Label("\(Int(workout.activeKcal))", systemImage: "flame.fill")
                         .foregroundStyle(WatchTheme.burn)
                     Text("\(workout.setsRecorded) sets").foregroundStyle(WatchTheme.secondary)

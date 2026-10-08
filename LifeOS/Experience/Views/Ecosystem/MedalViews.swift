@@ -19,7 +19,7 @@ struct MedalBadge: View {
         let accent = theme.color(.accentPrimary)
         ZStack {
             Circle()
-                .fill(RadialGradient(colors: [Color.white.opacity(earned ? 0.55 : 0.18), accent.opacity(earned ? 0.18 : 0.04)],
+                .fill(RadialGradient(colors: [LXLight.specular.opacity(earned ? 0.55 : 0.18), accent.opacity(earned ? 0.18 : 0.04)],
                                      center: .init(x: 0.35, y: 0.3), startRadius: 2, endRadius: size * 0.6))
             Circle()
                 .strokeBorder(AngularGradient(colors: earned ? [accent, .white.opacity(0.9), accent.opacity(0.7), accent]
@@ -274,7 +274,7 @@ struct MedalEarningMoment: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(reduceTransparency ? 0.95 : 0.65).ignoresSafeArea()
+            LXLight.scrim.opacity(reduceTransparency ? 0.95 : 0.65).ignoresSafeArea()
                 .onTapGesture { onDone() }
                 .accessibilityHidden(true) // the Done button is the accessible way out
             VStack(spacing: LX.Space.s500) {
@@ -283,9 +283,9 @@ struct MedalEarningMoment: View {
                     .rotation3DEffect(.degrees(landed || reduceMotion ? 0 : 50), axis: (x: 1, y: 0, z: 0))
                     .opacity(reduceMotion ? (landed ? 1 : 0) : 1)
                 VStack(spacing: LX.Space.s200) {
-                    Text("New medal").lxFont(.footnote, weight: .semibold).foregroundStyle(.white.opacity(0.8)).textCase(.uppercase)
-                    Text(medal.title).lxFont(.displayL).foregroundStyle(.white)
-                    Text(medal.criterion).lxFont(.body).foregroundStyle(.white.opacity(0.85))
+                    Text("New medal").lxFont(.footnote, weight: .semibold).foregroundStyle(LXLight.onScrim.opacity(0.8)).textCase(.uppercase)
+                    Text(medal.title).lxFont(.displayL).foregroundStyle(LXLight.onScrim)
+                    Text(medal.criterion).lxFont(.body).foregroundStyle(LXLight.onScrim.opacity(0.85))
                 }
                 .multilineTextAlignment(.center)
                 .opacity(landed ? 1 : 0)

@@ -219,6 +219,13 @@ final class ExperienceStore: ObservableObject {
         CalorieCalculator.totalWorkoutCalories(workout: workout, weightKg: currentWeight)
     }
 
+    /// What the calorie engine actually added to `date`'s budget, the same number
+    /// the Training hero and Today's timeline show (CAL-03). In measured mode that's
+    /// Watch energy, not the MET estimate of the logged sets.
+    func earned(on date: Date) -> Double {
+        EngineBudget.budget(on: date, eaten: 0).earned
+    }
+
     // MARK: - Writes
 
     /// Logs foods into the viewed day (same rule as the classic Home). Returns ids for Undo.

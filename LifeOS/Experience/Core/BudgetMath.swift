@@ -21,6 +21,20 @@ nonisolated struct ExperienceBudget: Equatable, Sendable {
     var credit: Double? = nil
     /// The engine's own lines (`BudgetBreakdown.lines`), shown by the explainer.
     var engineLines: [EngineLine]? = nil
+    /// How the engine credits activity for this day (mirror of `LifeOSCore.BudgetMode`).
+    var creditMode: CreditMode? = nil
+    /// Everyday-movement allowance subtracted before measured-mode credit, kcal.
+    var allowance: Double = 0
+
+    /// Mirror of `LifeOSCore.BudgetMode` for this Foundation-only layer.
+    nonisolated enum CreditMode: Sendable, Equatable {
+        /// Apple Watch active energy above the everyday allowance is credited.
+        case measured
+        /// The estimate of sessions logged in the app is credited.
+        case estimated
+        /// A fixed target: activity is never credited.
+        case off
+    }
 
     init(baseLimit: Double, activeEnergy: Double, eatBackShare: Double, eaten: Double) {
         self.baseLimit = baseLimit
@@ -32,13 +46,35 @@ nonisolated struct ExperienceBudget: Equatable, Sendable {
     /// The budget exactly as the calorie engine stored it: `budget` is the engine's
     /// total and `earned` its credit, so the orb, widgets, Watch and Siri agree.
     static func engine(budget: Double, credit: Double, rawActive: Double, eatBack: Double, eaten: Double,
-                       lines: [EngineLine]) -> ExperienceBudget {
+                       lines: [EngineLine], mode: CreditMode? = nil, allowance: Double = 0) -> ExperienceBudget {
         let c = max(finite(credit), 0).rounded()
         var b = ExperienceBudget(baseLimit: max(finite(budget) - c, 0), activeEnergy: rawActive,
                                  eatBackShare: eatBack, eaten: eaten)
         b.credit = c
         b.engineLines = lines
+        b.creditMode = mode
+        b.allowance = max(finite(allowance), 0)
         return b
+    }
+
+    /// One sentence on how activity reaches this budget, matching the engine's mode,
+    /// so the Training hero never promises credit the engine won't give.
+    var activityNote: String {
+        let pct = Int((min(max(Self.finite(eatBackShare), 0), 1) * 100).rounded())
+        let active = Int(max(Self.finite(activeEnergy), 0).rounded())
+        let everyday = Int(allowance.rounded())
+        if creditMode == .off { return "Your budget is a fixed target, so activity isn't added to it." }
+        if pct == 0 { return "Counting activity is off. Tap to choose how much is added back." }
+        switch (creditMode, earned > 0) {
+        case (.measured, true):
+            return "\(pct)% of \(active) active kcal, above your everyday \(everyday), is added to your budget within your daily cap."
+        case (.measured, false):
+            return "Measured by your Apple Watch: \(pct)% of active energy above your everyday \(everyday) kcal is added as you move."
+        case (_, true):
+            return "\(pct)% of \(active) kcal from today's sessions is added to your budget, within your daily cap."
+        case (_, false):
+            return "Log sets or a treadmill session and part of it is added to your budget."
+        }
     }
 
     /// Mirror of `LifeOSCore.BudgetBreakdown.Line` (this layer is Foundation-only).
@@ -134,6 +170,8 @@ nonisolated struct ExperienceBudget: Equatable, Sendable {
             case .exerciseCredit:
                 out.append(Line(id: "earned", label: "Earned from activity", kcal: kcal, kind: .earned,
                                 note: sharePct == 0 ? "Counting activity is off in Settings."
+                                    : creditMode == .measured && allowance > 0
+                                    ? "\(sharePct)% of \(Int(max(Self.finite(activeEnergy), 0).rounded())) active kcal above your everyday \(Int(allowance.rounded())), within your daily cap."
                                     : "\(sharePct)% of \(Int(max(Self.finite(activeEnergy), 0).rounded())) active kcal, within your daily cap.",
                                 source: activeSourceNote))
             }

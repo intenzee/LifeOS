@@ -42,6 +42,10 @@ struct LaunchGate: View {
         .task {
             Diagnostics.shared.start()
             await store.bootstrap()
+            #if DEBUG
+            if SampleDaySeeder.clearRequested { SampleDaySeeder.clear(dependencies) }
+            else if SampleDaySeeder.isRequested { SampleDaySeeder.seed(dependencies) }
+            #endif
             // The watch may have connected before data was loaded. Push a real snapshot.
             if store.phase == .ready { dependencies.watchConnectivity.sendSnapshot() }
         }

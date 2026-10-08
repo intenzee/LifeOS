@@ -152,7 +152,7 @@ struct HealthStatusBanner: View {
 
     private func note(_ text: String, action: (String, () -> Void)?) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "heart.text.square.fill").foregroundColor(.pink)
+            Image(systemName: "heart.text.square.fill").foregroundStyle(.lx(.dataProtein))
             VStack(alignment: .leading, spacing: 6) {
                 Text(text).font(.caption).foregroundColor(palette.textPrimary)
                 if let action {
@@ -163,7 +163,7 @@ struct HealthStatusBanner: View {
             Spacer(minLength: 0)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.pink.opacity(0.1)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(.lx(.dataProtein).opacity(0.1)))
     }
 }
 

@@ -196,8 +196,10 @@ struct LXProposalCard: View {
                         LXConfidenceDot(confidence: item.confidence)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.name).lxFont(.headline).foregroundStyle(.lx(.textPrimary))
-                            Text(item.confidence == .low ? "\(item.amount) · Check portion" : item.amount)
-                                .lxFont(.footnote).foregroundStyle(item.confidence == .low ? .lx(.statusAttention) : .lx(.textSecondary))
+                            if item.confidence == .low || !item.amount.isEmpty {
+                                Text(item.confidence == .low ? (item.amount.isEmpty ? "Check portion" : "\(item.amount) · Check portion") : item.amount)
+                                    .lxFont(.footnote).foregroundStyle(item.confidence == .low ? .lx(.statusAttention) : .lx(.textSecondary))
+                            }
                         }
                         Spacer()
                         Text("\(item.kcal)").lxFont(.headline, numeric: true).foregroundStyle(.lx(.textPrimary))
@@ -247,20 +249,24 @@ struct LXPhotoCard: View {
     var lifted = true
 
     var body: some View {
-        ZStack {
-            image.resizable().scaledToFill()
-                .blur(radius: lifted ? 6 : 0)
-                .overlay(Color.black.opacity(lifted ? 0.35 : 0))
-            if lifted {
-                image.resizable().scaledToFit()
-                    .scaleEffect(1.04)
-                    .shadow(color: .black.opacity(0.45), radius: 18, y: 14)
-            }
-            GeometryReader { geo in
-                ForEach(Array(labels.enumerated()), id: \.offset) { _, label in
-                    Text(label.text).lxFont(.caption, weight: .semibold).foregroundStyle(.lx(.textPrimary))
-                        .padding(.horizontal, 8).padding(.vertical, 4).lxGlass()
-                        .position(x: geo.size.width * label.at.x, y: geo.size.height * label.at.y)
+        // The photo fills whatever frame the caller gives; a scaled-to-fill image
+        // must not size the card itself, or a wide photo overflows its frame.
+        Color.clear.overlay {
+            ZStack {
+                image.resizable().scaledToFill()
+                    .blur(radius: lifted ? 6 : 0)
+                    .overlay(Color.black.opacity(lifted ? 0.35 : 0))
+                if lifted {
+                    image.resizable().scaledToFit()
+                        .scaleEffect(1.04)
+                        .shadow(color: .black.opacity(0.45), radius: 18, y: 14)
+                }
+                GeometryReader { geo in
+                    ForEach(Array(labels.enumerated()), id: \.offset) { _, label in
+                        Text(label.text).lxFont(.caption, weight: .semibold).foregroundStyle(.lx(.textPrimary))
+                            .padding(.horizontal, 8).padding(.vertical, 4).lxGlass()
+                            .position(x: geo.size.width * label.at.x, y: geo.size.height * label.at.y)
+                    }
                 }
             }
         }
@@ -297,8 +303,11 @@ struct LXWorkoutCard: View {
                 }
                 if !isPlanned {
                     HStack(spacing: 6) {
-                        Text("+\(earnedKcal) kcal earned").lxFont(.subhead, numeric: true, weight: .semibold).foregroundStyle(.lx(.dataActivity))
-                        Text("· \(time)").lxFont(.subhead, numeric: true).foregroundStyle(.lx(.textSecondary))
+                        // "+0 kcal earned" reads as a failure; with no credit the card just shows when.
+                        if earnedKcal > 0 {
+                            Text("+\(earnedKcal) kcal earned").lxFont(.subhead, numeric: true, weight: .semibold).foregroundStyle(.lx(.dataActivity))
+                        }
+                        Text(earnedKcal > 0 ? "· \(time)" : time).lxFont(.subhead, numeric: true).foregroundStyle(.lx(.textSecondary))
                     }
                     .lineLimit(1)
                 }
@@ -311,6 +320,6 @@ struct LXWorkoutCard: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(isPlanned ? "Planned \(title), \(durationMinutes) minutes" : "\(title), \(durationMinutes) minutes, \(earnedKcal) kilocalories earned, at \(time), from \(source.rawValue)")
+        .accessibilityLabel(isPlanned ? "Planned \(title), \(durationMinutes) minutes" : "\(title), \(durationMinutes) minutes, \(earnedKcal > 0 ? "\(earnedKcal) kilocalories earned, " : "")at \(time), from \(source.rawValue)")
     }
 }

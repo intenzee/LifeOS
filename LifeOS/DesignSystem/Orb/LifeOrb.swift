@@ -152,6 +152,44 @@ struct LifeOrbRenderer {
 
         // 4. Liquid, clipped to the inside of the glass.
         let inner = rect.insetBy(dx: d * 0.035, dy: d * 0.035)
+
+        // 4a. "Ready" state: when the glass is empty (or nearly so) a bare dark
+        // sphere reads as broken, so we fill the void with a soft accent glow and
+        // a faint pooled base. Both fade out as real liquid rises, so a fed day
+        // looks exactly as before.
+        let emptiness = max(0, 1 - state.clampedFill / 0.22)
+        if emptiness > 0.01 {
+            let rimC = Color(lxHex: orb.rim)
+            let liquidC = Color(lxHex: orb.liquidTop)
+            // Gentle breathing glow nested in the lower-centre of the glass, so an
+            // empty vessel looks charged and ready rather than switched off.
+            let pulse = 0.82 + 0.18 * sin(time * 2 * .pi / 3.2)
+            var glow = ctx
+            glow.clip(to: Path(ellipseIn: inner))
+            glow.addFilter(.blur(radius: d * 0.11))
+            let glowCenter = CGPoint(x: inner.midX, y: inner.minY + inner.height * 0.60)
+            glow.fill(Path(ellipseIn: inner),
+                      with: .radialGradient(
+                        Gradient(colors: [liquidC.opacity((dark ? 0.38 : 0.24) * emptiness * pulse),
+                                          liquidC.opacity((dark ? 0.16 : 0.10) * emptiness),
+                                          .clear]),
+                        center: glowCenter, startRadius: 0, endRadius: inner.width * 0.66))
+            // A shallow resting pool so there's always a liquid surface to read.
+            var pool = ctx
+            pool.clip(to: Path(ellipseIn: inner))
+            let poolLevel = inner.maxY - inner.height * 0.07
+            let poolAmp = inner.height * 0.012
+            let poolBody = wave(in: inner, level: poolLevel, amplitude: poolAmp, phase: time * 1.2, frequency: 1.1)
+            pool.fill(poolBody, with: .linearGradient(
+                Gradient(colors: [liquidC.opacity(0.42 * emptiness), liquidC.opacity(0.18 * emptiness)]),
+                startPoint: CGPoint(x: inner.midX, y: poolLevel), endPoint: CGPoint(x: inner.midX, y: inner.maxY)))
+            // Meniscus highlight on the resting pool — the detail that makes it glass.
+            pool.stroke(surfaceLine(in: inner, level: poolLevel, amplitude: poolAmp, phase: time * 1.2, frequency: 1.1),
+                        with: .color(rimC.opacity(0.55 * emptiness)), lineWidth: max(1, d * 0.005))
+            // Lift the rim so the empty silhouette is crisply defined.
+            ctx.stroke(sphere, with: .color(rimC.opacity(0.14 * emptiness)), lineWidth: max(1, d * 0.01))
+        }
+
         if state.clampedFill > 0 {
             var liquid = ctx
             liquid.clip(to: Path(ellipseIn: inner))
